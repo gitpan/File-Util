@@ -1,0 +1,273 @@
+Revision history for Perl extension File::Util.pm
+
+   3.13_1
+      12/22/02, 11:31 pm
+      Method File::Util::file_type() now returns a list instead of a single
+      string of concatenated keyword substrings, the filetype keywords being:
+         plain       text
+         binary      directory
+         symlink     pipe
+         socket      block
+         character   tty
+
+      Methods File::Util::load_file() and File::Util::open_handle() both will
+      truly guarantee the uniqueness of the underlying file handle which is
+      auto-generated, whereas before measures to acheive the uniqueness of
+      the filehandles were taken, but not verified.
+
+      POD documentation got a big update.
+
+   3.13_4
+      11/14/02, 1:22 pm
+      Got rid of all variables in @EXPORT_OK, namely:
+         $OS
+         $EBCDIC
+         $NL
+         $SL
+
+      I wanted to export only methods, seeing as exporting variables just isn't
+      right, no matter how convenient it might be.  There are two new methods,
+      and they are both autoloaded, namely:
+         File::Util::os()
+         File::Util::ebcdic()
+
+      These two methods take no arguments, and return only the value of the
+      previously EXPORT_OK'ed "$OS" and "$EBCDIC"
+
+      Added more thorough testing to distribution tests lineup, and an
+      additional set of tests in an automated "empty subclass test" of the
+      modules native methods and all those it inherits from its ancestoral
+      classes.
+
+      More flock() related tweaking in private methods that implement
+      File::Util's automatic, transparent file locking mechanism.
+
+   3.13_3
+      11/13/02, 9:41 pm
+      Slightly optimized recursive directory listing features of package method
+      File::Util::list_dir() and moved less-used method File::Util::load_dir()
+      to AUTOLOAD.
+
+      Got rid of stupid method File::Util::EB which was previously
+      used for error bracketing around dynamic values quoted in error messages;
+      this has nothing to do with file handling -the purpose of this module.
+
+      Global vars $AUTOLOAD and $ATL are gone, since moving to the use of Perl's
+      native AUTOLOAD extension from the old autoloading mechanism.
+
+      Added/removed functionality tests in the distribution installer according
+      to these changes.
+
+   3.13_1
+      11/13/02, 1:40 am
+      Fixed problem that caused File::Util to not recognize its set flock
+      usage policy, and flock failthrough ruleset when either was manually
+      set during runtime.  Added more flock tests to distribution test scripts.
+
+   3.13_1
+      11/4/02, 12:28 pm
+      Further preparations made to ready the module for PAUSE upload.
+
+   3.13_0
+      Method 'list_dir()' now recognizes a new option, '--ignore-case'.  When
+      this option is included among the other arguments you pass in, the list
+      of items returned will be sorted alphabetically from A to Z without
+      respect to character case.
+
+      Accordingly, when the '--ignore-case' option is used the contents of
+      a directory that would normally appear ordered like the items in
+      Example A would instead appear ordered like the items in the order of
+      Example B.
+
+         Example A. (default list order of directory contents)
+            Changes   COPYING   MANIFEST   Makefile.PL   README   test.pl
+
+         Example B. (case insensitive order)
+            COPYING   Changes   Makefile.PL   MANIFEST   README   test.pl
+
+   3.12_9
+      10/27/02, 1:54 pm
+      Various places where warnings were surfacing undesirably have been
+      corrected.  General preparations made to upload File::Util to PAUSE and
+      ultimately be included in the CPAN.
+
+   3.12_7
+      10/10/02, 11:56 pm
+      Method 'list_dir_a()' no longer suffixes directory items with the
+      system path seperator by force.
+
+   3.12_6
+      10/4/02, 4:22 am
+      Fixed serious problem with flock() wrapper which was previously not
+      working at all when global setting '--fatals-as-status' or global
+      setting '--fatals-as-warning' were used.  An upgrade to the present
+      release of File::Util from versions predating this release (3.12_6) is
+      seriously recommended!
+
+   3.12_5
+      10/1/02, 7:46 pm
+      More performance improvements.
+
+      New argument flags recognized by method 'new':
+         '--fatals-as-warning'   The new File::Util object will CORE::warn()
+                                 about otherwise fatal errors instead of
+                                 failing and exiting the process.
+
+         '--fatals-as-status'    The new File::Util object will return(undef)
+                                 to method calls that would otherwise cause
+                                 fatal errors.
+
+      Method 'write_file' now recognizes the argument flag,
+      '--empty-writes-OK', as an alternative means of allowing the
+      creation of empty files without reaping a nasty fatal error.  Up
+      until now, setting $File::Util::empty_writes to a true value was the
+      only way to accomplish this.
+
+   3.12_4
+      9/23/02, 2:30 pm
+      Fixed 'deep recursion' problem in AUTOLOAD
+
+   3.12_3
+      9/23/02, 1:18 pm
+      Added AUTOLOAD and moved lots of methods away into space.  They get
+      AUTOLOAD-ed when needed, but not compiled as routines in the module.
+      This greatly improves compile-time and run-time performance now.
+      Got rid of methods 'get()' and 'set()'; they're largely useless.
+      Got rid of variable '$File::Util::canhackit'; no longer used.
+
+   3.12_2
+      9/11/02, 12:35 am
+      Moved to OOorNO interface design in order to provide both an Object-
+      Oriented and a Procecural (non-Object-Oriented) programming style
+      interface to File::Util.
+
+   1.10
+      Thursday, March 14, 2002,  1:29:55 AM
+      Constants are now class attributes independent of the constructor method.
+      File::Util objects should always get these constants regardless.
+
+      Constants and OS identification extended upon code from CGI.pm v.2.78
+      (go Lincoln, it's your birthday, get busy...) as such, File::Util got path
+      seperator help to better support a wider variety of platforms.
+
+      Additionally, constants contributed to a major overhaul of how File::Util
+      handles newlines.
+
+   1.09
+      Thursday, March 14, 2002,  1:29:55 AM
+      Error messages got their own place as predefined key-value pairs in an
+      anonymous hash independent of any class methods.  eg-they are commited to
+      memory at compile time for speedy destruction of intentionally halted
+      processes.
+
+   1.07
+      Saturday, February 9, 2002,  3:32:57 PM
+      new method: File::Util::open_handle.  This method lets user pass a
+      typeglob reference (eg- *TYPG) and in return the user will get back a new
+      filehandle which is opened to the filename of their specifications.
+
+   1.06
+      Tuesday, February 5, 2002,  9:47:35 AM
+      Fixed a bug in File::Util::stamp() which made times during the hour of
+      12:00 PM appear with the 'AM' suffix rather than the correct 'PM suffix.
+
+      Added a new format type to File::Util::stamp() called 'file' or 'filename'
+      which returns a timestamp suitible for placing into the name of a file
+      in order to archive old files or versions of code with a time/date stamp
+      embedded into the filename for easy lookup.
+
+   1.05
+      Wednesday, December 5, 2001,  1:36:48 AM
+      Added a few more methods of the same nature as File::Util::size().  Passing
+      in a format keyword argument returns a formatted timestamp.  Format
+      keywords described in detail within the overview entry for previous
+      version 1.02.  Now an overview of new methods:
+
+      File::Util::created([filename][format])
+
+         returns the creation time of the file in seconds since the epoch.  The
+         value returned is then passed back in the same format as the value
+         returned from a call to Perl's built-in function: time()
+
+         consequently, the value returned is suitible for feeding to
+         localtime, or any private methods and functions expecting the same
+         type of input.
+
+         As such, a call to this method on a file which was created at:
+         Thursday, December 6, 2001,  4:27:57 PM
+      ...would return the value: 1007684877
+
+      File::Util::last_mod([filename][format])
+
+         Returns the last modified time of the file you pass to it in seconds
+         since the epoch.  Just as with the new created() method described
+         above, the value returned comes in the same format as the value
+         returned from a call to time(), and is therefore suitible for feeding
+         to localtime() or any other private function or method expecting input
+         of the same type.
+
+         As such, a call to this method on a file which was last modified at:
+         Sunday, December 2, 2001, 12:05:21 AM
+      ...would return the value: 1007280321
+
+      File::Util::last_access([filename][format])
+
+         Same as the two previously described methods, only this method returns
+         the number of seconds since the epoch to the time when the specified
+         file was last accessed.
+
+         As such, a call to this method on a file which was last accessed at:
+         Thursday, December 6, 2001, 12:00:00 AM
+      ...would return the value: 1007625600
+
+   1.04
+      Wednesday, December 5, 2001,  1:36:48 AM
+      Fixed some of the checks on files for existance, added the
+      File::Util::file_size([filename]) method which returns the size of the
+      filename you pass as the only argument.
+
+   1.03
+      Thursday, November 29, 2001, 12:54:07 AM
+      Re-visited the time/date methods to work out a bug which was causing file
+      creation and last-modified times to be returned with incorrect values.
+
+   1.02
+      Tuesday, November 27, 2001,  2:23:55 PM
+      More directory listing options.  Method File::Util::stamp() now takes
+      optional format keyword argument; it lets you choose between different
+      output formats for the returned timemestamp. Format keywords are thus:
+
+      --short                 5/15/02, 4:22 pm
+      --formal                Saturday, June 15, 2002, 4:22 pm
+      --long                  same as '--formal'
+      --succinct              Sat 5/15/02 16:22:43
+      --ISO                   Sat, 15 Jun 2002 16.22.43 GMT
+      --filename              -June-15-2002-16.22.43
+      --file                  same as '--filename'
+      --mdy                   5/15/02
+      --hm                    4:22 pm
+      --hms                   4:22:43 pm
+      --24hms                 16:22:43
+      --dayofmonth            15
+      --dayofyear             134 (1 - 365)
+      --dayofweek             Saturday
+      --dayofweek, --num      7
+      --month                 June
+      --month, --num          6
+      --year                  2002
+      --shortyear             02
+      --minute                22
+      --hour                  16 (0 - 24)
+      --second                43
+
+   1.01
+      Wednesday, November 21, 2001,  4:00:00 PM
+      All methods now include very detailed error messages and a stack trace
+      to help quickly track down mistakes.  You can fix mistakes now without
+      having to decipher some cryptic error message which no one can understand
+      and whose origin one can guess  :o(
+
+   1.00
+      Sunday, September 23, 2001  4:18:30 PM
+      Initial release of File::Util.pm
+
