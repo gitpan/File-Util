@@ -3,7 +3,7 @@ use strict;
 use Test;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 43, todo => [] }
+BEGIN { plan tests => 41, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...

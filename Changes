@@ -1,5 +1,11 @@
 Revision history for Perl extension File::Util.pm
 
+   3.14_2
+      1/14/03, 12:05 am
+      Much more documentation added.  Various methods slightly altered to stay
+      in keeping with the docs and with standard conventions.  Test suite
+      revisited somewhat.
+
    3.14_1
       1/2/03, 3:47 am
       Added a substantial amount of new documentation.  Spelling errors in

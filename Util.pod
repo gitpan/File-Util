@@ -1,5 +1,3 @@
-=pod
-
 =head1 NAME
 
 File::Util - Easy, versatile, portable file handling
@@ -18,7 +16,7 @@ the CPAN yet.
 I<-- This part of the documentation is not yet complete! -->
 
    Nothing here at present.
-
+
 =head1 DESCRIPTION
 
 File::Util provides a comprehensive toolbox of utilities to automate all
@@ -26,7 +24,7 @@ kinds of common tasks on file / directories.  Its purpose is to do so
 in the most portable manner possible so that users of this module won't
 have to worry about whether their programs will work on other OSes
 and machines.
-
+
 =head1 INSTALLATION
 
 To install this module type the following at the command prompt:
@@ -38,10 +36,10 @@ To install this module type the following at the command prompt:
 
 On windows machines use nmake rather than make; those running cygwin don't have
 to worry about this.  If you don't know what cygwin is, use nmake and check out
-L<http://cygwin.com/> after you're done installing this module if you
-want to find out.
-
-=head1 File::Util ISA
+http://cygwin.com/ after you're done installing this module if you want to
+find out.
+
+=head1 ISA
 
 =over
 
@@ -50,13 +48,63 @@ want to find out.
 =item L<Class::OOorNO>
 
 =back
-
+
+=head1 EXPORTED SYMBOLS
+
+Exports nothing by default.
+
+=head2 EXPORT_OK
+
+The following symbols comprise C<@File::Util::EXPORT_OK>), and as such are
+available for import to your namespace only upon request.
+
+=over
+
+=item C<bitmask>           I<(see L<bitmask|/bitmask>)>
+
+=item C<can_flock>         I<(see L<can_flock|/can_flock>)>
+
+=item C<can_read>          I<(see L<can_read|/can_read>)>
+
+=item C<can_write>         I<(see L<can_write|/can_write>)>
+
+=item C<ebcdic>            I<(see L<ebcdic|/ebcdic>)>
+
+=item C<escape_filename>   I<(see L<escape_filename|/escape_filename>)>
+
+=item C<existent>          I<(see L<existent|/existent>)>
+
+=item C<file_type>         I<(see L<file_type|/file_type>)>
+
+=item C<isbin>             I<(see L<isbin|/isbin>)>
+
+=item C<NL>                I<(see L<NL|/NL>)>
+
+=item C<needs_binmode>     I<(see L<needs_binmode|/needs_binmode>)>
+
+=item C<size>              I<(see L<size|/size>)>
+
+=item C<SL>                I<(see L<SL|/SL>)>
+
+=item C<strip_path>        I<(see L<strip_path|/strip_path>)>
+
+=item C<valid_filename>    I<(see L<valid_filename|/valid_filename>)>
+
+=back
+
+B<Note:> Symbols in C<@L<Class::OOorNO|Class::OOorNO>::EXPORT_OK> are also
+available for import.
+
+=head2 EXPORT_TAGS
+
+   :all (exports all of @File::Util::EXPORT_OK)
+
 =head1 METHODS
 
 B<Note:> Some of the methods listed will state that they are autoloaded methods.
 Autloaded methods are not compiled at runtime as part of your process and only
 get created if called somewhere in your program.  I<(see L<AutoLoader>.)>
-
+
 =head2 C<bitmask>
 
 =over
@@ -69,7 +117,7 @@ notation eg- C<0644>.  Otherwise, returns C<undef> if the file does I<not>
 exist.  This is an autoloaded method.
 
 =back
-
+
 =head2 C<can_flock>
 
 =over
@@ -86,7 +134,7 @@ B<Note:> Perl will try to support or emulate flock whenever it can via
 available system calls, namely C<flock>; C<lockf>; or with C<fcntl>.
 
 =back
-
+
 =head2 C<can_read>
 
 =over
@@ -102,7 +150,7 @@ I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
 is an autoloaded method.
 
 =back
-
+
 =head2 C<can_write>
 
 =over
@@ -118,7 +166,7 @@ I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
 is an autoloaded method.
 
 =back
-
+
 =head2 C<created>
 
 =over
@@ -131,7 +179,7 @@ Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
 This is an autoloaded method.
 
 =back
-
+
 =head2 C<ebcdic>
 
 =over
@@ -144,7 +192,7 @@ constant subroutine.  It accepts no arguments and will always return the same
 value for the system on which it is executed.
 
 =back
-
+
 =head2 C<escape_filename>
 
 =over
@@ -155,7 +203,7 @@ I<-- Documentation for this method is not yet complete! --> This is an
 autoloaded method.
 
 =back
-
+
 =head2 C<existent>
 
 =over
@@ -170,7 +218,7 @@ I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
 is an autoloaded method.
 
 =back
-
+
 =head2 C<file_type>
 
 =over
@@ -186,57 +234,40 @@ is the same as the order in which the are listed here:
 
 =over
 
-=item PLAIN
+=item PLAIN             File is a plain file.
 
-File is a plain file.
+=item TEXT              File is a text file.
 
-=item TEXT
+=item BINARY            File is a binary file.
 
-File is a text file.
+=item DIRECTORY         File is a directory.
 
-=item BINARY
+=item SYMLINK           File is a symbolic link.
 
-File is a binary file.
+=item PIPE              File is a named pipe (FIFO).
 
-=item DIRECTORY
+=item SOCKET            File is a socket.
 
-File is a directory.
+=item BLOCK             File is a block special file.
 
-=item SYMLINK
-
-File is a symbolic link.
-
-=item PIPE
-
-File is a named pipe (FIFO).
-
-=item SOCKET
-
-File is a socket.
-
-=item BLOCK
-
-File is a block special file.
-
-=item CHARACTER
-
-File is a character special file.
+=item CHARACTER         File is a character special file.
 
 =back
 
 =back
-
+
 =head2 C<flock_rules>
 
 =over
 
 =item I<Syntax:> C<flock_rules( [Keywords] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<isbin>
 
 =over
@@ -252,7 +283,7 @@ I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
 is an autoloaded method.
 
 =back
-
+
 =head2 C<last_access>
 
 =over
@@ -265,7 +296,7 @@ Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
 This is an autoloaded method.
 
 =back
-
+
 =head2 C<last_mod>
 
 =over
@@ -278,7 +309,7 @@ Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
 This is an autoloaded method.
 
 =back
-
+
 =head2 C<line_count>
 
 =over
@@ -289,7 +320,7 @@ Returns the number of lines in the named file.  Fails with an error if the
 named file does not exist.
 
 =back
-
+
 =head2 C<list_dir>
 
 =over
@@ -299,7 +330,7 @@ named file does not exist.
 I<-- Documentation for this method is not yet complete! -->
 
 =back
-
+
 =head2 C<load_dir>
 
 =over
@@ -358,7 +389,7 @@ and 'd.conf')
       };
 
 =back
-
+
 =head2 C<load_file>
 
 =over
@@ -368,29 +399,31 @@ and 'd.conf')
 I<-- Documentation for this method is not yet complete! -->
 
 =back
-
+
 =head2 C<make_dir>
 
 =over
 
 =item I<Syntax:> C<make_dir( [new directory name] , [--opts] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<max_dives>
 
 =over
 
 =item I<Syntax:> C<max_dives( [integer] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<needs_binmode>
 
 =over
@@ -404,50 +437,85 @@ subroutine.  It accepts no arguments and will always return the same value for
 the system on which it is executed.
 
 =back
-
+
 =head2 C<new>
 
 =over
 
-=item I<Syntax:> C<new( [--opts] )>
+=item I<Syntax:> C<new( ['parameters' => 'values', etc], [--flags] )>
 
-I<-- Documentation for this method is not yet complete! -->
+This is the File::Util constructor method.  eg- It returns a new File::Util
+object reference when you call it.  It recognizes various parameters and flags
+that govern the behavior of the new File::Util object.
+
+=over
+
+=item B<Parameters>
+
+=over
+
+=item use_flock   => true/false value
+
+=item flock_rules => 'KEYWORD LIST'
+
+=item readlimit   => positive integer
+
+=item max_dives   => positive integer
 
 =back
-
+
+=item B<Flags>
+
+=over
+
+=item --fatals-as-status
+
+=item --fatals-as-warning
+
+=item --fatals-as-errmsg
+
+=back
+
+=back
+
+=back
+
 =head2 C<open_handle>
 
 =over
 
 =item I<Syntax:> C<open_handle( [file name] , [--opts] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<readlimit>
 
 =over
 
 =item I<Syntax:> C<readlimit( [integer] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<size>
 
 =over
 
 =item I<Syntax:> C<size( [file name] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<strip_path>
 
 =over
@@ -457,39 +525,41 @@ autoloaded method.
 I<-- Documentation for this method is not yet complete! -->
 
 =back
-
+
 =head2 C<trunc>
 
 =over
 
 =item I<Syntax:> C<trunc( [file name] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<use_flock>
 
 =over
 
 =item I<Syntax:> C<use_flock( [true / false value] )>
 
-I<-- Documentation for this method is not yet complete! -->  This is an
-autoloaded method.
+I<-- Documentation for this method is not yet complete! -->
+
+This is an autoloaded method.
 
 =back
-
+
 =head2 C<write_file>
 
 =over
 
-=item I<Syntax:> C<write_file('file' => [file name], 'content' => [data], [--opts])>
+=item I<Syntax:> C<< write_file('file' => [file name], 'content' => [data], [--opts]) >>
 
 I<-- Documentation for this method is not yet complete! -->
 
 =back
-
+
 =head2 C<valid_filename>
 
 =over
@@ -499,7 +569,7 @@ I<-- Documentation for this method is not yet complete! -->
 I<-- Documentation for this method is not yet complete! -->
 
 =back
-
+
 =head1 CONSTANTS
 
 =head2 C<NL>
@@ -510,9 +580,11 @@ I<-- Documentation for this method is not yet complete! -->
 
 I<-- Documentation for this method is not yet complete! -->
 
-=back
+This is a constant.
 
-=head2 SL
+=back
+
+=head2 C<SL>
 
 =over
 
@@ -520,44 +592,9 @@ I<-- Documentation for this method is not yet complete! -->
 
 I<-- Documentation for this method is not yet complete! -->
 
-=back
-
-=head1 EXPORT
-None by default.
-=head1 EXPORT_OK
-
-=over
-
-=item C<L<bitmask|/bitmask>>
-=item C<L<can_flock|/can_flock>>
-=item C<L<can_read|/can_read>>
-=item C<L<can_write|/can_write>>
-=item C<L<ebcdic|/ebcdic>>
-
-=item C<L<escape_filename|/escape_filename>>
-
-=item C<L<existent|/existent>>
-=item C<L<file_type|/file_type>>
-
-=item C<L<isbin|/isbin>>
-
-=item C<L<NL|/NL>>
-=item C<L<needs_binmode|/needs_binmode>>
-
-=item C<L<size|/size>>
-=item C<L<SL|/SL>>
-=item C<L<strip_path|/strip_path>>
-=item C<L<valid_filename|/valid_filename>>
-
-=item I<Symbols in C<@Class::L<OOorNO|OOorNO>::EXPORT_OK> are also available for import.>
+This is a constant.
 
 =back
-
-
-=head2 EXPORT_TAGS
-
-   :all (exports all of @File::Util::EXPORT_OK)
-
 
 =head1 PREREQUISITES
 
@@ -571,11 +608,9 @@ None by default.
 
 =back
 
-
 =head1 EXAMPLES
 
 None at present.
-
 
 =head1 BUGS
 
@@ -584,38 +619,19 @@ as quickly as possible.  Please exercise caution if you choose to use this
 code before it can be further documented for you.  Please excuse the
 inconvenience.
 
-
 =head1 AUTHOR
 
 Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
 
-
 =head1 COPYRIGHT
 
 Copyright(C) 2001-2003, Tommy Butler.  All rights reserved.
-
 
 =head1 LICENSE
 
 This library is free software, you may redistribute and/or modify it under
 the same terms as Perl itself.
 
-
 =head1 SEE ALSO
 
-=over
-
-=item L<Class::OOorNO>
-
-=item L<Exception::Handler>
-
-=item L<File::Slurp>
-
-=item L<Exporter>
-
-=item L<AutoLoader>
-
-=back
-
-=cut
-
+L<File::Slurp>, L<Exception::Handler>, L<Class::OOorNO>
