@@ -3,7 +3,7 @@ use strict;
 use Test;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 41, todo => [] }
+BEGIN { plan tests => 40, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...
@@ -28,7 +28,11 @@ ok($f->existent('testbed'), 1);
    my(@lines) = $f->load_file('MANIFEST','--as-list');
 
    map { ok($f->existent($_) and -e $_) } $f->list_dir('.', @opts);
-   map { next if !length($_); ok(existent($_) and -e $_) } @lines;
+   map {
+      next if !length($_);
+      next if $_ =~ /^META\.yml/o;
+      ok(existent($_) and -e $_)
+   } @lines;
 }
 
 # make a temporary file
@@ -91,10 +95,6 @@ foreach (reverse(sort({ length($a) <=> length($b) } @items)),'testbed') {
 
    -d $_ ? rmdir($_) || &_rmdie($!) : unlink($_) || &_uldie($!);
 }
-
-# these files should be gone now.
-ok($f->existent($tmpf),undef);
-ok($f->existent('testbed'),undef);
 
 exit;
 

@@ -12,7 +12,7 @@ use vars qw
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = '3.14_2'; # 1/14/03, 12:05 am
+$VERSION    = '3.14_6'; # Mon Sep 22 11:04:35 CDT 2003
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  =
    (
@@ -20,7 +20,8 @@ $VERSION    = '3.14_2'; # 1/14/03, 12:05 am
          (
             can_flock   ebcdic   existent   isbin   bitmask   NL   SL
             strip_path   can_read   can_write   file_type   needs_binmode
-            valid_filename   size   escape_filename   os
+            valid_filename   size   escape_filename   return_path
+            created   last_access   last_modified
          )
    );
 %EXPORT_TAGS = ( 'all'  => [ @EXPORT_OK ] );
@@ -55,7 +56,7 @@ $SL =
 
 } BEGIN { use constant NL => $NL; use constant SL => $SL; }
 
-$DIRSPLIT = qr/${\quotemeta($SL)}/;
+$DIRSPLIT    = qr/[\\\/\:]/;
 $ILLEGAL_CHR = qr/[\/\|$NL\r\n\t\013\*\"\?\<\:\>\\]/;
 
 $READLIMIT  = 10000000; # set readlimit to a default of 10 megabytes
@@ -99,7 +100,7 @@ sub new {
    $USE_FLOCK  = $$in{'use_flock'} if defined($$in{'use_flock'});
    $READLIMIT  = $$in{'readlimit'} if defined($$in{'readlimit'});
    $MAXDIVES   = $$in{'max_dives'} if defined($$in{'max_dives'});
-   @ONLOCKFAIL = split(/ /,$$in{'flock_rules'}) if defined($$in{'flock_rules'});
+   @ONLOCKFAIL = split(/ /,$$in{'flock_rules'}) if defined $$in{'flock_rules'};
 
    $this;
 }
@@ -114,6 +115,7 @@ sub list_dir {
    my($opts) = $this->shave_opts(\@_);
    my($dir)  = shift(@_)||'.';
    my($path) = $dir;
+   my($maxd) = $opts->{'--max-dives'} || $MAXDIVES;
    my($r)    = 0;
    my(@dirs) = (); my(@files) = (); my(@items) = ();
 
@@ -129,24 +131,7 @@ sub list_dir {
          )
       unless length($dir);
 
-   return($this->_throw('no such file', { 'filename' => $dir })) unless -e $dir;
-
-   if ($opts->{'--recursing'}) { ++$this->{'recursed'} }
-   else { $this->{'recursed'} = 0 }
-
-   if ($this->{'recursed'} >= $MAXDIVES) {
-
-      return $this->_throw
-         (
-            'maxdives exceeded',
-            {
-               'meth'      => 'list_dir',
-               'opts'      => $opts,
-            }
-         )
-   }
-
-   $r = 1 if ($opts->{'--follow'} || $opts->{'--recurse'});
+   return($this->_throw('no such file', {'filename' => $dir})) unless -e $dir;
 
    # whack off any trailing directory separator
    unless (length($dir) == 1)
@@ -162,6 +147,33 @@ sub list_dir {
             }
          )
       unless (-d $dir);
+
+   # this directory recursion method keeps track of dives based on the parent
+   # directory of $dir, rather than on $dir itself so that multiple
+   # subdirectories within the same parent directory don't improperly increment
+   # the number of dives made
+   if ($opts->{'--recursing'}) {
+
+      my($pdir) = $dir; $pdir =~ s/(^.*)$DIRSPLIT.*/$1/;
+
+      $this->{'traversed'}{ $pdir } = $pdir;
+   }
+   else { $this->{'traversed'} = {} }
+
+   if (scalar keys %{ $this->{'traversed'} } >= $maxd) {
+
+      return $this->_throw
+         (
+            'maxdives exceeded',
+            {
+               'meth'      => 'list_dir',
+               'maxdives'  => $maxd,
+               'opts'      => $opts,
+            }
+         )
+   }
+
+   $r = 1 if ($opts->{'--follow'} || $opts->{'--recurse'});
 
    local(*DIR);
 
@@ -180,15 +192,6 @@ sub list_dir {
    # read from beginning of the directory (doesn't seem necessary on any
    # platforms I've run code on, but just in case...)
    rewinddir(DIR);
-
-   if ($opts->{'--count-only'}) {
-
-      my($i) = 0; my($o) = '';
-
-      while ($o = readdir(DIR)) { ++$i unless (($o eq '.')||($o eq '..')) }
-
-      return($i);
-   }
 
    @files =
       exists($opts->{'--pattern'})
@@ -260,7 +263,7 @@ sub list_dir {
                $dirs[$i],
                '--with-paths',   '--dirs-as-ref',
                '--files-as-ref', '--recursing',
-               '--no-fsdots',
+               '--no-fsdots',    '--max-dives=' . $maxd
             );
 
          push(@dirs,@{$lsts[0]}); push(@items,@{$lsts[1]});
@@ -288,10 +291,21 @@ sub list_dir {
       $retb = [ sort {$a cmp $b} @items ];
    }
 
-   $reta=[$reta]  if ($opts->{'--dirs-as-ref'}  || $opts->{'--as-ref'});
-   $retb=[$retb]  if ($opts->{'--files-as-ref'} || $opts->{'--as-ref'});
-   return(@$reta) if ($opts->{'--dirs-only'});
-   return(@$retb) if ($opts->{'--files-only'});
+   return(scalar(@$reta))
+      if $opts->{'--dirs-only'} && $opts->{'--count-only'};
+
+   return(scalar(@$retb))
+      if $opts->{'--files-only'} && $opts->{'--count-only'};
+
+   return(scalar(@$reta) + scalar(@$retb)) if $opts->{'--count-only'};
+
+   return($reta,$retb) if $opts->{'--as-ref'};
+
+   $reta=[$reta] if $opts->{'--dirs-as-ref'};
+   $retb=[$retb] if $opts->{'--files-as-ref'};
+
+   return(@$reta) if $opts->{'--dirs-only'};
+   return(@$retb) if $opts->{'--files-only'};
 
    return(@$reta,@$retb);
 }
@@ -387,7 +401,7 @@ sub load_file {
 
          if ($buff < $READLIMIT) {
 
-            $bytes_read = read($fh, $content, $blocksize); $buff += $bytes_read;
+            $bytes_read = read($fh,$content,$blocksize); $buff += $bytes_read;
          }
          else {
 
@@ -460,27 +474,6 @@ sub load_file {
          }
       )
    if -d $path . SL . $file;
-#
-#
-#
-#
-#
-#
-#
-#
-
-   # return $this->_throw( qq[
-      # $this->{'name'} can't open " $file " for reading because
-      # it is a a block special file.] )
-         # if (-b $path . SL . $file);
-#
-#
-#
-#
-#
-#
-#
-#
 
    my($fsize) = -s $path . SL . $file;
 
@@ -663,7 +656,7 @@ sub write_file {
          (!$opts->{'--empty-writes-OK'})
       );
 
-   # take care of idiots.  HEY!  I resent that!
+   # remove trailing directory seperator
    $filename =~ s/$DIRSPLIT$//;
 
    # determine existance of the file path, make directory(ies) for the
@@ -823,6 +816,8 @@ sub write_file {
    }
 
    $in->{'content'}||=''; syswrite(WRITE_FILE, $in->{'content'});
+
+   $in->{'content'} = 1 if $mode eq 'trunc';
 
    # release lock on the file
    unless ($$opts{'--no-lock'} || !$USE_FLOCK) { $this->_release(*WRITE_FILE) }
@@ -985,7 +980,12 @@ sub _release {
 # --------------------------------------------------------
 # File::Util::valid_filename()
 # --------------------------------------------------------
-sub valid_filename { my($f) = myargs(@_); $f !~ /$ILLEGAL_CHR/ }
+sub valid_filename {
+
+   my($f) = myargs(@_);
+
+   $f !~ /$ILLEGAL_CHR/ ? 1 : undef
+}
 
 
 # --------------------------------------------------------
@@ -999,7 +999,10 @@ sub strip_path { my($f) = myargs(@_); pop @{['', split(/$DIRSPLIT/,$f)]}||'' }
 # --------------------------------------------------------
 sub line_count {
 
-   my($this,$file) = @_; my($buff) = ''; my($lines) = 0; my($cmd) = '<' . $file;
+   my($this,$file) = @_;
+   my($buff)   = '';
+   my($lines)  = 0;
+   my($cmd)    = '<' . $file;
 
    local(*LINES);
 
@@ -1078,47 +1081,19 @@ sub ebcdic { $EBCDIC }
 # --------------------------------------------------------
 sub escape_filename {
 
-   my($opts)   = shave_opts(\@_);
+   my($opts) = shave_opts(\@_);
    my($file,$escape,$also) = myargs(@_);
-   my(@dirs)   = ();
-   my($path)   = '';
-   my($mskpath)= '';
 
-   $escape  = '_' if (!defined($escape));
+   $escape = '_' if !defined($escape);
 
-   # take care of idiots  HEY!  I resent that!
-   $file =~ s/$DIRSPLIT$//;
+   $file = strip_path($file) if $opts->{'--strip-path'};
 
-   # determine existance of the file path, make directory(ies) for the
-   # path if the full directory path doesn't exist
-   @dirs = split(/$DIRSPLIT/, $file);
+   if ($also) { $file =~ s/\Q$also\E/$escape/g }
 
-   if (scalar(@dirs) > 0) {
-
-      $file    = pop(@dirs);
-      $path    = join(SL, @dirs);
-      $mskpath = join($escape , @dirs);
-   }
-
-   if (length($path) > 0) {
-
-      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
-   }
-   else { $path = '.'; }
-
-   if ($also) { $file =~ s/\Q$also\E/$escape/g; }
    $file =~ s/$ILLEGAL_CHR/$escape/g;
-   $file =~ s/^(?:\.$DIRSPLIT)+?\w//o;
+   $file =~ s/$DIRSPLIT/$escape/g;
 
-   if ($opts->{'--strip-path'}) {
-
-      # take care of relative path prefixes still present
-      $file =~ s/^(?:\.$DIRSPLIT)+?//o;
-
-      return($file);
-   }
-
-   $mskpath . $escape . $file;
+   $file
 }
 
 
@@ -1183,9 +1158,9 @@ sub last_access {
 
 
 # --------------------------------------------------------
-# File::Util::last_mod()
+# File::Util::last_modified()
 # --------------------------------------------------------
-sub last_mod {
+sub last_modified {
 
    my($f) = myargs(@_); $f ||= '';
 
@@ -1383,7 +1358,7 @@ sub open_handle {
    my($this)      = shift(@_);
    my($opts)      = $this->shave_opts(\@_);
    my($in)        = $this->coerce_array(@_);
-   my($filename)  = $in->{'file'}      || '';
+   my($filename)  = $in->{'file'}      || $in->{'filename'} || '';
    my($mode)      = $in->{'mode'}      || 'write';
    my($bitmask)   = $in->{'bitmask'}   || 0777;
    my($fh)        = undef;
@@ -1418,7 +1393,7 @@ sub open_handle {
       )
    if ($filename =~ /(?:$DIRSPLIT){2,}/);
 
-   # take care of idiots.  HEY!  I resent that!
+   # remove trailing directory seperator
    $filename =~ s/$DIRSPLIT$//;
 
    # determine existance of the file path, make directory(ies) for the
@@ -1633,6 +1608,12 @@ sub readlimit {
 
    $READLIMIT
 }
+
+
+# --------------------------------------------------------
+# File::Util::return_path()
+# --------------------------------------------------------
+sub return_path { my($f) = myargs(@_); $f =~ s/(^.*)$DIRSPLIT.*/$1/o; $f }
 
 
 # --------------------------------------------------------
@@ -2035,12 +2016,12 @@ __readlimit__
 
 # EXCEEDED MAXDIVES
 'maxdives exceeded' => <<'__maxdives__',
-Recursion limit reached at $EBL$MAXDIVES$EBR dives.  Maximum number of
-subdirectory dives is set to the value returned by $in->{'_pak'}::max_dives().
-Try manually setting the value to a higher number before calling list_dir()
-with option --follow or --recurse (synonymous).  Do so by calling
-$in->{'_pak'}::max_dives() with the numeric argument corresponding to the
-maximum number of subdirectory dives you want to allow when traversing
+Recursion limit reached at $EBL${\ $in->{'maxdives'} || $MAXDIVES }$EBR dives.
+Maximum number of subdirectory dives is set to the value returned by
+$in->{'_pak'}::max_dives().  Try manually setting the value to a higher number
+before calling list_dir() with option --follow or --recurse (synonymous).  Do
+so by calling $in->{'_pak'}::max_dives() with the numeric argument corresponding
+to the maximum number of subdirectory dives you want to allow when traversing
 directories recursively.
 
 This operation aborted.

@@ -1,4 +1,4 @@
-File::Util version 3.14_2
+File::Util version 3.14_6
 =========================
 
 DESCRIPTION
@@ -11,6 +11,28 @@ and machines.
 
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
+
+   3.14_6
+      Mon Sep 22 11:10:46 CDT 2003
+      Changes to methods File::Util::list_dir() and
+      File::Util::escape_filename() increase efficiency and fix some bugs.
+      Both methods retain the same interface and return values in the same
+      manner.
+
+      Added new method File::Util::return_path() (see documentation).
+
+      Method File::Util::last_mod changed to File::Util::last_modified for
+      clarity, better readability, and consistency with other similar methods
+      in the File::Util namespace. (eg- File::Util::last_access, etc)
+
+      Added the following methods to @EXPORT_OK
+         File::Util::return_path()
+         File::Util::created()
+         File::Util::last_access()
+         File::Util::last_modified()
+
+      Much more documentation added.  Test suite revisited to reflect changes
+      to the methods mentioned above.
 
    3.14_2
       1/14/03, 12:05 am
@@ -70,7 +92,8 @@ COPYRIGHT
    Copyright (C) Tommy Butler 2001-2002, all rights reserved.
 
 
-LICENCE
+LICENCE
+
    This library is free software, you may redistribute it and/or modify it
    under the same terms as Perl itself.
 

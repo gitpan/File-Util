@@ -19,21 +19,21 @@ flock(STDIN, &Fcntl::LOCK_UN);
 __canflock__
 
 # using flock? get/set flock-ing usage toggle
-ok($f->use_flock( ),1);                                                 # test 1
-ok($f->use_flock(1),1);                                                 # test 2
-ok($f->use_flock(0),0);                                                 # test 3
-ok($f->use_flock( ),0);                                                 # test 4
-ok($f->use_flock(1),1);                                                 # test 5
+ok($f->use_flock( ),1);                                                # test 1
+ok($f->use_flock(1),1);                                                # test 2
+ok($f->use_flock(0),0);                                                # test 3
+ok($f->use_flock( ),0);                                                # test 4
+ok($f->use_flock(1),1);                                                # test 5
 
 # get/set flock-ing failure policy
-ok(qq[@{[$f->flock_rules()]}],'BLOCK FAIL');                            # test 6
-ok(shift(@{[$f->flock_rules(qw/ ZERO /)]}),'ZERO');                     # test 7
+ok(qq[@{[$f->flock_rules()]}],'BLOCK FAIL');                           # test 6
+ok(shift(@{[$f->flock_rules(qw/ ZERO /)]}),'ZERO');                    # test 7
 
 # can the system lock file IO?  does it?
-skip(!$probe_flock, $f->can_flock, 1);                                  # test 8
+skip(!$probe_flock, $f->can_flock, 1);                                 # test 8
 
 # does it really work?
-skip(!$probe_flock, &test_flock());                                     # test 9
+skip(!$probe_flock, &test_flock());                                    # test 9
 
 exit;
 
@@ -47,8 +47,8 @@ sub test_flock {
    my($tstr) = 'Hello world!' . NL;
    print($fh $tstr x 50);
 
-   # try to trunc locked file
-   ok( sub {                                                           # test 10
+   # try to $f->trunc locked file (should fail)
+   ok( sub {                                                          # test 10
 
       # FORKING!!
       my($pid) = fork; $| = 1; die(qq[Can't fork: $!]) unless defined($pid);
@@ -59,13 +59,19 @@ sub test_flock {
       -s $tmpf
    });
 
-   # try to delete locked file                                         # test 11
+   # try to $f->write_file on locked file (should fail)               # test 11
    ok( sub {
 
       # FORKING!!
       my($pid) = fork; $| = 1; die(qq[Can't fork: $!]) unless defined($pid);
 
-      if (!$pid) { unlink($tmpf); exit } else { waitpid($pid, 0) }
+      if (!$pid) {
+
+         $f->write_file('file' => $tmpf, 'content' => '', '--empty-writes-OK');
+
+         exit
+      }
+      else { waitpid($pid, 0) }
 
       # DONE WITH THAT NOW.
       -s $tmpf
@@ -75,7 +81,7 @@ sub test_flock {
    close($fh);
 
    # try to trunc the file; should succeed
-   ok( sub { $f->trunc($tmpf); -s $tmpf }, 0);                         # test 12
+   ok( sub { $f->trunc($tmpf); -s $tmpf }, 0);                        # test 12
 
    # try to delete the file; should succeed
    unlink($tmpf);

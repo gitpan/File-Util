@@ -11,12 +11,6 @@ the code, though B<it _is_ stable>.
 This is I<not> a registered module in the CPAN module list.  It is not part of
 the CPAN yet.
 
-=head1 SYNOPSIS
-
-I<-- This part of the documentation is not yet complete! -->
-
-   Nothing here at present.
-
 =head1 DESCRIPTION
 
 File::Util provides a comprehensive toolbox of utilities to automate all
@@ -24,6 +18,46 @@ kinds of common tasks on file / directories.  Its purpose is to do so
 in the most portable manner possible so that users of this module won't
 have to worry about whether their programs will work on other OSes
 and machines.
+
+=head1 SYNOPSIS
+
+   use File::Util;
+   my($f) = File::Util->new();
+
+   my($content) = $f->load_file('foo.txt');
+
+   $content =~ s/this/that/g;
+
+   $f->write_file(
+      'file' => 'bar.txt,
+      'content' => $content,
+      'bitmask' => 0644
+   );
+
+   my(@lines) = $f->load_file('randomquote.txt', '--as-lines');
+   my($line)  = int(rand(scalar @lines));
+
+   print $lines[$line];
+
+   my(@files) = $f->list_dir('/var/tmp', qw/ --files-only --recurse /);
+
+   if ($f->can_write('wibble.log')) {
+
+      my($HANDLE) = $f->open_handle(
+         'file' => 'wibble.log',
+         'mode' => 'append'
+      );
+
+      print $HANDLE "Hello World! It's ", scalar localtime;
+
+      close $HANDLE
+   }
+
+   my($log_line_count) = $f->line_count('/var/log/httpd/access_log');
+
+   print "My file has a bitmask of " . $f->bitmask('my.file');
+
+   # ...and _lots_ more
 
 =head1 INSTALLATION
 
@@ -68,6 +102,8 @@ available for import to your namespace only upon request.
 
 =item C<can_write>         I<(see L<can_write|/can_write>)>
 
+=item C<created>           I<(see L<created|/created>)>
+
 =item C<ebcdic>            I<(see L<ebcdic|/ebcdic>)>
 
 =item C<escape_filename>   I<(see L<escape_filename|/escape_filename>)>
@@ -78,9 +114,15 @@ available for import to your namespace only upon request.
 
 =item C<isbin>             I<(see L<isbin|/isbin>)>
 
+=item C<last_access>       I<(see L<last_access|/last_access>)>
+
+=item C<last_modified>     I<(see L<last_modified|/last_modified>)>
+
 =item C<NL>                I<(see L<NL|/NL>)>
 
 =item C<needs_binmode>     I<(see L<needs_binmode|/needs_binmode>)>
+
+=item C<return_path>       I<(see L<return_path|/return_path>)>
 
 =item C<size>              I<(see L<size|/size>)>
 
@@ -297,11 +339,11 @@ This is an autoloaded method.
 
 =back
 
-=head2 C<last_mod>
+=head2 C<last_modified>
 
 =over
 
-=item I<Syntax:> C<last_mod( [file name] )>
+=item I<Syntax:> C<last_modified( [file name] )>
 
 Returns the last modified time for the named file in non-leap seconds since
 whatever your system considers to be the epoch.  Suitable for feeding to
@@ -327,7 +369,92 @@ named file does not exist.
 
 =item I<Syntax:> C<list_dir( [directory name] , [--opts] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Returns alphabetically sorted all file names in the directory specified if it
+exists.  Fails with an error message if no such directory is found.
+
+=over
+
+=item B<Flags accepted by C<list_dir()>>
+
+=over
+
+=item C<--dirs-only>
+
+return only directory contents which are directories
+
+=item C<--files-only>
+
+return only directory contents which are files
+
+=item C<--no-fsdots>
+
+do not include "." and ".." in the list of directory contents
+
+=item C<--pattern>
+
+return only files/directories matching pattern provided. argument
+should be plain text string.  It will be converted to a perl regex and passed
+to CORE::grep as the method scans through directory listings for a match.
+
+(ex- C<--pattern='\.txt$'> returns all file/directory names ending in ".txt".
+It will match "foo.txt", but not "foo.txt.gz" because of the "$" anchor in the
+regular expression passed in.)
+
+=item C<--with-paths>
+
+Include file paths with the contents of the directory list, relative
+to the directory named in the call.
+
+=item C<--recurse>
+
+Recurse subdirectories
+
+=item C<--follow>
+
+Recurse subdirectories, same as C<--recurse>
+
+=item C<--dirs-as-ref>
+
+When returning directory listing, include first a reference to the list
+of subdirectories found, followed by anything else returned by the call.
+
+=item C<--files-as-ref>
+
+When returning directory listing, include last a reference to the list
+of files found, preceded by a list of subdirectories found (or preceeded
+by a list reference to subdirectories found if C<--dirs-as-ref> was also used).
+
+=item C<--as-ref>
+
+Return a pair list references: the first is a reference to any subdirectories
+found by the call, the second is a reference to any files found by the call.
+
+=item C<--sl-after-dirs>
+
+Append a directory seperator ("/, "\", or ":" depending on your system)
+to all directories found by the call.  Useful in visual displays for quick
+differentiation between subdirectories and files.
+
+=item C<--ignore-case>
+
+Items returned by the call to this method are sorted alphabetically by
+default, so "Zoo.txt" comes before "alligator.txt" because the alphabetical
+sort is case-sensitive.  This is also the way directories are listed at the
+system level on most operating systems.
+
+If you'd like the directory contents returned by this method to be
+sorted without regard to case , use this flag.
+
+=item C<--count-only>
+
+Returns a single value: an integer reflecting the number of items
+found in the directory after applying the filter criteria specified by any
+other flags (ie- "--dirs-only", "--recurse", etc.) that may have been passed
+in as well.
+
+=back
+
+=back
 
 =back
 
@@ -450,7 +577,7 @@ that govern the behavior of the new File::Util object.
 
 =over
 
-=item B<Parameters>
+=item B<Parameters accepted by C<new()>>
 
 =over
 
@@ -464,15 +591,28 @@ that govern the behavior of the new File::Util object.
 
 =back
 
-=item B<Flags>
+=item B<Flags accepted by C<new()>>
 
 =over
 
-=item --fatals-as-status
+=item C<--fatals-as-warning>
 
-=item --fatals-as-warning
+Directive to instruct the new File::Util object that when any call to one of
+its methods results in a fatal error that it should return B<C<undef>>
+instead of the value(s) that would normally be returned by the call, and to
+send an error message to STDERR as well.
 
-=item --fatals-as-errmsg
+=item C<--fatals-as-status>
+
+Directive to instruct the new File::Util object that when any call to one of
+its methods results in a fatal error that it should return B<C<undef>>
+instead of the value(s) that would normally be returned by the call.
+
+=item C<--fatals-as-errmsg>
+
+Directive to instruct the new File::Util object that when any call to one of
+its methods results in a fatal error that it should return B<an error message>
+instead of the value(s) that would normally be returned by the call.
 
 =back
 
@@ -504,6 +644,19 @@ This is an autoloaded method.
 
 =back
 
+=head2 C<return_path>
+
+=over
+
+=item I<Syntax:> C<return_path( [string] )>
+
+Takes the file path from the file name provided and returns it such that
+"/foo/bar/baz.txt" is returned "baz.txt".
+
+This is an autoloaded method.
+
+=back
+
 =head2 C<size>
 
 =over
@@ -522,7 +675,7 @@ This is an autoloaded method.
 
 =item I<Syntax:> C<strip_path( [string] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Strips the file path from the file name provided and returns the file name only.
 
 =back
 
@@ -566,7 +719,12 @@ I<-- Documentation for this method is not yet complete! -->
 
 =item I<Syntax:> C<valid_filename( [string] )>
 
-I<-- Documentation for this method is not yet complete! -->
+For the given string, returns 1 if the string is a legal file name for the
+system on which the program is running, or returns undef if it is not.  This
+method does not test for the validity of file paths!  It tests for the validity
+of file names only.  (It is used internally to check beforehand if a file name
+is useable when creating new files, but is also a public method available for
+external use.)
 
 =back
 
@@ -580,7 +738,8 @@ I<-- Documentation for this method is not yet complete! -->
 
 I<-- Documentation for this method is not yet complete! -->
 
-This is a constant.
+Returns the correct new line character (or character sequence) for the system
+on which your program runs.
 
 =back
 
@@ -590,7 +749,8 @@ This is a constant.
 
 =item I<Syntax:> C<SL>
 
-I<-- Documentation for this method is not yet complete! -->
+Returns the correct directory path seperator for the system on which your
+program runs.
 
 This is a constant.
 
@@ -610,7 +770,494 @@ This is a constant.
 
 =head1 EXAMPLES
 
-None at present.
+=head2 Get the names of all files and subdirectories in a directory
+
+   use File::Util;
+   my($f) = File::Util->new();
+   # option --no-fsdots excludes "." and ".." from the list
+   my(@dirs_and_files) = $f->list_dir('/foo','--no-fsdots');
+
+=head2 Get the names of all files and subdirectories in a directory, recursively
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my(@dirs_and_files) = $f->list_dir('/foo','--recurse');
+
+=head2 Get the names of all files (no subdirectories) in a directory
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my(@dirs_and_files) = $f->list_dir('/foo','--files-only');
+
+=head2 Get the names of all subdirectories (no files) in a directory
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my(@dirs_and_files) = $f->list_dir('/foo','--dirs-only');
+
+=head2 Get the number of files and subdirectories in a directory
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my(@dirs_and_files) = $f->list_dir('/foo', qw/--no-fsdots --count-only/);
+
+=head2 Get the names of files and subdirs in a directory as seperate array refs
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($dirs,$files) = $f->list_dir('/foo', '--as-ref');
+
+      -OR-
+   my($dirs,$files) = $f->list_dir('.', qw/--dirs-as-ref --files-as-ref/);
+
+=head2 Get the contents of a file in a string
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($contents) = $f->load_file('filename');
+
+=head2 Get the contents of a file in an array of lines in the file
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my(@contents) = $f->load_file('filename','--as-lines');
+
+=head2 Get an open file handle for reading
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($FH_REF) = $f->open_handle(
+      'file' => 'new_filename',
+      'mode' => 'read'
+   );
+
+=head2 Get an open file handle for writing
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($FH_REF) = $f->open_handle(
+      'file' => 'new_filename',
+      'mode' => 'write'
+   );
+
+=head2 Write to a new or existing file
+
+   use File::Util;
+   my($content) = 'Pathelogically Eclectic Rubbish Lister';
+   my($f) = File::Util->new();
+   $f->write_file('file' => 'a new file.txt', 'content' => $content);
+
+   # optionally specify a creation bitmask when writing to a new file
+   $f->write_file(
+      'file'    => 'a new file.txt',
+      'bitmask' => 0777,
+      'content' => $content
+   );
+
+=head2 Append to a new or existing file
+
+   use File::Util;
+   my($content) = 'Pathelogically Eclectic Rubbish Lister';
+   my($f) = File::Util->new();
+   $f->write_file(
+      'file' => 'a new file.txt',
+      'mode' => 'append',
+      'content' => $content
+   );
+
+=head2 Determine if something is a valid file name
+
+   use File::Util qw( valid_filename );
+
+   if (valid_filename("foo?+/bar~@/#baz.txt")) {
+      print "file name is valid"
+   else {
+      print "file name contains illegal characters"
+   }
+
+      -OR-
+   use File::Util;
+   print File::Util->valid_filename("foo?+/bar~@/#baz.txt") ? 'ok' : 'bad';
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->valid_filename("foo?+/bar~@/#baz.txt") ? 'ok' : 'bad';
+
+=head2 Get the number of lines in a file
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($linecount) = $f->line_count('foo.txt');
+
+=head2 Strip the path from a file name
+
+   use File::Util;
+   my($f) = File::Util->new();
+
+   # On Windows
+   #  (prints "hosts")
+   my($path) = $f->strip_path('C:\WINDOWS\system32\drivers\etc\hosts');
+
+   # On Linux/Unix
+   #  (prints "perl")
+   print $f->strip_path('/usr/bin/perl');
+
+   # On a Mac
+   #  (prints "baz")
+   print $f->strip_path('foo:bar:baz');
+
+=head2 Get the path preceeding a file name
+
+   use File::Util;
+   my($f) = File::Util->new();
+
+   # On Windows
+   #  (prints "C:\WINDOWS\system32\drivers\etc")
+   my($path) = $f->strip_path('C:\WINDOWS\system32\drivers\etc\hosts');
+
+   # On Linux/Unix
+   #  (prints "/usr/bin")
+   print $f->strip_path('/usr/bin/perl');
+
+   # On a Mac
+   #  (prints "foo:bar")
+   print $f->strip_path('foo:bar:baz');
+
+=head2 Find out if the host system can use flock
+
+   use File::Util qw( can_flock );
+   print can_flock;
+
+      -OR-
+   print File::Util->can_flock;
+
+      -OR-
+   my($f) = File::Util->new();
+   print $f->can_flock;
+
+=head2 Find out if the host system needs to call binmode on binary files
+
+   use File::Util qw( needs_binmode );
+   print needs_binmode;
+
+      -OR-
+   use File::Util;
+   print File::Util->needs_binmode;
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->needs_binmode;
+
+=head2 Find out if a file can be opened for read (based on file permissions)
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($is_readable) = $f->can_read('foo.txt');
+
+=head2 Find out if a file can be opened for write (based on file permissions)
+
+   use File::Util;
+   my($f) = File::Util->new();
+   my($is_writable) = $f->can_write('foo.txt');
+
+=head2 Escape illegal characters in a potential file name (and its path)
+
+   use File::Util;
+   my($f) = File::Util->new();
+
+   # prints "C__WINDOWS_system32_drivers_etc_hosts"
+   print $f->escape_filename('C:\WINDOWS\system32\drivers\etc\hosts');
+
+   # prints "baz)__@^"
+   # (strips the file path from the file name, then escapes it
+   print $f->escape_filename(
+      '/foo/bar/baz)?*@^',
+      '--strip-path'
+   );
+
+   # prints "_foo_!_@so~me#illegal$_file&(name"
+   # (yes, that is a legal filename)
+   print $f->escape_filename(q[\foo*!_@so~me#illegal$*file&(name]);
+
+=head2 Find out if the host system uses EBCDIC
+
+   use File::Util qw( ebcdic );
+   print ebcdic;
+
+      -OR-
+   use File::Util;
+   print File::Util->ebcdic;
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->ebcdic;
+
+=head2 Get the type(s) of an existent file
+
+   use File::Util qw( file_type );
+   print file_type('foo.exe');
+
+      -OR-
+   use File::Util;
+   print File::Util->file_type('bar.txt');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->file_type('/dev/null');
+
+=head2 Get the bitmask of an existent file
+
+   use File::Util qw( bitmask );
+   print bitmask('/usr/sbin/sendmail');
+
+      -OR-
+   use File::Util;
+   print File::Util->bitmask('C:\COMMAND.COM');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->bitmask('/dev/null');
+
+=head2 Get time of creation for a file
+
+   use File::Util qw( created );
+   # prints "Fri Aug 22 14:57:58 2003" on my system
+   print scalar localtime created('/usr/bin/exim');
+
+      -OR-
+   use File::Util;
+   # prints "Fri Apr 23 22:22:00 1999" on my system
+   print scalar localtime File::Util->created('C:\COMMAND.COM');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   # prints "Thu Jul 24 05:51:30 2003" on my system
+   print scalar localtime $f->created('/bin/less');
+
+=head2 Get the last access time for a file
+
+   use File::Util qw( last_access );
+   # prints "Fri Sep  5 04:11:41 2003" on my system
+   print scalar localtime last_access('/usr/bin/exim');
+
+      -OR-
+   use File::Util;
+   # prints "Mon Sep 22 18:51:53 2003" on my system
+   print scalar localtime File::Util->last_access('C:\COMMAND.COM');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   # prints "Mon Sep 22 03:14:38 2003" on my system
+   print scalar localtime $f->last_access('/bin/less');
+
+=head2 Get the last modified time for a file
+
+   use File::Util qw( last_modified );
+   # prints "Fri Sep  5 01:14:51 2003" on my system
+   print scalar localtime last_modified('/usr/bin/exim');
+
+      -OR-
+   use File::Util;
+   # prints "Fri Apr 23 22:22:00 1999" on my system
+   print scalar localtime File::Util->last_modified('C:\COMMAND.COM');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   # prints "Fri Sep  5 01:15:17 2003" on my system
+   print scalar localtime $f->last_modified('/bin/less');
+
+=head2 Make a new directory, recursively if neccessary
+
+   use File::Util;
+   my($f) = File::Util->new();
+   $f->make_dir('/var/tmp/tempfiles/foo/bar/');
+
+   # optionally specify a creation bitmask to be used in directory creations
+   $f->make_dir('/var/tmp/tempfiles/foo/bar/',0755);
+
+=head2 Truncate a file
+
+   use File::Util;
+   my($f) = File::Util->new();
+   $f->trunc('/foo/bar/baz.tmp');
+
+=head2 Get the correct path seperator for the host system
+
+   use File::Util qw( SL );
+   print SL;
+
+      -OR-
+   use File::Util;
+   print File::Util->SL;
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->SL;
+
+=head2 Get the correct newline character for the host system
+
+   use File::Util qw( NL );
+   print NL;
+
+      -OR-
+   use File::Util;
+   print File::Util->NL;
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print $f->NL;
+
+=head1 EXAMPLES (Full Programs)
+
+=head2 Batch File Rename
+
+   # Code changes the file suffix of all files in a directory ending in
+   # *.foo so that they afterward end in *.bar
+
+   use strict;
+   use vars qw( $dir );
+   use File::Util qw( NL SL );
+
+   my($f)      = File::Util->new();
+   my($dir)    = '../wibble';
+   my($old)    = 'foo';
+   my($new)    = 'bar';
+   my(@files)  = $f->list_dir($dir, '--files-only');
+
+   foreach (@files) {
+
+      # don't change the file suffix unless it is *.foo
+      if ($_ =~ /\.$old$/o) {
+
+         my($newname) = $_; $newname =~ s/\.$old/\.$new/;
+
+         if (rename($dir . SL . $_, $dir . SL . $newname)) {
+
+            print qq[$_ -> $newname], NL
+         }
+         else { warn <<__ERR__ }
+   Couldn't rename "$_" to "$newname"!
+   __ERR__
+      }
+      else { print <<__NOCHANGE__ }
+   File retained as "$_"
+   __NOCHANGE__
+   }
+
+=head2 Batch Search & Replace
+
+   # Code does a batch find or search and replace for all files in a given
+   # directory, recursively or non-recursively based on choices set forth
+   # in the code.
+
+   use strict;
+   use File::Util qw( NL SL );
+
+   # will get search pattern from file named below
+   use constant SFILE => './sr/searchfor';
+
+   # will get replace pattern from file named below
+   use constant RFILE => './sr/replacewith';
+
+   # will perform batch operation in directory named below
+   use constant INDIR => '/foo/bar/baz';
+
+   # specify whether the operation will do a find or a search and replace
+   use constant RMODE => [qw| read-only  write |]->[1];
+
+   # set the options for the search (will or will not recurse, etc)
+   my(@opts) = [qw/ --files-only --with-paths --recurse /]->[0,1];
+
+   # create new File::Util object, set File::Util to send a warning for
+   # fatal errors instead of dieing
+   my($f)         = File::Util->new('--fatals-as-warning');
+   my($rstr)      = $f->load_file(RFILE);
+   my($spat)      = quotemeta($f->load_file(SFILE)); $spat = qr/$spat/;
+   my($gsbt)      = 0;
+   my($action)    = RMODE eq 'read-only' ? 'detections' : 'substitutions';
+   my(@files)     = $f->list_dir(INDIR, @opts);
+
+   for (my($i) = 0; $i < @files; ++$i) {
+
+      next if $f->isbin($files[$i]);
+
+      my($sbt) = 0; my($file) = $f->load_file($files[$i]);
+
+      $file =~ s/$spat/++$sbt;++$gsbt;$rstr/ge;
+
+      $f->write_file('file' => $files[$i], 'content' => $file)
+         if RMODE eq 'write';
+
+      print $sbt ? (qq[$sbt $action in $files[$i]] . NL) : '';
+   }
+
+   print( NL . <<__DONE__ . NL x 2) and exit;
+   $gsbt $action in ${\scalar(@files)} files.
+   __DONE__
+
+=head2 Pretty-Print A Directory Recursively
+
+   use strict;
+   use vars qw( $a $b );
+
+   use File::Util qw( NL );
+   my($ind) = '';
+   my($f)   = File::Util->new();
+   my(@o)   = qw(
+      --with-paths
+      --sl-after-dirs
+      --no-fsdots
+      --files-as-ref
+      --dirs-as-ref
+   );
+
+   my($filetree)  = {};
+   my($treetrunk) = '/var/';
+   my($subdirs,$sfiles) = $f->list_dir($treetrunk, @o);
+
+   $filetree = [{
+      $treetrunk => [ sort({ uc $a cmp uc $b } @$subdirs, @$sfiles) ]
+   }];
+
+   descend($filetree->[0]{ $treetrunk },scalar(@$subdirs));
+   walk(@$filetree);
+
+   sub descend {
+      my($parent,$dirnum) = @_;
+      for (my($i) = 0; $i < $dirnum; ++$i) {
+         my($current) = $parent->[$i]; next unless -d $current;
+         my($subdirs,$sfiles) = $f->list_dir($current, @o);
+         map { $_ = $f->strip_path($_) } @$sfiles;
+         splice(@$parent,$i,1,{
+            $current => [ sort({ uc $a cmp uc $b } @$subdirs, @$sfiles) ]
+         });
+         descend($parent->[$i]{ $current },scalar(@$subdirs));
+      }
+      $parent
+   }
+
+   sub walk {
+      my($dir) = shift(@_);
+      foreach (@{ [ %$dir ]->[1] }) {
+         my($mem) = $_;
+         if (ref($mem) eq 'HASH') {
+            print($ind . $f->strip_path([ %$mem ]->[0]) . '/',NL);
+            $ind .= ' ' x 3;
+            walk($mem);
+            $ind = substr($ind,3);
+         } else { print($ind . $mem,NL) }
+      }
+   }
 
 =head1 BUGS
 

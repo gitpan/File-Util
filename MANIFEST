@@ -16,3 +16,4 @@ t/8_export_ok.t
 t/9_empty_subclass.t
 t/bin
 t/txt
+META.yml                                Module meta-data (added by MakeMaker)

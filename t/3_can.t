@@ -31,7 +31,7 @@ map { ok(ref(UNIVERSAL::can($f,$_)),'CODE') } qw
       file_type
       isbin
       last_access
-      last_mod
+      last_modified
       line_count
       list_dir
       load_dir

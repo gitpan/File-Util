@@ -1,5 +1,27 @@
 Revision history for Perl extension File::Util.pm
 
+   3.14_6
+      Mon Sep 22 11:10:46 CDT 2003
+      Changes to methods File::Util::list_dir() and
+      File::Util::escape_filename() increase efficiency and fix some bugs.
+      Both methods retain the same interface and return values in the same
+      manner.
+
+      Added new method File::Util::return_path() (see documentation).
+
+      Method File::Util::last_mod changed to File::Util::last_modified for
+      clarity, better readability, and consistency with other similar methods
+      in the File::Util namespace. (eg- File::Util::last_access, etc)
+
+      Added the following methods to @EXPORT_OK
+         File::Util::return_path()
+         File::Util::created()
+         File::Util::last_access()
+         File::Util::last_modified()
+
+      Much more documentation added.  Test suite revisited to reflect changes
+      to the methods mentioned above.
+
    3.14_2
       1/14/03, 12:05 am
       Much more documentation added.  Various methods slightly altered to stay
@@ -29,18 +51,21 @@ Revision history for Perl extension File::Util.pm
          CHARACTER
 
    3.14_0
-      12/27/02, 5:50 pm
+      12/27/02, 5:50 pm
+
       File::Util no longer @ISA Handy::Dandy, and no longer includes it
       as a prerequisite dependency.  Added a little more documentation,
       but it has a _long_ way to go as yet.
 
    3.13_9
-      12/23/02, 3:22 pm
+      12/23/02, 3:22 pm
+
       A few small changes; no longer lists Handy::Dandy::TimeTools as a
       prerequisite dependency.
 
    3.13_8
-      12/22/02, 11:31 pm
+      12/22/02, 11:31 pm
+
       Method File::Util::file_type() now returns a list instead of a single
       string of concatenated keyword substrings, the file type keywords being:
          plain       text
@@ -75,7 +100,8 @@ Revision history for Perl extension File::Util.pm
       file contained in 'docs-basic.txt' (part of this distribution)
 
    3.13_4
-      11/14/02, 1:22 pm
+      11/14/02, 1:22 pm
+
       Got rid of all variables in @EXPORT_OK, namely:
          $OS
          $EBCDIC
@@ -100,7 +126,8 @@ Revision history for Perl extension File::Util.pm
       File::Util's automatic, transparent file locking mechanism.
 
    3.13_3
-      11/13/02, 9:41 pm
+      11/13/02, 9:41 pm
+
       Slightly optimized recursive directory listing features of package method
       File::Util::list_dir() and moved less-used method File::Util::load_dir()
       to AUTOLOAD.
@@ -116,13 +143,15 @@ Revision history for Perl extension File::Util.pm
       to these changes.
 
    3.13_1
-      11/13/02, 1:40 am
+      11/13/02, 1:40 am
+
       Fixed problem that caused File::Util to not recognize its set flock
       usage policy, and flock failthrough rule set when either was manually
       set during runtime.  Added more flock tests to distribution test scripts.
 
    3.13_1
-      11/4/02, 12:28 pm
+      11/4/02, 12:28 pm
+
       Further preparations made to ready the module for PAUSE upload.
 
    3.13_0
@@ -137,7 +166,8 @@ Revision history for Perl extension File::Util.pm
       Example B.
 
          Example A. (default list order of directory contents)
-            Changes   COPYING   MANIFEST   Makefile.PL   README   test.pl
+            Changes   COPYING   MANIFEST   Makefile.PL   README   test.pl
+
 
          Example B. (case insensitive order)
             COPYING   Changes   Makefile.PL   MANIFEST   README   test.pl
