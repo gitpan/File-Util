@@ -26,8 +26,8 @@ ok($f->use_flock( ),0);                                                # test 4
 ok($f->use_flock(1),1);                                                # test 5
 
 # get/set flock-ing failure policy
-ok(qq[@{[$f->flock_rules()]}],'BLOCK FAIL');                           # test 6
-ok(shift(@{[$f->flock_rules(qw/ ZERO /)]}),'ZERO');                    # test 7
+ok(qq[@{[$f->flock_rules()]}],'NOBLOCKEX FAIL');                       # test 6
+ok(join(' ', $f->flock_rules(qw/ NOBLOCKEX ZERO /)),q[NOBLOCKEX ZERO]);# test 7
 
 # can the system lock file IO?  does it?
 skip(!$probe_flock, $f->can_flock, 1);                                 # test 8
@@ -37,7 +37,7 @@ skip(!$probe_flock, &test_flock());                                    # test 9
 
 exit;
 
-# put flock to the test (pun _intended_)
+# put flock to the "test"
 sub test_flock {
 
    # lock file, keep open handle on it

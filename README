@@ -1,4 +1,4 @@
-File::Util version 3.14_6
+File::Util version 3.14_7
 =========================
 
 DESCRIPTION
@@ -11,6 +11,14 @@ and machines.
 
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
+
+   3.14_7
+      Sat Jan 31 13:36:24 CST 2004
+      Changes to method File::Util::flock_rules() to output helpful error
+      message if specification of invalid file locking policy attempted.
+
+      More documentation added for various methods whose documentation had
+      yet to be written.
 
    3.14_6
       Mon Sep 22 11:10:46 CDT 2003
@@ -39,28 +47,6 @@ CHANGES IN LAST FEW RELEASES
       Much more documentation added.  Various methods slightly altered to stay
       in keeping with the docs and with standard conventions.  Test suite
       revisited somewhat.
-
-   3.14_1
-      1/2/03, 3:47 am
-      Added a substantial amount of new documentation.  Spelling errors in
-      documentation files corrected.
-
-      Previously available method, File::Util::os(), has been dropped from the
-      namespace and is no longer part of the module.
-
-      Method File::Util::file_type() no longer includes the 'tty' keyword among
-      its list of recognized file types, as the native Perl file test for
-      divining a TTY file can only be used on open file handles.
-
-      The keywords returned by this method are all upper case strings as of
-      version 3.13_9, though the release notes for that version errantly did
-      not include this statement.  The list of keywords otherwise remains
-      unchanged:
-         PLAIN       TEXT
-         BINARY      DIRECTORY
-         SYMLINK     PIPE
-         SOCKET      BLOCK
-         CHARACTER
 
 
 INSTALLATION

@@ -1,29 +1,25 @@
 package File::Util;
 use 5.006;
 use strict;
-use warnings;
-use vars qw
-   (
-      $VERSION   @ISA   @EXPORT_OK   %EXPORT_TAGS
-      $OS   $MODES   $READLIMIT   $MAXDIVES   $EMPTY_WRITES_OK
-      $USE_FLOCK   @ONLOCKFAIL   $ILLEGAL_CHR   $CAN_FLOCK
-      $NEEDS_BINMODE   $EBCDIC   $DIRSPLIT   $SL   $NL
-   );
+use vars qw(
+   $VERSION   @ISA   @EXPORT_OK   %EXPORT_TAGS
+   $OS   $MODES   $READLIMIT   $MAXDIVES   $EMPTY_WRITES_OK
+   $USE_FLOCK   @ONLOCKFAIL   $ILLEGAL_CHR   $CAN_FLOCK
+   $NEEDS_BINMODE   $EBCDIC   $DIRSPLIT   $SL   $NL   $_LOCKS
+);
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = '3.14_6'; # Mon Sep 22 11:04:35 CDT 2003
+$VERSION    = '3.14_7'; # Sat Jan 31 13:36:24 CST 2004
 @ISA        = qw( Exporter   Class::OOorNO );
-@EXPORT_OK  =
-   (
-      @Class::OOorNO::EXPORT_OK, qw
-         (
-            can_flock   ebcdic   existent   isbin   bitmask   NL   SL
-            strip_path   can_read   can_write   file_type   needs_binmode
-            valid_filename   size   escape_filename   return_path
-            created   last_access   last_modified
-         )
-   );
+@EXPORT_OK  = (
+   @Class::OOorNO::EXPORT_OK, qw(
+      can_flock   ebcdic   existent   isbin   bitmask   NL   SL
+      strip_path   can_read   can_write   file_type   needs_binmode
+      valid_filename   size   escape_filename   return_path
+      created   last_access   last_modified
+   )
+);
 %EXPORT_TAGS = ( 'all'  => [ @EXPORT_OK ] );
 
 BEGIN {
@@ -54,13 +50,15 @@ $SL =
      'OS2' => '\\', 'UNIX'   => '/', 'WINDOWS'   => '\\',
      'VMS' => '/',  'CYGWIN' => '/', }->{ $OS }||'/';
 
+$_LOCKS = {};
+
 } BEGIN { use constant NL => $NL; use constant SL => $SL; }
 
 $DIRSPLIT    = qr/[\\\/\:]/;
 $ILLEGAL_CHR = qr/[\/\|$NL\r\n\t\013\*\"\?\<\:\>\\]/;
 
-$READLIMIT  = 10000000; # set readlimit to a default of 10 megabytes
-$MAXDIVES   = 500;      # maximum depth for recursive list_dir calls
+$READLIMIT  = 1048576;  # set readlimit to a default of 10 megabytes
+$MAXDIVES   = 1000;     # maximum depth for recursive list_dir calls
 
 use Fcntl qw( );
 
@@ -70,7 +68,7 @@ flock(STDOUT, &Fcntl::LOCK_UN);
 __canflock__
 
 # try to use file locking, define flock race conditions policy
-$USE_FLOCK = 1; @ONLOCKFAIL = qw( BLOCK FAIL );
+$USE_FLOCK = 1; @ONLOCKFAIL = qw( NOBLOCKEX FAIL );
 
 $MODES->{'popen'} =
 {
@@ -91,18 +89,22 @@ $MODES->{'sysopen'} =
 # --------------------------------------------------------
 sub new {
 
-   my($this) = {}; bless($this, shift(@_));
-   my($in)   = $this->coerce_array(@_);
+   my($this)   = {}; bless($this, shift(@_));
+   my($in)     = $this->coerce_array(@_);
 
-   my($opts) = $this->shave_opts(\@_);
-   $this->{'opts'} = $opts || {};
+   my($opts)   = $this->shave_opts(\@_); $this->{'opts'} = $opts || {};
 
-   $USE_FLOCK  = $$in{'use_flock'} if defined($$in{'use_flock'});
-   $READLIMIT  = $$in{'readlimit'} if defined($$in{'readlimit'});
-   $MAXDIVES   = $$in{'max_dives'} if defined($$in{'max_dives'});
-   @ONLOCKFAIL = split(/ /,$$in{'flock_rules'}) if defined $$in{'flock_rules'};
+   $USE_FLOCK  = $in->{'use_flock'} if exists $in->{'use_flock'};
 
-   $this;
+   $READLIMIT  = $in->{'readlimit'}
+      if defined $in->{'readlimit'}
+      && $$in{'readlimit'} !~ /\D/;
+
+   $MAXDIVES   = $in->{'max_dives'}
+      if defined $in->{'max_dives'}
+      && $$in{'max_dives'} !~ /\D/;
+
+   return $this;
 }
 
 
@@ -839,124 +841,55 @@ sub write_file {
 
 
 # --------------------------------------------------------
+# %$File::Util::LOCKS
+# --------------------------------------------------------
+$_LOCKS->{'IGNORE'}  = sub { $_[2] };
+$_LOCKS->{'ZERO'}    = sub { 0 };
+$_LOCKS->{'UNDEF'}   = sub { undef };
+$_LOCKS->{'NOBLOCKEX'} = sub {
+   return $_[2] if flock($_[2], &Fcntl::LOCK_EX | &Fcntl::LOCK_NB); undef
+};
+$_LOCKS->{'NOBLOCKSH'} = sub {
+   return $_[2] if flock($_[2], &Fcntl::LOCK_SH | &Fcntl::LOCK_NB); undef
+};
+$_LOCKS->{'BLOCKEX'} = sub {
+   return $_[2] if flock($_[2], &Fcntl::LOCK_EX); undef
+};
+$_LOCKS->{'BLOCKSH'} = sub {
+   return $_[2] if flock($_[2], &Fcntl::LOCK_SH); undef
+};
+$_LOCKS->{'WARN'} = sub {
+   $_[0]->_throw(
+      'bad flock',
+      {
+         'filename'  => $_[1],
+         'exception' => $!,
+      },
+      '--as-warning',
+   ); undef
+};
+
+
+# --------------------------------------------------------
 # File::Util::_seize()
 # --------------------------------------------------------
 sub _seize {
 
    my($this)   = shift(@_); my($file) = shift(@_)||''; my($fh) = shift(@_)||'';
    my(@policy) = @ONLOCKFAIL;
-   my($policy) = {}; map { $policy->{$_} = $_ } @policy;
+   my($policy) = {};
 
+   # seize filehandle, return it if lock is successful
+
+   # forget seizing if system can't flock
    return($fh) if !$CAN_FLOCK;
-
-# =for nobody
-
-   # OPTIONS ON I/O RACE CONDITION POLICY
-
-      # Set internal file locking rules by calling File::Util::flock_rules()
-      # with a list or array containing your chosen directive keywords by order
-      # of precedence.
-
-         # ex- flock_rules( qw/ BLOCK FAIL / );  # this is the default rule
-
-   # KEYWORDS
-
-      # BLOCK         waits to try getting an exclusive lock
-      # FAIL          fails with stack trace
-      # WARN          CORE::warn() about the error with a stack trace
-      # IGNORE        ignores the failure to get an exclusive lock
-      # UNDEF         returns undef
-      # ZERO          returns 0
-
-# =cut
 
    return($this->_throw(q[no file name passed to _seize.])) unless $file;
    return($this->_throw(q[no handle passed to _seize.]))    unless $fh;
 
-   # seize filehandle, return it if lock is successful
-   if (flock($fh, &Fcntl::LOCK_EX | &Fcntl::LOCK_NB)) { return($fh); }
-   # process flock failure ruleset if the above attempt failed.
-   else {
-
-      # IGNORE directive processed here
-      return($fh) if $policy->{'IGNORE'};
-
-      # BLOCK directive processed here
-      if ($policy->{'BLOCK'}) {
-
-         if (flock($fh, &Fcntl::LOCK_EX)) { return($fh) } else {
-
-            # ZERO directive processed here if BLOCK directive fails
-            if ($policy->{'ZERO'}) { return 0 }
-
-            # UNDEF directive processed here if BLOCK directive fails
-            elsif ($policy->{'UNDEF'}) { return undef }
-
-            # WARN directive processed here if BLOCK directive fails
-            elsif ($policy->{'WARN'})  {
-
-               $this->_throw
-                  (
-                     'bad lock',
-                     {
-                        'filename'  => $file,
-                        'exception' => $!,
-                     },
-                     '--as-warning',
-                  );
-
-               return undef
-            }
-
-            # FAIL directive processed here after BLOCK directive fails if
-            # no non-fatal directive is specified in the ruleset
-            return $this->_throw
-               (
-                  'bad lock',
-                  {
-                     'filename'  => $file,
-                     'exception' => $!,
-                  }
-               );
-         }
-      }
-      else {
-
-         # ZERO directive processed here
-         if ($policy->{'ZERO'}) { return 0 }
-
-         # UNDEF directive processed here
-         elsif ($policy->{'UNDEF'}) { return undef }
-
-         # WARN directive processed here
-         elsif ($policy->{'WARN'})  {
-
-            $this->_throw
-               (
-                  'bad nblock',
-                  {
-                     'filename'  => $file,
-                     'exception' => $!,
-                  },
-                  '--as-warning',
-               );
-
-            return undef
-         }
-
-         # FAIL directive processed here after previous directive(s) fail,
-         # or no non-fatal directive is specified in the ruleset
-         return $this->_throw
-            (
-               'bad nblock',
-               {
-                  'filename'  => $file,
-                  'exception' => $!,
-               }
-            );
-      }
-
-      return undef
+   while (@policy) {
+      my($fh) = &{ $_LOCKS->{ shift @policy } }($this,$file,$fh);
+      return $fh if ($fh || !scalar @policy)
    }
 
    $fh;
@@ -1084,6 +1017,8 @@ sub escape_filename {
    my($opts) = shave_opts(\@_);
    my($file,$escape,$also) = myargs(@_);
 
+   return '' unless defined $file;
+
    $escape = '_' if !defined($escape);
 
    $file = strip_path($file) if $opts->{'--strip-path'};
@@ -1129,9 +1064,28 @@ sub file_type {
 # --------------------------------------------------------
 sub flock_rules {
 
-   my($arg) = myargs(@_);
+   my($this)   = shift(@_);
+   my(@rules)  = myargs(@_);
 
-   if (defined $arg) { @ONLOCKFAIL = myargs(@_) }
+   return @ONLOCKFAIL unless defined scalar @rules;
+
+   my(%valid) = qw/
+      NOBLOCKEX   NOBLOCKEX
+      NOBLOCKSH   NOBLOCKSH
+      BLOCKEX     BLOCKEX
+      BLOCKSH     BLOCKSH
+      FAIL        FAIL
+      WARN        WARN
+      IGNORE      IGNORE
+      UNDEF       UNDEF
+      ZERO        ZERO /;
+
+   map {
+      return $this->_throw('bad flock rules', { 'bad' => $_, 'all' => \@rules })
+      unless exists $valid{ $_ }
+   } @rules;
+
+   @ONLOCKFAIL = @rules;
 
    @ONLOCKFAIL
 }
@@ -1338,7 +1292,19 @@ sub max_dives {
 
    my($arg) = myargs(@_);
 
-   if (defined($arg)) { $MAXDIVES = $arg }
+   if (defined($arg)) {
+      return $this->_throw
+         (
+            'bad maxdives',
+            {
+               'bad' => $arg,
+               'dir'       => $dir,
+               'bitmask'   => $bitmask,
+            }
+         ) if $arg !~ /\D/o;
+
+      $MAXDIVES = $arg;
+   }
 
    $MAXDIVES
 }
@@ -1754,6 +1720,31 @@ Solution:   Cannot diagnose.  A human must investigate the problem.
 __bad_open__
 
 
+# BAD FLOCK RULE POLICY
+'bad flock rules' => <<'__bad_lockrules__',
+Invalid file locking policy can not be implemented.  $in->{'_pak'}::flock_rules
+does not accept one or more of the policy keywords passed to this method.
+
+   Invalid Policy specified: $EBL@{[
+   join ' ', map { '[undef]' unless defined $_ } @{ $in->{'all'} } ]}$EBR
+
+   flock_rules policy in effect before invalid policy failed:
+      $EBL@ONLOCKFAIL$EBR
+
+   Proper flock_rules policy includes one or more of the following recognized
+   keywords specified in order of precedence:
+      BLOCK         waits to try getting an exclusive lock
+      FAIL          dies with stack trace
+      WARN          warn()s about the error with a stack trace
+      IGNORE        ignores the failure to get an exclusive lock
+      UNDEF         returns undef
+      ZERO          returns 0
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
+__bad_lockrules__
+
+
 # CAN'T READ FILE
 'cant fread' => <<'__cant_read__',
 Permissions conflict.  $in->{'_pak'} can't read the contents of this file:
@@ -1926,28 +1917,9 @@ support for the C truncate() function.
 __bad_systrunc__
 
 
-# CAN'T GET NON-BLOCKING FLOCK
-'bad nblock' => <<'__bad_lock__',
-$in->{'_pak'} can't get a non-blocking exclusive lock on the file
-   $EBL$in->{'filename'}$EBR
-
-The system returned this error:
-   $EBL$in->{'exception'}$EBR
-
-Current flock_rules policy:
-   $EBL@ONLOCKFAIL$EBR
-
-Origin:     Could be either human _or_ system error.
-Solution:   Fall back to an attempt at getting a lock on the file by blocking.
-            Investigate the reason why you can't get a lock on the file,
-            it is usually because of improper programming which causes
-            race conditions on one or more files.
-__bad_lock__
-
-
 # CAN'T GET FLOCK AFTER BLOCKING
-'bad lock' => <<'__bad_lock__',
-$in->{'_pak'} can't get a blocking exclusive lock on the file.
+'bad flock' => <<'__bad_lock__',
+$in->{'_pak'} can't get a lock on the file
    $EBL$in->{'filename'}$EBR
 
 The system returned this error:
@@ -2013,6 +1985,20 @@ Currently the read limit is set at $EBL$READLIMIT$EBR bytes.
 Origin:     This is a human error.
 Solution:   Consider setting the limit to a higher number of bytes.
 __readlimit__
+
+
+# BAD CALL TO File::Util::max_dives
+'bad maxdives' => <<'__maxdives__',
+Bad call to $in->{'_pak'}::max_dives().  This method can only be called with
+a numeric value.  Non-integer numbers will be converted to integer format if
+specified (numbers like 5.2), but don't do that, it's stupid.
+
+This operation aborted.
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
+__maxdives__
+
 
 # EXCEEDED MAXDIVES
 'maxdives exceeded' => <<'__maxdives__',

@@ -92,47 +92,43 @@ Exports nothing by default.
 The following symbols comprise C<@File::Util::EXPORT_OK>), and as such are
 available for import to your namespace only upon request.
 
-=over
+C<bitmask>           I<(see L<bitmask|/bitmask>)>
 
-=item C<bitmask>           I<(see L<bitmask|/bitmask>)>
+C<can_flock>         I<(see L<can_flock|/can_flock>)>
 
-=item C<can_flock>         I<(see L<can_flock|/can_flock>)>
+C<can_read>          I<(see L<can_read|/can_read>)>
 
-=item C<can_read>          I<(see L<can_read|/can_read>)>
+C<can_write>         I<(see L<can_write|/can_write>)>
 
-=item C<can_write>         I<(see L<can_write|/can_write>)>
+C<created>           I<(see L<created|/created>)>
 
-=item C<created>           I<(see L<created|/created>)>
+C<ebcdic>            I<(see L<ebcdic|/ebcdic>)>
 
-=item C<ebcdic>            I<(see L<ebcdic|/ebcdic>)>
+C<escape_filename>   I<(see L<escape_filename|/escape_filename>)>
 
-=item C<escape_filename>   I<(see L<escape_filename|/escape_filename>)>
+C<existent>          I<(see L<existent|/existent>)>
 
-=item C<existent>          I<(see L<existent|/existent>)>
+C<file_type>         I<(see L<file_type|/file_type>)>
 
-=item C<file_type>         I<(see L<file_type|/file_type>)>
+C<isbin>             I<(see L<isbin|/isbin>)>
 
-=item C<isbin>             I<(see L<isbin|/isbin>)>
+C<last_access>       I<(see L<last_access|/last_access>)>
 
-=item C<last_access>       I<(see L<last_access|/last_access>)>
+C<last_modified>     I<(see L<last_modified|/last_modified>)>
 
-=item C<last_modified>     I<(see L<last_modified|/last_modified>)>
+C<NL>                I<(see L<NL|/NL>)>
 
-=item C<NL>                I<(see L<NL|/NL>)>
+C<needs_binmode>     I<(see L<needs_binmode|/needs_binmode>)>
 
-=item C<needs_binmode>     I<(see L<needs_binmode|/needs_binmode>)>
+C<return_path>       I<(see L<return_path|/return_path>)>
 
-=item C<return_path>       I<(see L<return_path|/return_path>)>
+C<size>              I<(see L<size|/size>)>
 
-=item C<size>              I<(see L<size|/size>)>
+C<SL>                I<(see L<SL|/SL>)>
 
-=item C<SL>                I<(see L<SL|/SL>)>
+C<strip_path>        I<(see L<strip_path|/strip_path>)>
 
-=item C<strip_path>        I<(see L<strip_path|/strip_path>)>
-
-=item C<valid_filename>    I<(see L<valid_filename|/valid_filename>)>
-
-=back
+C<valid_filename>    I<(see L<valid_filename|/valid_filename>)>
 
 B<Note:> Symbols in C<@L<Class::OOorNO|Class::OOorNO>::EXPORT_OK> are also
 available for import.
@@ -146,6 +142,8 @@ available for import.
 B<Note:> Some of the methods listed will state that they are autoloaded methods.
 Autloaded methods are not compiled at runtime as part of your process and only
 get created if called somewhere in your program.  I<(see L<AutoLoader>.)>
+
+Methods listed in alphabetical order.
 
 =head2 C<bitmask>
 
@@ -239,10 +237,13 @@ value for the system on which it is executed.
 
 =over
 
-=item I<Syntax:> C<escape_filename( [string] )>
+=item I<Syntax:> C<escape_filename( [string], [escape char] )>
 
-I<-- Documentation for this method is not yet complete! --> This is an
-autoloaded method.
+Returns it's argument in an escaped form that is suitable for use as a filename.
+Illegal characters (i.e.- any type of newline character, tab, vtab, and the
+following C</ | * " ? < : > \>), are replaced with [escape char] or "B<_>" if
+no [escape char] is specified.  Returns an empty string if no arguments are
+provided.  This is an autoloaded method.
 
 =back
 
@@ -276,23 +277,23 @@ is the same as the order in which the are listed here:
 
 =over
 
-=item PLAIN             File is a plain file.
+=item C<PLAIN             File is a plain file.>
 
-=item TEXT              File is a text file.
+=item C<TEXT              File is a text file.>
 
-=item BINARY            File is a binary file.
+=item C<BINARY            File is a binary file.>
 
-=item DIRECTORY         File is a directory.
+=item C<DIRECTORY         File is a directory.>
 
-=item SYMLINK           File is a symbolic link.
+=item C<SYMLINK           File is a symbolic link.>
 
-=item PIPE              File is a named pipe (FIFO).
+=item C<PIPE              File is a named pipe (FIFO).>
 
-=item SOCKET            File is a socket.
+=item C<SOCKET            File is a socket.>
 
-=item BLOCK             File is a block special file.
+=item C<BLOCK             File is a block special file.>
 
-=item CHARACTER         File is a character special file.
+=item C<CHARACTER         File is a character special file.>
 
 =back
 
@@ -302,9 +303,89 @@ is the same as the order in which the are listed here:
 
 =over
 
-=item I<Syntax:> C<flock_rules( [Keywords] )>
+=item I<Syntax:> C<flock_rules( [keyword list] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Sets I/O race condition policy, or tells File::Util how it should handle race
+conditions created when a file can't be locked because it is already locked
+somewhere else (usually by another process).
+
+An empty call to this method returns a list of keywords representing the rules
+that are currently in effect for the object.
+
+Otherwise, a call should include a list with array containing your chosen
+directive keywords in order of precedence.  The rules will be applied in
+cascading order when a File::Util object attempts to lock a file, so if the
+actions specified by the first rule don't result in success, the second rule
+is applied, and so on.
+
+Recognized keywords:
+
+=over
+
+=item C<NOBLOCKEX>
+
+tries to get an exclusive lock on the file without blocking (waiting)
+
+=item C<NOBLOCKSH>
+
+tries to get a shared lock on the file without blocking
+
+=item C<BLOCKEX>
+
+waits to try getting an exclusive lock
+
+=item C<BLOCKSH>
+
+waits to try getting a shared lock
+
+=item C<FAIL>
+
+dies with stack trace
+
+=item C<WARN>
+
+warn()s about the error with a stack trace and returns undef
+
+=item C<IGNORE>
+
+ignores the failure to get an exclusive lock
+
+=item C<UNDEF>
+
+returns undef
+
+=item C<ZERO>
+
+returns 0
+
+=back
+
+Examples:
+
+=over
+
+=item ex- C<flock_rules( qw/ NOBLOCKEX FAIL / );>
+
+This is the default policy.  When in effect, the File::Util object will first
+attempt to get a non-blocking exclusive lock on the file.  If that attempt
+fails the File::Util object will call die() with a detailed error message and
+a stack trace.
+
+=item ex- C<flock_rules( qw/ NOBLOCKEX BLOCKEX FAIL / );>
+
+The File::Util object will first attempt to get a non-blocking exclusive lock
+on the file.  If that attempt fails it falls back to the second policy rule
+"BLOCKEX" and tries again to get an exclusive lock on the file, but this time
+by blocking (waiting for its turn).  If that second attempt fails, the
+File::Util object will fail with a detailed error message and a stack trace.
+
+=item ex- C<flock_rules( qw/ BLOCKEX IGNORE / );>
+
+The File::Util object will first attempt to get a file non-blocking lock on
+the file.  If that attempt fails it will ignore the error, and go on to open
+the file anyway and no failures will occur or warings be issued.
+
+=back
 
 This is an autoloaded method.
 
@@ -545,7 +626,19 @@ This is an autoloaded method.
 
 =item I<Syntax:> C<max_dives( [integer] )>
 
-I<-- Documentation for this method is not yet complete! -->
+When called without any arguments, this method returns an integer reflecting
+the current number of times the File::Util object will dive into the
+subdirectories it discovers when recursively listing directory contents from
+a call to C<File::Util::list_dir()>.  The default is 1000.  If the number is
+exceeded, the File::Util object will fail with a diagnostic error message.
+
+When called with an argument, it sets the maximum number of times a File::Util
+object will recurse into subdirectories before failing with an error message.
+
+This method can only be called with a numeric integer value.  Passing a bad
+argument to this method will cause it to fail with an error message.
+
+I<(see L<list_dir|/list_dir>)>
 
 This is an autoloaded method.
 
@@ -583,11 +676,27 @@ that govern the behavior of the new File::Util object.
 
 =item use_flock   => true/false value
 
-=item flock_rules => 'KEYWORD LIST'
+Optionally specify this option to the C<File::Util::new> method instruct the
+new object that it should never attempt to use C<flock()> in it's I/O
+operations.  The default is to use C<flock()> when available on your system.
+Specify this option with a true or false value, true to use C<flock()>, false
+to not use it.
 
 =item readlimit   => positive integer
 
+Optionally specify this option to the File::Util::new method to instruct the
+new object that it should never attempt to open and read in a file greater
+than the number of bytes you specify.  Obviously this argument can only be
+a numeric integer value, otherwise it will be silently ignored.  The default
+readlimit for File::Util objects is 1,048,576 bytes (10 megabytes).
+
 =item max_dives   => positive integer
+
+Optionally specify this option to the File::Util::new method to instruct the
+new object to set the maximum number of times it will recurse into
+subdirectories while performing directory listing operations before failing
+with an error message.  This argument can only be a numeric integer value,
+otherwise it will be silently ignored.
 
 =back
 
@@ -697,7 +806,14 @@ This is an autoloaded method.
 
 =item I<Syntax:> C<use_flock( [true / false value] )>
 
-I<-- Documentation for this method is not yet complete! -->
+When called without any arguments, this method returns a true or false value
+to reflect the current use of C<flock()> within the File::Util object.
+
+When called with a true or false value as its single argument, this method
+will tell the File::Util object whether or not it should attempt to use
+C<flock()> in its I/O operations.  A true value indicates that the File::Util
+object will use C<flock()> if available, a false value indicates that it will
+not.  The default is to use C<flock()> when available on your system.
 
 This is an autoloaded method.
 
@@ -735,8 +851,6 @@ external use.)
 =over
 
 =item I<Syntax:> C<NL>
-
-I<-- Documentation for this method is not yet complete! -->
 
 Returns the correct new line character (or character sequence) for the system
 on which your program runs.
