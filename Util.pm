@@ -11,12 +11,12 @@ use vars qw
    );
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
-use Handy::Dandy qw( :all );
-$VERSION    = 3.13_9; # 12/23/02, 3:22 pm
-@ISA        = qw( Exporter   Handy::Dandy );
+use Class::OOorNO qw( :all );
+$VERSION    = 3.14_0; # 12/28/02, 12:43 pm
+@ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  =
    (
-      @Handy::Dandy::EXPORT_OK, qw
+      @Class::OOorNO::EXPORT_OK, qw
          (
             can_flock   ebcdic   existent   isbin   bitmask   NL   SL
             strip_path   can_read   can_write   file_type   needs_binmode
@@ -929,26 +929,26 @@ sub _seize {
 
    return($fh) if !$CAN_FLOCK;
 
-=for internal reference
+# =for nobody
 
-   OPTIONS ON I/O RACE CONDITION POLICY
+   # OPTIONS ON I/O RACE CONDITION POLICY
 
-      Set internal file locking rules by calling File::Util::flock_rules()
-      with a list or array containing your chosen directive keywords by order
-      of precedence.
+      # Set internal file locking rules by calling File::Util::flock_rules()
+      # with a list or array containing your chosen directive keywords by order
+      # of precedence.
 
-         ex- flock_rules( qw/ BLOCK FAIL / );  # this is the default rule
+         # ex- flock_rules( qw/ BLOCK FAIL / );  # this is the default rule
 
-   KEYWORDS
+   # KEYWORDS
 
-      BLOCK         waits to try getting an exclusive lock
-      FAIL          fails with stack trace
-      WARN          CORE::warn() about the error with a stack trace
-      IGNORE        ignores the failure to get an exclusive lock
-      UNDEF         returns undef
-      ZERO          returns 0
+      # BLOCK         waits to try getting an exclusive lock
+      # FAIL          fails with stack trace
+      # WARN          CORE::warn() about the error with a stack trace
+      # IGNORE        ignores the failure to get an exclusive lock
+      # UNDEF         returns undef
+      # ZERO          returns 0
 
-=cut
+# =cut
 
    return($this->_throw(q[no file name passed to _seize.])) unless $file;
    return($this->_throw(q[no handle passed to _seize.]))    unless $fh;
@@ -2298,123 +2298,274 @@ __bad_handle__
 
 =head1 NAME
 
-File::Util - Easy, versatile, portable file handling.
+File::Util - Easy, versatile, portable file handling
 
-=head1 VERSION
+=head1 IMPORTANT!
 
-3.13_9
+This is a developer's release, and is not intended for use in the public sector.
+This code is made available for developers who wish to aid in the furthering of
+the code, though B<it _is_ stable>.
 
-=head1 @ISA
+This is I<not> a registered module in the CPAN module list.  It is not part of
+the CPAN yet.
 
-   Exporter
-   Handy::Dandy
-      |
-      +->OOorNO
+=head1 SYNOPSIS
 
-=head1 @EXPORT
+   Nothing here at present.
+
+=head1 DESCRIPTION
+
+File::Util provides a comprehensive toolbox of utilities to automate all
+kinds of common tasks on file / directories.  Its purpose is to do so
+in the most portable manner possible so that users of this module won't
+have to worry about whether their programs will work on other OSes
+and machines.
+
+=head1 INSTALLATION
+
+To install this module type the following at the command prompt:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+On windows machines use nmake rather than make; those running cygwin don't have
+to worry about this.  If you don't know what cygwin is, use nmake and check out
+<URL: http://cygwin.com/ > after you're done installing this module if you want
+to find out.
+
+=head1 File::Util ISA
+
+=over
+
+=item Exporter
+
+=item Class::OOorNO
+
+=back
+
+=head1 METHODS
+
+Item's marked with an asterisk (*) are AUTOLOAD-ed methods.  I<(see the
+L<AutoLoader> documentation.)>  Item's marked with the dagger symbol (E<0206>)
+are constant subroutines which take no argments and always return the same
+value.
+
+=over
+
+=head2 bitmask( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 can_flock * E<0206>
+
+I<Documentation is under way.>
+
+=head2 can_read( [file name] )
+
+I<Documentation is under way.>
+
+=head2 can_write( [file name] )
+
+I<Documentation is under way.>
+
+=head2 created( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 ebcdic * E<0206>
+
+I<Documentation is under way.>
+
+=head2 escape_filename( [string] ) *
+
+I<Documentation is under way.>
+
+=head2 existent( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 file_type( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 flock_rules( [KEYWORDs] ) *
+
+I<Documentation is under way.>
+
+=head2 isbin( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 last_access( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 last_mod( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 line_count( [file name] )
+
+I<Documentation is under way.>
+
+=head2 list_dir( [directory name] , [--opts] )
+
+I<Documentation is under way.>
+
+=head2 load_dir( [directory name] , [--opts] ) *
+
+I<Documentation is under way.>
+
+=head2 load_file( [file name] , [--opts] )
+
+I<Documentation is under way.>
+
+=head2 make_dir( [new directory name] , [--opts] ) *
+
+I<Documentation is under way.>
+
+=head2 max_dives( [integer] ) *
+
+I<Documentation is under way.>
+
+=head2 needs_binmode * E<0206>
+
+I<Documentation is under way.>
+
+=head2 new( [--opts] )
+
+I<Documentation is under way.>
+
+=head2 open_handle( [file name] , [--opts] ) *
+
+I<Documentation is under way.>
+
+=head2 os * E<0206>
+
+I<Documentation is under way.>
+
+=head2 readlimit( [integer] ) *
+
+I<Documentation is under way.>
+
+=head2 size( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 strip_path( [string] )
+
+I<Documentation is under way.>
+
+=head2 trunc( [file name] ) *
+
+I<Documentation is under way.>
+
+=head2 use_flock( [true / false value] ) *
+
+I<Documentation is under way.>
+
+=head2 write_file('file' =>  [file name] , 'content' =>  [data] ,  [--opts])
+
+I<Documentation is under way.>
+
+=head2 valid_filename( [string] )
+
+I<Documentation is under way.>
+
+=head2 VERSION E<0206>
+
+I<Documentation is under way.>
+
+=head1 CONSTANTS
+
+=head2 NL
+
+I<Documentation is under way.>
+
+=head2 SL
+
+I<Documentation is under way.>
+
+=head1 EXPORT
 
 None by default.
 
-=head1 @EXPORT_OK
+=head1 EXPORT_OK
 
-   @OOorNO::EXPORT_OK
-   @Handy::Dandy::EXPORT_OK
-   bitmask()
-   can_flock()
-   can_read()
-   can_write()
-   ebcdic()
-   escape_filename()
-   existent()
-   file_type()
-   isbin()
-   NL
-   needs_binmode()
-   os()
-   size()
-   SL
-   strip_path()
-   valid_filename()
+=over
 
-=head1 %EXPORT_TAGS
+=item L<bitmask()|/bitmask>
+
+=item L<can_flock()|/can_flock>
+
+=item L<can_read()|/can_read>
+
+=item L<can_write()|/can_write>
+
+=item L<ebcdic()|/ebcdic>
+
+=item L<escape_filename()|/escape_filename>
+
+=item L<existent()|/existent>
+
+=item L<file_type()|/file_type>
+
+=item L<isbin()|/isbin>
+
+=item L<NL|/NL>
+
+=item L<needs_binmode()|/needs_binmode>
+
+=item L<os()|/os>
+
+=item L<size()|/size>
+
+=item L<SL|/SL>
+
+=item L<strip_path()|/strip_path>
+
+=item L<valid_filename()|/valid_filename>
+
+=item Symbols in I<@Class::OOorNO::EXPORT_OK> are made available for import...
+
+=back
+
+=head2 EXPORT_TAGS
 
    :all (exports all of @File::Util::EXPORT_OK)
 
-=head1 Methods
-
-   _dropdots()
-   _errors()
-   _release()
-   _seize()
-   _throw()
-   bitmask()
-   can_flock()
-   can_read()
-   can_write()
-   created()
-   ebcdic()
-   escape_filename()
-   existent()
-   file_type()
-   flock_rules()
-   isbin()
-   last_access()
-   last_mod()
-   line_count()
-   list_dir()
-   load_dir()
-   load_file()
-   make_dir()
-   max_dives()
-   needs_binmode()
-   new()
-   open_handle()
-   os()
-   readlimit()
-   size()
-   strip_path()
-   trunc()
-   use_flock()
-   write_file()
-   valid_filename()
-   VERSION()
-
-=head2 AUTOLOAD-ed methods
-
-   bitmask()
-   can_flock()
-   created()
-   ebcdic()
-   escape_filename()
-   existent()
-   file_type()
-   flock_rules()
-   isbin()
-   last_access()
-   last_mod()
-   load_dir()
-   make_dir()
-   max_dives()
-   needs_binmode()
-   open_handle()
-   os()
-   readlimit()
-   size()
-   trunc()
-   use_flock()
-   _throw()
-   _errors()
-
 =head1 PREREQUISITES
 
-Perl 5.006 or better
-OOorNO.pm
-Exception::Handler.pm
-Handy::Dandy.pm
+=over
+
+=item L<Perl|perl> 5.006 or better
+
+=item L<Class::OOorNO>        v0.00_2 or better
+
+=item L<Exception::Handler>   v1.00_0 or better
+
+=back
+
+=head1 EXAMPLES
+
+None at present.
+
+=head1 BUGS
+
+This documentation isn't done yet, as you can see.  This is being rectified
+as quickly as possible.  Please excercise caution if you choose to use this
+code before it can be further documented for you.  Please excuse the
+inconvenience.
 
 =head1 AUTHOR
 
-Tommy Butler <cpan@atrixnet.com>
+Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
+
+=head1 AUTHOR
+
+Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
 
 =head1 COPYRIGHT
 
@@ -2422,7 +2573,23 @@ Copyright(c) 2001-2003, Tommy Butler.  All rights reserved.
 
 =head1 LICENSE
 
-This library is free software, you may redistribute
-and/or modify it under the same terms as Perl itself.
+This library is free software, you may redistribute and/or modify it under
+the same terms as Perl itself.
+
+=head1 SEE ALSO
+
+=over
+
+=item L<Class::OOorNO>
+
+=item L<Exception::Handler>
+
+=item L<File::Slurp>
+
+=item L<Exporter>
+
+=item L<AutoLoader>
+
+=back
 
 =cut

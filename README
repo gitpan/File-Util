@@ -1,4 +1,4 @@
-File::Util version 3.13_9
+File::Util version 3.14_0
 =========================
 
 DESCRIPTION
@@ -11,6 +11,12 @@ and machines.
 
 CHANGES IN LAST FEW RELEASES
 (listed in reverse cronological order by date and subversion)
+
+   3.14_0
+      12/27/02, 5:50 pm
+      File::Util no longer @ISA Handy::Dandy, and no longer includes it
+      as a prerequisite dependency.  Added a little more documentation,
+      but it has a _long_ way to go as yet.
 
    3.13_9
       12/23/02, 3:22 pm
@@ -32,7 +38,7 @@ CHANGES IN LAST FEW RELEASES
       auto-generated, whereas before measures to acheive the uniqueness of
       the filehandles were taken, but not verified.
 
-      POD documentation got a big update.
+      POD documentation also got a big update.
 
 
 INSTALLATION
@@ -52,8 +58,7 @@ to find out.
 DEPENDENCIES
 This module requires these other modules and libraries:
 
-   OOorNO.pm                  v0.00_2 or better
-   Handy::Dandy               v1.30_4 or better
+   OOorNO                     v0.01_0 or better
    Exception::Handler         v1.00_0 or better
 
 

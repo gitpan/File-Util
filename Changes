@@ -1,5 +1,11 @@
 Revision history for Perl extension File::Util.pm
 
+   3.14_0
+      12/27/02, 5:50 pm
+      File::Util no longer @ISA Handy::Dandy, and no longer includes it
+      as a prerequisite dependency.  Added a little more documentation,
+      but it has a _long_ way to go as yet.
+
    3.13_9
       12/23/02, 3:22 pm
       A few small changes; no longer lists Handy::Dandy::TimeTools as a

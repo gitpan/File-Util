@@ -5,15 +5,14 @@ require 5.6.0;
 # the contents of the Makefile that is written.
 WriteMakefile
    (
-   'ABSTRACT'     => 'Easy, versatile, portable file handling',
-   'AUTHOR'       => 'Tommy Butler <cpan@atrixnet.com>',
-   'INSTALLDIRS'  => 'perl',
    'NAME'         => 'File::Util',
+   'AUTHOR'       => 'Tommy Butler <cpan@atrixnet.com>',
+   'ABSTRACT_FROM'=> 'Util.pm',
    'VERSION_FROM' => 'Util.pm',
+   'INSTALLDIRS'  => 'site',
    'PREREQ_PM'    =>
       {
-         'OOorNO' => 0.00_2,
-         'Handy::Dandy'  => 1.30_4,
+         'Class::OOorNO'      => 0.01_0,
          'Exception::Handler' => 1.00_0,
       },
    'linkext'      => { LINKTYPE => '' }, # no link needed
@@ -25,19 +24,3 @@ WriteMakefile
          'ZIPFLAGS'  => '-rl',
       }
    );
-
-__END__
-   * NAME
-   * SYNOPSIS
-   * DESCRIPTION
-   * INSTALLATION
-   * EXPORT
-   * EXPORT_OK
-   * GLOBAL VARIABLES
-   * PUBLIC METHODS
-   * PRIVATE METHODS
-   * EXAMPLES
-   * BUGS
-   * AUTHOR
-   * COPYRIGHT
-   * SEE ALSO

@@ -3,7 +3,7 @@ use strict;
 use Test;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 20, todo => [] }
+BEGIN { plan tests => 32, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...
@@ -12,12 +12,14 @@ use File::Util qw( SL );
 
 my($f) = File::Util->new();
 
-my(@fls) = ( qq[t${\SL}txt], qq[t${\SL}bin], 't' );
+my(@fls) = ( qq[t${\SL}txt], qq[t${\SL}bin], 't', '.', '..' );
 
 # types
 ok(join('',@{[$f->file_type($fls[0])]}), 'plaintext');
 ok(join('',@{[$f->file_type($fls[1])]}), 'plainbinary');
-ok(join('',@{[$f->file_type($fls[2])]}), 'directory');
+ok(join('',@{[$f->file_type($fls[2])]}), 'binarydirectory');
+ok(join('',@{[$f->file_type($fls[3])]}), 'binarydirectory');
+ok(join('',@{[$f->file_type($fls[4])]}), 'binarydirectory');
 
 # file is/isn't binary
 ok($f->isbin($fls[1], 1));
