@@ -2297,21 +2297,26 @@ __bad_handle__
 =pod
 
 =head1 NAME
+
 File::Util - Easy, versatile, portable file handling.
 
 =head1 VERSION
+
 3.13_9
 
 =head1 @ISA
+
    Exporter
    Handy::Dandy
       |
       +->OOorNO
 
 =head1 @EXPORT
+
 None by default.
 
 =head1 @EXPORT_OK
+
    @OOorNO::EXPORT_OK
    @Handy::Dandy::EXPORT_OK
    bitmask()
@@ -2332,9 +2337,11 @@ None by default.
    valid_filename()
 
 =head1 %EXPORT_TAGS
+
    :all (exports all of @File::Util::EXPORT_OK)
 
 =head1 Methods
+
    _dropdots()
    _errors()
    _release()
@@ -2373,6 +2380,7 @@ None by default.
    VERSION()
 
 =head2 AUTOLOAD-ed methods
+
    bitmask()
    can_flock()
    created()
@@ -2398,18 +2406,22 @@ None by default.
    _errors()
 
 =head1 PREREQUISITES
+
 Perl 5.006 or better
 OOorNO.pm
 Exception::Handler.pm
 Handy::Dandy.pm
 
 =head1 AUTHOR
+
 Tommy Butler <cpan@atrixnet.com>
 
 =head1 COPYRIGHT
+
 Copyright(c) 2001-2003, Tommy Butler.  All rights reserved.
 
 =head1 LICENSE
+
 This library is free software, you may redistribute
 and/or modify it under the same terms as Perl itself.
 
