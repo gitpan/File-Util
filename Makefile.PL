@@ -5,8 +5,8 @@ require 5.6.0;
 # the contents of the Makefile that is written.
 WriteMakefile
    (
-   'ABSTRACT'     => 'Safe, Easy File Handling',
-   'AUTHOR'       => 'Tommy Butler <perlmod@atrixnet.com>',
+   'ABSTRACT'     => 'Easy, versatile, portable file handling',
+   'AUTHOR'       => 'Tommy Butler <cpan@atrixnet.com>',
    'INSTALLDIRS'  => 'perl',
    'NAME'         => 'File::Util',
    'VERSION_FROM' => 'Util.pm',
@@ -15,7 +15,6 @@ WriteMakefile
          'OOorNO' => 0.00_2,
          'Handy::Dandy'  => 1.30_4,
          'Exception::Handler' => 1.00_0,
-         'Handy::Dandy::TimeTools' => 0.01_5,
       },
    'linkext'      => { LINKTYPE => '' }, # no link needed
    'dist'         =>

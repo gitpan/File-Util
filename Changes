@@ -1,6 +1,11 @@
 Revision history for Perl extension File::Util.pm
 
-   3.13_1
+   3.13_9
+      12/23/02, 3:22 pm
+      A few small changes; no longer lists Handy::Dandy::TimeTools as a
+      prerequisite dependency.
+
+   3.13_8
       12/22/02, 11:31 pm
       Method File::Util::file_type() now returns a list instead of a single
       string of concatenated keyword substrings, the filetype keywords being:
@@ -16,6 +21,24 @@ Revision history for Perl extension File::Util.pm
       the filehandles were taken, but not verified.
 
       POD documentation got a big update.
+
+   3.13_7
+      12/6/02, 2:56 pm
+      Amost ready for CPAN!
+
+      License changed from the GNU LGPL to Perl's own liscencing scheme.
+
+      Various tweaks to compile-time sequences.
+
+      Previously subroutines, SL and NL are now constants.  This makes them
+      easier to use when importing them to your main program.  Instead of
+      having to type "print('foo' . NL . NL)", you can type the more intuitive
+      "print('foo' . NL x 2)".  The same applies for SL, though it's not likely
+      you'll be wanting to print out more than one SL character in sequence.
+      This shouldn't break previous usage of these exported names.
+
+      Small reference material section appended to the general documentation
+      file contained in 'docs-basic.txt' (part of this distribution)
 
    3.13_4
       11/14/02, 1:22 pm

@@ -12,7 +12,7 @@ use vars qw
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Handy::Dandy qw( :all );
-$VERSION    = 3.13_8; # 12/22/02, 11:31 pm
+$VERSION    = 3.13_9; # 12/23/02, 3:22 pm
 @ISA        = qw( Exporter   Handy::Dandy );
 @EXPORT_OK  =
    (
@@ -1145,13 +1145,11 @@ sub can_flock { $CAN_FLOCK }
 # --------------------------------------------------------
 sub created {
 
-   my($f,$fmt) = myargs(@_); $f ||= '';
+   my($f) = myargs(@_); $f ||= '';
 
    return undef unless -e $f;
 
-   my($r) = $^T - ((-M $f) * 60 * 60 * 24);
-
-   $fmt ? stamp($r,$fmt) : $r
+   $^T - ((-M $f) * 60 * 60 * 24)
 }
 
 
@@ -1266,14 +1264,12 @@ sub isbin { my($f) = myargs(@_); -B $f }
 # --------------------------------------------------------
 sub last_access {
 
-   my($f,$fmt) = myargs(@_); $f ||= '';
+   my($f) = myargs(@_); $f ||= '';
 
    return undef unless -e $f;
 
    # return the last accessed time of $f
-   my($r) = $^T - ((-A $f) * 60 * 60 * 24);
-
-   $fmt ? stamp($r,$fmt) : $r
+   $^T - ((-A $f) * 60 * 60 * 24)
 }
 
 
@@ -1282,13 +1278,11 @@ sub last_access {
 # --------------------------------------------------------
 sub last_mod {
 
-   my($f,$fmt) = myargs(@_); $f ||= '';
+   my($f) = myargs(@_); $f ||= '';
 
    return undef unless -e $f;
 
-   my($r) = $^T - ((-C $f) * 60 * 60 * 24);
-
-   $fmt ? stamp($r,$fmt) : $r
+   $^T - ((-C $f) * 60 * 60 * 24)
 }
 
 
@@ -2306,19 +2300,20 @@ __bad_handle__
 File::Util - Easy, versatile, portable file handling.
 
 =head1 VERSION
-3.13_8
+3.13_9
 
 =head1 @ISA
    Exporter
    Handy::Dandy
       |
       +->OOorNO
-         Handy::Dandy::TimeTools
 
 =head1 @EXPORT
 None by default.
 
 =head1 @EXPORT_OK
+   @OOorNO::EXPORT_OK
+   @Handy::Dandy::EXPORT_OK
    bitmask()
    can_flock()
    can_read()
@@ -2335,46 +2330,6 @@ None by default.
    SL
    strip_path()
    valid_filename()
-   @Handy::Dandy::EXPORT_OK
-      |
-      +->convert_size()
-         html_encode()
-         html_escape()
-         isfloat()
-         isin()
-         isint()
-         isnum()
-         touch()
-         trim()
-         use_once()
-         utf8()
-         @OOorNO::EXPORT_OK
-            |
-            +->coerce_array
-               myargs()
-               myself()
-               OOorNO()
-               shave_opts()
-         @Handy::Dandy::TimeTools::EXPORT_OK
-            |
-            +->convert_time()
-               dayofweek()
-               dayofyear()
-               daystart()
-               hour()
-               hourstart()
-               minute()
-               minutestart()
-               month()
-               monthstart()
-               second()
-               seconds_since()
-               stamp()
-               to_seconds()
-               UTC_OFFSET()
-               weekstart()
-               year()
-               yearstart()
 
 =head1 %EXPORT_TAGS
    :all (exports all of @File::Util::EXPORT_OK)
@@ -2445,9 +2400,8 @@ None by default.
 =head1 PREREQUISITES
 Perl 5.006 or better
 OOorNO.pm
-Exception::Handler
+Exception::Handler.pm
 Handy::Dandy.pm
-Handy::Dandy::TimeTools.pm
 
 =head1 AUTHOR
 Tommy Butler <cpan@atrixnet.com>

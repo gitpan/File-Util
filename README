@@ -1,8 +1,7 @@
-File::Util version 3.13_7
-==========================
+File::Util version 3.13_9
+=========================
 
 DESCRIPTION
-
 File::Util provides a comprehensive toolbox of utilities to automate all
 kinds of common tasks on file / directories.  Its purpose is to do so
 in the most portable manner possible so that users of this module won't
@@ -13,52 +12,30 @@ and machines.
 CHANGES IN LAST FEW RELEASES
 (listed in reverse cronological order by date and subversion)
 
-   3.13_7
-      12/6/02, 2:56 pm
-      Amost ready for CPAN!
+   3.13_9
+      12/23/02, 3:22 pm
+      A few small changes; no longer lists Handy::Dandy::TimeTools as a
+      prerequisite dependency.
 
-      License changed from the GNU LGPL to Perl's own liscencing scheme.
+   3.13_8
+      12/22/02, 11:31 pm
+      Method File::Util::file_type() now returns a list instead of a single
+      string of concatenated keyword substrings, the filetype keywords being:
+         plain       text
+         binary      directory
+         symlink     pipe
+         socket      block
+         character   tty
 
-      Various tweaks to compile-time sequences.
+      Methods File::Util::load_file() and File::Util::open_handle() both will
+      truly guarantee the uniqueness of the underlying file handle which is
+      auto-generated, whereas before measures to acheive the uniqueness of
+      the filehandles were taken, but not verified.
 
-      Previously subroutines, SL and NL are now constants.  This makes them
-      easier to use when importing them to your main program.  Instead of
-      having to type "print('foo' . NL . NL)", you can type the more intuitive
-      "print('foo' . NL x 2)".  The same applies for SL, though it's not likely
-      you'll be wanting to print out more than one SL character in sequence.
-      This shouldn't break previous usage of these exported names.
-
-      Small reference material section appended to the general documentation
-      file contained in 'docs-basic.txt' (part of this distribution)
-
-   3.13_4
-      11/14/02, 1:22 pm
-      Got rid of all variables in @EXPORT_OK, namely:
-         $OS
-         $EBCDIC
-         $NL
-         $SL
-
-      I wanted to export only methods, seeing as exporting variables just isn't
-      right, no matter how convenient it might be.  There are two new methods,
-      and they are both autoloaded, namely:
-         File::Util::os()
-         File::Util::ebcdic()
-
-      These two methods take no arguments, and return only the value of the
-      previously EXPORT_OK'ed "$OS" and "$EBCDIC"
-
-      Added more thorough testing to distribution tests lineup, and an
-      additional set of tests in an automated "empty subclass test" of the
-      modules native methods and all those it inherits from its ancestoral
-      classes.
-
-      More flock() related tweaking in private methods that implement
-      File::Util's automatic, transparent file locking mechanism.
+      POD documentation got a big update.
 
 
 INSTALLATION
-
 To install this module type the following:
 
    perl Makefile.PL
@@ -73,13 +50,11 @@ to find out.
 
 
 DEPENDENCIES
-
 This module requires these other modules and libraries:
 
    OOorNO.pm                  v0.00_2 or better
    Handy::Dandy               v1.30_4 or better
    Exception::Handler         v1.00_0 or better
-   Handy::Dandy::TimeTools    v0.01_5 or better
 
 
 AUTHOR
