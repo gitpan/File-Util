@@ -23,7 +23,7 @@ my($NL) = NL; my($SL) = SL;
 ok(NL eq $NL);                                                          # test 1
 
 # binmode necessary?
-ok(needs_binmode, NL eq qq[\015\012]);                                  # test 2
+ok(needs_binmode, NL eq qq[\015\012] ? 1 : 0);                          # test 2
 
 # path seperator
 ok(SL eq $SL);                                                          # test 3

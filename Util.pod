@@ -1,0 +1,621 @@
+=pod
+
+=head1 NAME
+
+File::Util - Easy, versatile, portable file handling
+
+=head1 IMPORTANT!
+
+This is a developer's release, and is not intended for use in the public sector.
+This code is made available for developers who wish to aid in the furthering of
+the code, though B<it _is_ stable>.
+
+This is I<not> a registered module in the CPAN module list.  It is not part of
+the CPAN yet.
+
+=head1 SYNOPSIS
+
+I<-- This part of the documentation is not yet complete! -->
+
+   Nothing here at present.
+
+=head1 DESCRIPTION
+
+File::Util provides a comprehensive toolbox of utilities to automate all
+kinds of common tasks on file / directories.  Its purpose is to do so
+in the most portable manner possible so that users of this module won't
+have to worry about whether their programs will work on other OSes
+and machines.
+
+=head1 INSTALLATION
+
+To install this module type the following at the command prompt:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+On windows machines use nmake rather than make; those running cygwin don't have
+to worry about this.  If you don't know what cygwin is, use nmake and check out
+L<http://cygwin.com/> after you're done installing this module if you
+want to find out.
+
+=head1 File::Util ISA
+
+=over
+
+=item L<Exporter>
+
+=item L<Class::OOorNO>
+
+=back
+
+=head1 METHODS
+
+B<Note:> Some of the methods listed will state that they are autoloaded methods.
+Autloaded methods are not compiled at runtime as part of your process and only
+get created if called somewhere in your program.  I<(see L<AutoLoader>.)>
+
+=head2 C<bitmask>
+
+=over
+
+=item I<Syntax:> C<bitmask( [file name] )>
+
+Gets the bitmask of the named file, provided the file exists. If the file
+exists, the bitmask of the named file is returned in four digit octal
+notation eg- C<0644>.  Otherwise, returns C<undef> if the file does I<not>
+exist.  This is an autoloaded method.
+
+=back
+
+=head2 C<can_flock>
+
+=over
+
+=item I<Syntax:> C<can_flock>
+
+Returns 1 if the current system claims to support C<flock()> I<and> if the
+Perl process can successfully call it.  I<(see L<perlfunc/flock>.)>  Unless
+both of these conditions are true a zero value (0) is returned.  This is
+an autoloaded method.  This is a constant subroutine.  It accepts no arguments
+and will always return the same value for the system on which it is executed.
+
+B<Note:> Perl will try to support or emulate flock whenever it can via
+available system calls, namely C<flock>; C<lockf>; or with C<fcntl>.
+
+=back
+
+=head2 C<can_read>
+
+=over
+
+=item I<Syntax:> C<can_read( [file name] )>
+
+Returns 1 if the named file (or directory) is B<readable> by your program
+according to the applied permissions of the file system on which the file
+resides.  Otherwise a value of undef is returned.
+
+This works the same as Perl's built-in C<-r> file test operator,
+I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
+is an autoloaded method.
+
+=back
+
+=head2 C<can_write>
+
+=over
+
+=item I<Syntax:> C<can_write( [file name] )>
+
+Returns 1 if the named file (or directory) is B<writable> by your program
+according to the applied permissions of the file system on which the file
+resides.  Otherwise a value of undef is returned.
+
+This works the same as Perl's built-in C<-w> file test operator,
+I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
+is an autoloaded method.
+
+=back
+
+=head2 C<created>
+
+=over
+
+=item I<Syntax:> C<created( [file name] )>
+
+Returns the time of creation for the named file in non-leap seconds since
+whatever your system considers to be the epoch.  Suitable for feeding to
+Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
+This is an autoloaded method.
+
+=back
+
+=head2 C<ebcdic>
+
+=over
+
+=item I<Syntax:> C<ebcdic>
+
+Returns 1 if the machine on which the code is running uses EBCDIC, or returns
+0 if not.  I<(see L<perlebcdic>.)>  This is an autoloaded method.  This is a
+constant subroutine.  It accepts no arguments and will always return the same
+value for the system on which it is executed.
+
+=back
+
+=head2 C<escape_filename>
+
+=over
+
+=item I<Syntax:> C<escape_filename( [string] )>
+
+I<-- Documentation for this method is not yet complete! --> This is an
+autoloaded method.
+
+=back
+
+=head2 C<existent>
+
+=over
+
+=item I<Syntax:> C<existent( [file name] )>
+
+Returns 1 if the named file (or directory) exists.  Otherwise a value of
+undef is returned.
+
+This works the same as Perl's built-in C<-e> file test operator,
+I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
+is an autoloaded method.
+
+=back
+
+=head2 C<file_type>
+
+=over
+
+=item I<Syntax:> C<file_type( [file name] )>
+
+Returns a list of keywords corresponding to each of Perl's built in file tests
+(those specific to file types) for which the named file returns true.
+I<(see L<perlfunc/-X>.)>  This is an autoloaded method.
+
+The keywords and their definitions appear below; the order of keywords returned
+is the same as the order in which the are listed here:
+
+=over
+
+=item PLAIN
+
+File is a plain file.
+
+=item TEXT
+
+File is a text file.
+
+=item BINARY
+
+File is a binary file.
+
+=item DIRECTORY
+
+File is a directory.
+
+=item SYMLINK
+
+File is a symbolic link.
+
+=item PIPE
+
+File is a named pipe (FIFO).
+
+=item SOCKET
+
+File is a socket.
+
+=item BLOCK
+
+File is a block special file.
+
+=item CHARACTER
+
+File is a character special file.
+
+=back
+
+=back
+
+=head2 C<flock_rules>
+
+=over
+
+=item I<Syntax:> C<flock_rules( [Keywords] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<isbin>
+
+=over
+
+=item I<Syntax:> C<isbin( [file name] )>
+
+Returns 1 if the named file (or directory) exists.  Otherwise a value of undef
+is returned, indicating that the named file either does not exist or is of
+another file type.
+
+This works the same as Perl's built-in C<-B> file test operator,
+I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.  This
+is an autoloaded method.
+
+=back
+
+=head2 C<last_access>
+
+=over
+
+=item I<Syntax:> C<last_access( [file name] )>
+
+Returns the last accessed time for the named file in non-leap seconds since
+whatever your system considers to be the epoch.  Suitable for feeding to
+Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
+This is an autoloaded method.
+
+=back
+
+=head2 C<last_mod>
+
+=over
+
+=item I<Syntax:> C<last_mod( [file name] )>
+
+Returns the last modified time for the named file in non-leap seconds since
+whatever your system considers to be the epoch.  Suitable for feeding to
+Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
+This is an autoloaded method.
+
+=back
+
+=head2 C<line_count>
+
+=over
+
+=item I<Syntax:> C<line_count( [file name] )>
+
+Returns the number of lines in the named file.  Fails with an error if the
+named file does not exist.
+
+=back
+
+=head2 C<list_dir>
+
+=over
+
+=item I<Syntax:> C<list_dir( [directory name] , [--opts] )>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 C<load_dir>
+
+=over
+
+=item I<Syntax:> C<load_dir( [directory name] , [--ds-type] )>
+
+Returns a data structure containing the contents of each file present in the
+named directory.  This is an autoloaded method.
+
+The type of data structure returned is determined by the optional data-type
+switch.  Only one option may be used for a given call to this method.
+Recognized options are listed below.
+
+=over
+
+=item C<--as-list>
+
+Causes the method to return a list comprised of the contents loaded from
+each file (in case-sensitive order) located in the named directory.
+
+=item C<--as-listref>
+
+Same as above, except an array reference to the list of items is returned
+rather than the list itself.
+
+=item C<--as-hashref> *(default)
+
+Implicit.  If no option is passed in, the default behavior is to return a
+reference to an anonymous hash whose keys are the names of each file in the
+specified directory; the hash values for contain the contents of the file
+represented by its corresponding key.
+
+=back
+
+B<Note:> This method does not distinguish between plain files and other file
+types such as binaries, FIFOs, sockets, etc.
+
+Restrictions imposed by the current "read limit"
+I<(see the L<readlimit()|/readlimit>) entry below> will be applied to the
+files opened by this method as well.  Adjust the readlimit as necessary.
+
+   my($files) = $fu->load_dir('directory/to/load/');
+
+The above code creates an anonymous hash reference that is stored in the
+variable named "C<$files>".  The keys and values of the hash referenced by
+"C<$files>" would resemble those of the following code snippet (given that
+the files in the named directory were the files 'a.txt', 'b.html', 'c.dat',
+and 'd.conf')
+
+   my($files) =
+      {
+         'a.txt'  => "the contents of file a.txt",
+         'b.html' => "the contents of file b.html",
+         'c.dat'  => "the contents of file c.dat",
+         'd.conf' => "the contents of file d.conf",
+      };
+
+=back
+
+=head2 C<load_file>
+
+=over
+
+=item I<Syntax:> C<load_file( [file name] , [--opts] )>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 C<make_dir>
+
+=over
+
+=item I<Syntax:> C<make_dir( [new directory name] , [--opts] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<max_dives>
+
+=over
+
+=item I<Syntax:> C<max_dives( [integer] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<needs_binmode>
+
+=over
+
+=item I<Syntax:> C<needs_binmode>
+
+Returns 1 if the machine on which the code is running requires that C<binmode()>
+I<(a built-in function)> be called on open file handles, or returns 0 if not.
+I<(see L<perlfunc/binmode>.)>  This is an autoloaded method.  This is a constant
+subroutine.  It accepts no arguments and will always return the same value for
+the system on which it is executed.
+
+=back
+
+=head2 C<new>
+
+=over
+
+=item I<Syntax:> C<new( [--opts] )>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 C<open_handle>
+
+=over
+
+=item I<Syntax:> C<open_handle( [file name] , [--opts] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<readlimit>
+
+=over
+
+=item I<Syntax:> C<readlimit( [integer] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<size>
+
+=over
+
+=item I<Syntax:> C<size( [file name] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<strip_path>
+
+=over
+
+=item I<Syntax:> C<strip_path( [string] )>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 C<trunc>
+
+=over
+
+=item I<Syntax:> C<trunc( [file name] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<use_flock>
+
+=over
+
+=item I<Syntax:> C<use_flock( [true / false value] )>
+
+I<-- Documentation for this method is not yet complete! -->  This is an
+autoloaded method.
+
+=back
+
+=head2 C<write_file>
+
+=over
+
+=item I<Syntax:> C<write_file('file' => [file name], 'content' => [data], [--opts])>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 C<valid_filename>
+
+=over
+
+=item I<Syntax:> C<valid_filename( [string] )>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head1 CONSTANTS
+
+=head2 C<NL>
+
+=over
+
+=item I<Syntax:> C<NL>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head2 SL
+
+=over
+
+=item I<Syntax:> C<SL>
+
+I<-- Documentation for this method is not yet complete! -->
+
+=back
+
+=head1 EXPORT
+None by default.
+=head1 EXPORT_OK
+
+=over
+
+=item C<L<bitmask|/bitmask>>
+=item C<L<can_flock|/can_flock>>
+=item C<L<can_read|/can_read>>
+=item C<L<can_write|/can_write>>
+=item C<L<ebcdic|/ebcdic>>
+
+=item C<L<escape_filename|/escape_filename>>
+
+=item C<L<existent|/existent>>
+=item C<L<file_type|/file_type>>
+
+=item C<L<isbin|/isbin>>
+
+=item C<L<NL|/NL>>
+=item C<L<needs_binmode|/needs_binmode>>
+
+=item C<L<size|/size>>
+=item C<L<SL|/SL>>
+=item C<L<strip_path|/strip_path>>
+=item C<L<valid_filename|/valid_filename>>
+
+=item I<Symbols in C<@Class::L<OOorNO|OOorNO>::EXPORT_OK> are also available for import.>
+
+=back
+
+
+=head2 EXPORT_TAGS
+
+   :all (exports all of @File::Util::EXPORT_OK)
+
+
+=head1 PREREQUISITES
+
+=over
+
+=item L<Perl|perl> 5.006 or better
+
+=item L<Class::OOorNO>        v0.01_1 or better
+
+=item L<Exception::Handler>   v1.00_0 or better
+
+=back
+
+
+=head1 EXAMPLES
+
+None at present.
+
+
+=head1 BUGS
+
+This documentation isn't done yet, as you can see.  This is being rectified
+as quickly as possible.  Please exercise caution if you choose to use this
+code before it can be further documented for you.  Please excuse the
+inconvenience.
+
+
+=head1 AUTHOR
+
+Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
+
+
+=head1 COPYRIGHT
+
+Copyright(C) 2001-2003, Tommy Butler.  All rights reserved.
+
+
+=head1 LICENSE
+
+This library is free software, you may redistribute and/or modify it under
+the same terms as Perl itself.
+
+
+=head1 SEE ALSO
+
+=over
+
+=item L<Class::OOorNO>
+
+=item L<Exception::Handler>
+
+=item L<File::Slurp>
+
+=item L<Exporter>
+
+=item L<AutoLoader>
+
+=back
+
+=cut
+

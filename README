@@ -1,4 +1,4 @@
-File::Util version 3.14_0
+File::Util version 3.14_1
 =========================
 
 DESCRIPTION
@@ -10,35 +10,40 @@ and machines.
 
 
 CHANGES IN LAST FEW RELEASES
-(listed in reverse cronological order by date and subversion)
+(listed in reverse chronological order by date and subversion)
+
+   3.14_1
+      1/2/03, 3:47 am
+      Added a substantial amount of new documentation.  Spelling errors in
+      documentation files corrected.
+
+      Previously available method, File::Util::os(), has been dropped from the
+      namespace and is no longer part of the module.
+
+      Method File::Util::file_type() no longer includes the 'tty' keyword among
+      its list of recognized file types, as the native Perl file test for
+      divining a TTY file can only be used on open file handles.
+
+      The keywords returned by this method are all upper case strings as of
+      version 3.13_9, though the release notes for that version errantly did
+      not include this statement.  The list of keywords otherwise remains
+      unchanged:
+         PLAIN       TEXT
+         BINARY      DIRECTORY
+         SYMLINK     PIPE
+         SOCKET      BLOCK
+         CHARACTER
 
    3.14_0
-      12/27/02, 5:50 pm
+      12/27/02, 5:50 pm
       File::Util no longer @ISA Handy::Dandy, and no longer includes it
       as a prerequisite dependency.  Added a little more documentation,
       but it has a _long_ way to go as yet.
 
    3.13_9
-      12/23/02, 3:22 pm
+      12/23/02, 3:22 pm
       A few small changes; no longer lists Handy::Dandy::TimeTools as a
       prerequisite dependency.
-
-   3.13_8
-      12/22/02, 11:31 pm
-      Method File::Util::file_type() now returns a list instead of a single
-      string of concatenated keyword substrings, the filetype keywords being:
-         plain       text
-         binary      directory
-         symlink     pipe
-         socket      block
-         character   tty
-
-      Methods File::Util::load_file() and File::Util::open_handle() both will
-      truly guarantee the uniqueness of the underlying file handle which is
-      auto-generated, whereas before measures to acheive the uniqueness of
-      the filehandles were taken, but not verified.
-
-      POD documentation also got a big update.
 
 
 INSTALLATION
@@ -58,7 +63,7 @@ to find out.
 DEPENDENCIES
 This module requires these other modules and libraries:
 
-   OOorNO                     v0.01_0 or better
+   Class::OOorNO              v0.01_0 or better
    Exception::Handler         v1.00_0 or better
 
 
@@ -70,6 +75,7 @@ COPYRIGHT
    Copyright (C) Tommy Butler 2001-2002, all rights reserved.
 
 
-LICENCE
+LICENCE
    This library is free software, you may redistribute it and/or modify it
    under the same terms as Perl itself.
+

@@ -7,7 +7,7 @@ WriteMakefile
    (
    'NAME'         => 'File::Util',
    'AUTHOR'       => 'Tommy Butler <cpan@atrixnet.com>',
-   'ABSTRACT_FROM'=> 'Util.pm',
+   'ABSTRACT_FROM'=> 'Util.pod',
    'VERSION_FROM' => 'Util.pm',
    'INSTALLDIRS'  => 'site',
    'PREREQ_PM'    =>

@@ -4,6 +4,7 @@ MANIFEST
 Makefile.PL
 README
 Util.pm
+Util.pod
 docs-basic.txt
 t/1_canuseit.t
 t/2_isa.t

@@ -12,7 +12,7 @@ use vars qw
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.14_0; # 12/28/02, 12:43 pm
+$VERSION    = '3.14_1'; # 12/28/02, 12:43 pm
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  =
    (
@@ -41,8 +41,8 @@ BEGIN {
    elsif ($OS =~ /^os2/i)    { $OS = 'OS2'       }
                         else { $OS = 'UNIX'      }
 
-$EBCDIC = qq[\t] ne qq[\011];
-$NEEDS_BINMODE = $OS =~ /WINDOWS|DOS|OS2|MSWin/;
+$EBCDIC = qq[\t] ne qq[\011] ? 1 : 0;
+$NEEDS_BINMODE = $OS =~ /WINDOWS|DOS|OS2|MSWin/ ? 1 : 0;
 $NL =
    $NEEDS_BINMODE ? qq[\015\012]
       : $EBCDIC || $OS eq 'VMS' ? qq[\n]
@@ -105,13 +105,6 @@ sub new {
 }
 
 
-# File::Util::--------------------------------------------
-#   can_read()   can_write()
-# --------------------------------------------------------
-sub can_read  { my($f) = myargs(@_); $f ? -r $f : undef }
-sub can_write { my($f) = myargs(@_); $f ? -w $f : undef }
-
-
 # --------------------------------------------------------
 # File::Util::list_dir()
 # --------------------------------------------------------
@@ -125,18 +118,16 @@ sub list_dir {
    my(@dirs) = (); my(@files) = (); my(@items) = ();
 
    return
-      (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'list_dir',
-                  'missing'   => 'a directory name',
-                  'opts'      => $opts,
-               }
-            )
-      )
-         unless length($dir);
+      $this->_throw
+         (
+            'no input',
+            {
+               'meth'      => 'list_dir',
+               'missing'   => 'a directory name',
+               'opts'      => $opts,
+            }
+         )
+      unless length($dir);
 
    return($this->_throw('no such file', { 'filename' => $dir })) unless -e $dir;
 
@@ -145,18 +136,14 @@ sub list_dir {
 
    if ($this->{'recursed'} >= $MAXDIVES) {
 
-      return($this->_throw(<<__rbail__))
-
-Recursion limit reached at $MAXDIVES dives.  Maximum number of subdirectory
-dives is set to the value returned by File::Util::max_dives().  Try manually
-setting the value to a higher number before calling list_dir() with option
---follow or --recurse (synonymous).  Do so by calling File::Util::max_dives()
-with the numeric argument corresponding to the maximum number of subdirectory
-dives you want to allow when traversing directories recursively.
-
-This operation aborted.
-
-__rbail__
+      return $this->_throw
+         (
+            'maxdives exceeded',
+            {
+               'meth'      => 'list_dir',
+               'opts'      => $opts,
+            }
+         )
    }
 
    $r = 1 if ($opts->{'--follow'} || $opts->{'--recurse'});
@@ -166,33 +153,29 @@ __rbail__
    { $dir =~ s/$DIRSPLIT$//o; $path =~ s/$DIRSPLIT$//o; }
 
    return
-      (
-         $this->_throw
-            (
-               'called opendir on a file',
-               {
-                  'filename'  => $dir,
-                  'opts'      => $opts,
-               }
-            )
-      )
-         unless (-d $dir);
+      $this->_throw
+         (
+            'called opendir on a file',
+            {
+               'filename'  => $dir,
+               'opts'      => $opts,
+            }
+         )
+      unless (-d $dir);
 
    local(*DIR);
 
    opendir(DIR, $dir) or
       return
-         (
-            $this->_throw
-               (
-                  'bad opendir',
-                  {
-                     'dir'       => $dir,
-                     'exception' => $!,
-                     'opts'      => $opts,
-                  }
-               )
-         );
+         $this->_throw
+            (
+               'bad opendir',
+               {
+                  'dir'       => $dir,
+                  'exception' => $!,
+                  'opts'      => $opts,
+               }
+            );
 
    # read from beginning of the directory (doesn't seem necessary on any
    # platforms I've run code on, but just in case...)
@@ -214,17 +197,15 @@ __rbail__
 
    closedir(DIR) or
       return
-         (
-            $this->_throw
-               (
-                  'close dir',
-                  {
-                     'dir'       => $dir,
-                     'exception' => $!,
-                     'opts'      => $opts,
-                  }
-               )
-         );
+         $this->_throw
+            (
+               'close dir',
+               {
+                  'dir'       => $dir,
+                  'exception' => $!,
+                  'opts'      => $opts,
+               }
+            );
 
    if ($opts->{'--no-fsdots'}) {
 
@@ -248,10 +229,10 @@ __rbail__
 
       my($listing) =
          ($opts->{'--with-paths'} or ($r==1))
-            ? $path . $SL . $files[$i]
+            ? $path . SL . $files[$i]
             : $files[$i];
 
-      if (-d $path . $SL . $files[$i]) { push(@dirs, $listing) }
+      if (-d $path . SL . $files[$i]) { push(@dirs, $listing) }
       else { push(@items, $listing) }
    }
 
@@ -290,7 +271,7 @@ __rbail__
 
       @dirs       = $this->_dropdots(@dirs,'--save-dots');
       my($dots)   = shift(@dirs);
-      @dirs       = map ( ($_ .= $SL), @dirs );
+      @dirs       = map ( ($_ .= SL), @dirs );
       @dirs       = (@{$dots},@dirs);
    }
 
@@ -359,28 +340,25 @@ sub load_file {
 
       if (scalar(@dirs) > 0) {
 
-         $file = pop(@dirs); $path = join($SL, @dirs);
+         $file = pop(@dirs); $path = join(SL, @dirs);
       }
 
       if (length($path) > 0) {
 
-         $path = '.' . $SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
+         $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
       }
       else { $path = '.'; }
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'no input',
-                  {
-                     'meth'      => 'load_file',
-                     'missing'   => 'a file name or file handle reference',
-                     'opts'      => $opts,
-                  }
-               )
+            'no input',
+            {
+               'meth'      => 'load_file',
+               'missing'   => 'a file name or file handle reference',
+               'opts'      => $opts,
+            }
          )
-            if (length($path . $SL . $file) == 0);
+      if (length($path . SL . $file) == 0);
    }
    else {
 
@@ -389,17 +367,14 @@ sub load_file {
       # did we get a filehandle?
       if (length($fh) > 0) { $FH_passed = 1; } else {
 
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'no input',
-                     {
-                        'meth'      => 'load_file',
-                        'missing'   => 'a file name or file handle reference',
-                        'opts'      => $opts,
-                     }
-                  )
+               'no input',
+               {
+                  'meth'      => 'load_file',
+                  'missing'   => 'a file name or file handle reference',
+                  'opts'      => $opts,
+               }
             );
       }
    }
@@ -416,17 +391,14 @@ sub load_file {
          }
          else {
 
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'readlimit exceeded',
-                        {
-                           'filename'  => '<FH>',
-                           'size'      => qq[[truncated at $bytes_read]],
-                           'opts'      => $opts,
-                        }
-                     )
+                  'readlimit exceeded',
+                  {
+                     'filename'  => '<FH>',
+                     'size'      => qq[[truncated at $bytes_read]],
+                     'opts'      => $opts,
+                  }
                );
          }
       }
@@ -440,87 +412,88 @@ sub load_file {
    }
 
    # if the file doesn't exist, send back an error
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no such file',
-               {
-                  'filename'  => $path . $SL . $file,
-                  'opts'      => $opts,
-               }
-            )
+         'no such file',
+         {
+            'filename'  => $path . SL . $file,
+            'opts'      => $opts,
+         }
       )
-         unless -e $path . $SL . $file;
+   unless -e $path . SL . $file;
 
    # it's good to know beforehand whether or not we have permission to open
    # and read from this file allowing us to handle such an exception before
    # it handles us.
 
    # first check the readability of the file's housing dir
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'cant dread',
-               {
-                  'filename'  => $path . $SL . $file,
-                  'dirname'   => $path . $SL,
-                  'opts'      => $opts,
-               }
-            )
+         'cant dread',
+         {
+            'filename'  => $path . SL . $file,
+            'dirname'   => $path . SL,
+            'opts'      => $opts,
+         }
       )
-         unless ($this->can_read($path . $SL));
+   unless (-r $path . SL);
 
    # now check the readability of the file itself
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'cant fread',
-               {
-                  'filename'  => $path . $SL . $file,
-                  'dirname'   => $path . $SL,
-                  'opts'      => $opts,
-               }
-            )
+         'cant fread',
+         {
+            'filename'  => $path . SL . $file,
+            'dirname'   => $path . SL,
+            'opts'      => $opts,
+         }
       )
-         unless ($this->can_read($path . $SL . $file));
+   unless (-r $path . SL . $file);
 
    # if the file is a directory it will not be opened
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'called open on a dir',
-               {
-                  'filename'  => $path . $SL . $file,
-                  'opts'      => $opts,
-               }
-            )
+         'called open on a dir',
+         {
+            'filename'  => $path . SL . $file,
+            'opts'      => $opts,
+         }
       )
-         if -d $path . $SL . $file;
+   if -d $path . SL . $file;
+#
+#
+#
+#
+#
+#
+#
+#
 
-   return($this->_throw( qq[
-      $this->{'name'} can't open " $file " for reading because
-      it is a a block special file.] ))
-         if (-b $path . $SL . $file);
+   # return $this->_throw( qq[
+      # $this->{'name'} can't open " $file " for reading because
+      # it is a a block special file.] )
+         # if (-b $path . SL . $file);
+#
+#
+#
+#
+#
+#
+#
+#
 
-   my($fsize) = -s $path . $SL . $file;
+   my($fsize) = -s $path . SL . $file;
 
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'readlimit exceeded',
-               {
-                  'filename'  => $path . $SL . $file,
-                  'size'      => $fsize,
-                  'opts'      => $opts,
-               }
-            )
+         'readlimit exceeded',
+         {
+            'filename'  => $path . SL . $file,
+            'size'      => $fsize,
+            'opts'      => $opts,
+         }
       )
-         if ($fsize > $READLIMIT);
+   if ($fsize > $READLIMIT);
 
    # we need a unique filehandle
    do { $fh = int(rand(time)) . $$; $fh = eval('*' . 'LOAD_FILE' . $fh) }
@@ -532,52 +505,46 @@ sub load_file {
 
    # open the file for reading (note the '<' syntax there) or fail with a
    # error message if our attempt to open the file was unsuccessful
-   my($cmd) = '<' . $path . $SL . $file;
+   my($cmd) = '<' . $path . SL . $file;
 
    # lock file before I/O on platforms that support it
    if ($$opts{'--no-lock'} || $$this{'opts'}{'--no-lock'}) {
 
       # if you use the '--no-lock' option you are probably stupid
       open($fh, $cmd) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad open',
-                     {
-                        'filename'  => $path . $SL . $file,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'cmd'       => $cmd,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad open',
+               {
+                  'filename'  => $path . SL . $file,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'cmd'       => $cmd,
+                  'opts'      => $opts,
+               }
             );
    }
    else {
 
       open($fh, $cmd) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad open',
-                     {
-                        'filename'  => $path . $SL . $file,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'cmd'       => $cmd,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad open',
+               {
+                  'filename'  => $path . SL . $file,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'cmd'       => $cmd,
+                  'opts'      => $opts,
+               }
             );
 
-      $this->_seize($path . $SL . $file, $fh);
+      $this->_seize($path . SL . $file, $fh);
    }
 
    # call binmode on binary files for portability accross platforms such
    # as MS flavor OS family
-   CORE::binmode($fh) if (-B $path . $SL . $file);
+   CORE::binmode($fh) if (-B $path . SL . $file);
 
    # assign the content of the file to this lexically scoped scalar variable
    # (memory for *that* variable will be freed when execution leaves this
@@ -589,18 +556,15 @@ sub load_file {
       # if execution gets here, you used the '--no-lock' option, and you
       # are probably stupid
       close($fh) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad close',
-                     {
-                        'filename'  => $path . $SL . $file,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad close',
+               {
+                  'filename'  => $path . SL . $file,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'opts'      => $opts,
+               }
             );
    }
    else {
@@ -609,18 +573,15 @@ sub load_file {
       $this->_release($fh);
 
       close($fh) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad close',
-                     {
-                        'filename'  => $path . $SL . $file,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad close',
+               {
+                  'filename'  => $path . SL . $file,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'opts'      => $opts,
+               }
             );
    }
 
@@ -656,60 +617,51 @@ sub write_file {
 
    # if the call to this method didn't include a filename to which the caller
    # wants us to write, then complain about it
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'write_file',
-                  'missing'   => 'a file name to create, write, or append',
-                  'opts'      => $opts,
-               }
-            )
+         'no input',
+         {
+            'meth'      => 'write_file',
+            'missing'   => 'a file name to create, write, or append',
+            'opts'      => $opts,
+         }
       )
-         unless length($filename);
+   unless length($filename);
 
    # if prospective filename contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'bad chars',
-               {
-                  'string'    => $filename,
-                  'purpose'   => 'the name of a file or directory',
-                  'opts'      => $opts,
-               }
-            )
+         'bad chars',
+         {
+            'string'    => $filename,
+            'purpose'   => 'the name of a file or directory',
+            'opts'      => $opts,
+         }
       )
-         if ($filename =~ /(?:$DIRSPLIT){2,}/);
+   if ($filename =~ /(?:$DIRSPLIT){2,}/);
 
    # if the call to this method didn't include any data which the caller
    # wants us to write or append to the file, then complain about it
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'write_file',
-                  'missing'   => 'the content you want to write or append',
-                  'opts'      => $opts,
-               }
-            )
+         'no input',
+         {
+            'meth'      => 'write_file',
+            'missing'   => 'the content you want to write or append',
+            'opts'      => $opts,
+         }
       )
-         if
-            (
-               (length($content) == 0)
-                  and
-               ($mode ne 'trunc')
-                  and
-               (!$EMPTY_WRITES_OK)
-                  and
-               (!$opts->{'--empty-writes-OK'})
-            );
+   if
+      (
+         (length($content) == 0)
+            and
+         ($mode ne 'trunc')
+            and
+         (!$EMPTY_WRITES_OK)
+            and
+         (!$opts->{'--empty-writes-OK'})
+      );
 
    # take care of idiots.  HEY!  I resent that!
    $filename =~ s/$DIRSPLIT$//;
@@ -721,29 +673,26 @@ sub write_file {
    # if prospective file name has illegal chars then complain
    foreach (@dirs) {
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'bad chars',
-                  {
-                     'string'    => $_,
-                     'purpose'   => 'the name of a file or directory',
-                     'opts'      => $opts,
-                  }
-               )
+            'bad chars',
+            {
+               'string'    => $_,
+               'purpose'   => 'the name of a file or directory',
+               'opts'      => $opts,
+            }
          )
-            if (!$this->valid_filename($_));
+      if (!$this->valid_filename($_));
    }
 
    if (scalar(@dirs) > 0) {
 
-      $filename = pop(@dirs); $path = join($SL, @dirs);
+      $filename = pop(@dirs); $path = join(SL, @dirs);
    }
 
    if (length($path) > 0) {
 
-      $path = '.' . $SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
+      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
    }
    else { $path = '.'; }
 
@@ -753,36 +702,30 @@ sub write_file {
 
    if (-e $openarg) {
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'cant fwrite',
-                  {
-                     'filename'  => $openarg,
-                     'dirname'   => $path . $SL,
-                     'opts'      => $opts,
-                  }
-               )
+            'cant fwrite',
+            {
+               'filename'  => $openarg,
+               'dirname'   => $path . SL,
+               'opts'      => $opts,
+            }
          )
-            unless ($this->can_write($openarg));
+      unless (-w $openarg);
    }
    else {
 
       # if file doesn't exist, the error is one of creation
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'cant fcreate',
-                  {
-                     'filename'  => $openarg,
-                     'dirname'   => $path . $SL,
-                     'opts'      => $opts,
-                  }
-               )
+            'cant fcreate',
+            {
+               'filename'  => $openarg,
+               'dirname'   => $path . SL,
+               'opts'      => $opts,
+            }
          )
-            unless ($this->can_write($path . $SL));
+      unless (-w $path . SL);
    }
 
    if ($$opts{'--no-lock'} || !$USE_FLOCK) {
@@ -792,19 +735,16 @@ sub write_file {
 
       # if you use the '--no-lock' option you are probably stupid
       open(WRITE_FILE, $mode . $openarg) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad open',
-                     {
-                        'filename'  => $openarg,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'cmd'       => $mode . $openarg,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad open',
+               {
+                  'filename'  => $openarg,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'cmd'       => $mode . $openarg,
+                  'opts'      => $opts,
+               }
             );
    }
    else {
@@ -813,19 +753,16 @@ sub write_file {
       if (-e $openarg) {
 
          open(WRITE_FILE, '<' . $openarg) or
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad open',
-                        {
-                           'filename'  => $openarg,
-                           'mode'      => 'read',
-                           'exception' => $!,
-                           'cmd'       => $mode . $openarg,
-                           'opts'      => $opts,
-                        }
-                     )
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => 'read',
+                     'exception' => $!,
+                     'cmd'       => $mode . $openarg,
+                     'opts'      => $opts,
+                  }
                );
 
          # lock file before I/O on platforms that support it
@@ -834,39 +771,33 @@ sub write_file {
          return($lockstat) unless $lockstat;
 
          sysopen(WRITE_FILE, $openarg, eval($$MODES{'sysopen'}{ $mode }))
-            or return
+            or return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad open',
-                        {
-                           'filename'  => $openarg,
-                           'mode'      => $mode,
-                           'opts'      => $opts,
-                           'exception' => $!,
-                           'cmd'       => qq[$openarg, ]
-                                       . eval($$MODES{'sysopen'}{ $mode }),
-                        }
-                     )
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => $mode,
+                     'opts'      => $opts,
+                     'exception' => $!,
+                     'cmd'       => qq[$openarg, ]
+                                 . eval($$MODES{'sysopen'}{ $mode }),
+                  }
                );
       }
       else {
 
          sysopen(WRITE_FILE, $openarg, eval($$MODES{'sysopen'}{ $mode }))
-            or return
+            or return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad open',
-                        {
-                           'filename'  => $openarg,
-                           'mode'      => $mode,
-                           'opts'      => $opts,
-                           'exception' => $!,
-                           'cmd'       => qq[$openarg, ]
-                                       . eval($$MODES{'sysopen'}{ $mode }),
-                        }
-                     )
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => $mode,
+                     'opts'      => $opts,
+                     'exception' => $!,
+                     'cmd'       => qq[$openarg, ]
+                                 . eval($$MODES{'sysopen'}{ $mode }),
+                  }
                );
 
          # lock file before I/O on platforms that support it
@@ -879,17 +810,14 @@ sub write_file {
       if ($mode ne 'append') {
 
          truncate(WRITE_FILE,0) or
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad systrunc',
-                        {
-                           'filename'  => $openarg,
-                           'exception' => $!,
-                           'opts'      => $opts,
-                        }
-                     )
+                  'bad systrunc',
+                  {
+                     'filename'  => $openarg,
+                     'exception' => $!,
+                     'opts'      => $opts,
+                  }
                );
       }
    }
@@ -900,18 +828,15 @@ sub write_file {
    unless ($$opts{'--no-lock'} || !$USE_FLOCK) { $this->_release(*WRITE_FILE) }
 
    close(WRITE_FILE) or
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'bad close',
-                  {
-                     'filename'  => $openarg,
-                     'mode'      => $mode,
-                     'exception' => $!,
-                     'opts'      => $opts,
-                  }
-               )
+            'bad close',
+            {
+               'filename'  => $openarg,
+               'mode'      => $mode,
+               'exception' => $!,
+               'opts'      => $opts,
+            }
          );
 
    return($in->{'content'});
@@ -990,16 +915,13 @@ sub _seize {
 
             # FAIL directive processed here after BLOCK directive fails if
             # no non-fatal directive is specified in the ruleset
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad lock',
-                        {
-                           'filename'  => $file,
-                           'exception' => $!,
-                        }
-                     )
+                  'bad lock',
+                  {
+                     'filename'  => $file,
+                     'exception' => $!,
+                  }
                );
          }
       }
@@ -1029,16 +951,13 @@ sub _seize {
 
          # FAIL directive processed here after previous directive(s) fail,
          # or no non-fatal directive is specified in the ruleset
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad nblock',
-                     {
-                        'filename'  => $file,
-                        'exception' => $!,
-                     }
-                  )
+               'bad nblock',
+               {
+                  'filename'  => $file,
+                  'exception' => $!,
+               }
             );
       }
 
@@ -1085,18 +1004,15 @@ sub line_count {
    local(*LINES);
 
    open(LINES, $file) or
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'bad open',
-                  {
-                     'filename'  => $file,
-                     'mode'      => 'read',
-                     'exception' => $!,
-                     'cmd'       => $cmd,
-                  }
-               )
+            'bad open',
+            {
+               'filename'  => $file,
+               'mode'      => 'read',
+               'exception' => $!,
+               'cmd'       => $cmd,
+            }
          );
 
    while (sysread(LINES, $buff, 4096)) {
@@ -1123,14 +1039,7 @@ sub bitmask {
 
    my($f) = myargs(@_);
 
-   unless (defined($f) and length($f)) {
-
-      return(q[No input filename was provided.]);
-   }
-
-   return(qq[No such file or directory as "$f"]) unless (-e $f);
-
-   sprintf('%04o',(stat($f))[2] & 0777);
+   defined $f and -e $f ? sprintf('%04o',(stat($f))[2] & 0777) : undef
 }
 
 
@@ -1140,16 +1049,21 @@ sub bitmask {
 sub can_flock { $CAN_FLOCK }
 
 
+# File::Util::--------------------------------------------
+#   can_read(),   can_write()
+# --------------------------------------------------------
+sub can_read  { my($f) = myargs(@_); defined $f ? -r $f : undef }
+sub can_write { my($f) = myargs(@_); defined $f ? -w $f : undef }
+
+
 # --------------------------------------------------------
 # File::Util::created()
 # --------------------------------------------------------
 sub created {
 
-   my($f) = myargs(@_); $f ||= '';
+   my($f) = myargs(@_);
 
-   return undef unless -e $f;
-
-   $^T - ((-M $f) * 60 * 60 * 24)
+   defined $f and -e $f ? $^T - ((-M $f) * 60 * 60 * 24) : undef
 }
 
 
@@ -1182,13 +1096,13 @@ sub escape_filename {
    if (scalar(@dirs) > 0) {
 
       $file    = pop(@dirs);
-      $path    = join($SL, @dirs);
+      $path    = join(SL, @dirs);
       $mskpath = join($escape , @dirs);
    }
 
    if (length($path) > 0) {
 
-      $path = '.' . $SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
+      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
    }
    else { $path = '.'; }
 
@@ -1211,7 +1125,7 @@ sub escape_filename {
 # --------------------------------------------------------
 # File::Util::existent()
 # --------------------------------------------------------
-sub existent { my($f) = myargs(@_); -e $f }
+sub existent { my($f) = myargs(@_); defined $f ? -e $f : undef }
 
 
 # --------------------------------------------------------
@@ -1221,22 +1135,17 @@ sub file_type {
 
    my($f) = myargs(@_);
 
-   unless (defined($f) and length($f)) {
-
-      return(q[No input filename was provided.]);
-   }
-
-   return(qq[No such file or directory as "$f"]) unless (-e $f);
+   return undef unless defined $f and -e $f;
 
    my(@ret) = ();
 
-   push @ret, 'plain'     if (-f $f);   push @ret, 'text'      if (-T $f);
-   push @ret, 'binary'    if (-B $f);   push @ret, 'directory' if (-d $f);
-   push @ret, 'symlink'   if (-l $f);   push @ret, 'pipe'      if (-p $f);
-   push @ret, 'socket'    if (-S $f);   push @ret, 'block'     if (-b $f);
-   push @ret, 'character' if (-c $f);   push @ret, 'tty'       if (-t $f);
+   push @ret, 'PLAIN'     if (-f $f);   push @ret, 'TEXT'      if (-T $f);
+   push @ret, 'BINARY'    if (-B $f);   push @ret, 'DIRECTORY' if (-d $f);
+   push @ret, 'SYMLINK'   if (-l $f);   push @ret, 'PIPE'      if (-p $f);
+   push @ret, 'SOCKET'    if (-S $f);   push @ret, 'BLOCK'     if (-b $f);
+   push @ret, 'CHARACTER' if (-c $f);   push @ret, 'TTY'       if (-t $f);
 
-   push(@ret,'cannot determine file type') unless @ret; @ret
+   push(@ret,'Error: cannot determine file type') unless @ret; @ret
 }
 
 
@@ -1247,7 +1156,7 @@ sub flock_rules {
 
    my($arg) = myargs(@_);
 
-   if (defined($arg)) { @ONLOCKFAIL = myargs(@_) }
+   if (defined $arg) { @ONLOCKFAIL = myargs(@_) }
 
    @ONLOCKFAIL
 }
@@ -1256,7 +1165,7 @@ sub flock_rules {
 # --------------------------------------------------------
 # File::Util::isbin()
 # --------------------------------------------------------
-sub isbin { my($f) = myargs(@_); -B $f }
+sub isbin { my($f) = myargs(@_); defined $f ? -B $f : undef }
 
 
 # --------------------------------------------------------
@@ -1295,19 +1204,16 @@ sub load_dir {
    my($dir)  = shift(@_)||''; my(@files) = ();
    my($dir_hash) = {}; my($dir_list) = [];
 
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'load_dir',
-                  'missing'   => 'a directory name',
-                  'opts'      => $opts,
-               }
-            )
+         'no input',
+         {
+            'meth'      => 'load_dir',
+            'missing'   => 'a directory name',
+            'opts'      => $opts,
+         }
       )
-         unless length($dir);
+   unless length($dir);
 
    @files = $this->list_dir($dir,'--files-only');
 
@@ -1317,7 +1223,7 @@ sub load_dir {
 
       foreach (@files) {
 
-         $dir_hash->{ $_ } = $this->load_file( $dir . $SL . $_ );
+         $dir_hash->{ $_ } = $this->load_file( $dir . SL . $_ );
       }
 
       return($dir_hash);
@@ -1326,7 +1232,7 @@ sub load_dir {
 
       foreach (@files) {
 
-         push(@{$dir_list},$this->load_file( $dir . $SL . $_ ));
+         push(@{$dir_list},$this->load_file( $dir . SL . $_ ));
       }
 
       return($dir_list) if ($opts->{'--as-listref'}); return(@{$dir_list});
@@ -1345,33 +1251,27 @@ sub make_dir {
 
    # if the call to this method didn't include a directory name to create,
    # then complain about it
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'make_dir',
-                  'missing'   => 'a directory name',
-               }
-            )
+         'no input',
+         {
+            'meth'      => 'make_dir',
+            'missing'   => 'a directory name',
+         }
       )
-         unless (length($dir) > 0);
+   unless (length($dir) > 0);
 
    # if prospective directory name contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'bad chars',
-               {
-                  'string'    => $dir,
-                  'purpose'   => 'the name of a directory',
-               }
-            )
+         'bad chars',
+         {
+            'string'    => $dir,
+            'purpose'   => 'the name of a directory',
+         }
       )
-         if ($dir =~ /$DIRSPLIT{2,}/);
+   if ($dir =~ /$DIRSPLIT{2,}/);
 
    $bitmask ||= 0777; if (length($bitmask) == 3) {$bitmask = '0' . $bitmask}
 
@@ -1383,18 +1283,15 @@ sub make_dir {
    foreach (@dirs_in_path) {
 
       # if prospective directory name contains illegal chars then complain
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'bad chars',
-                  {
-                     'string'    => $_,
-                     'purpose'   => 'the name of a directory',
-                  }
-               )
+            'bad chars',
+            {
+               'string'    => $_,
+               'purpose'   => 'the name of a directory',
+            }
          )
-            if (!$this->valid_filename($_))
+      if (!$this->valid_filename($_))
    }
 
    my($depth) = 0;
@@ -1405,12 +1302,7 @@ sub make_dir {
 
       $dirs_in_path[$depth] ||= '.';
 
-      $dirs_in_path[$depth] =
-         join
-            (
-               $SL,
-               @dirs_in_path[($depth-1)..$depth]
-            );
+      $dirs_in_path[$depth] = join(SL, @dirs_in_path[($depth-1)..$depth]);
    }
 
    my($i) = 0;
@@ -1423,16 +1315,13 @@ sub make_dir {
 
       if (-e $dir and !-d $dir) {
 
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'called mkdir on a file',
-                     {
-                        'filename'  => $dir,
-                        'dirname'   => $up . $SL,
-                     }
-                  )
+               'called mkdir on a file',
+               {
+                  'filename'  => $dir,
+                  'dirname'   => $up . SL,
+               }
             );
       }
 
@@ -1441,31 +1330,25 @@ sub make_dir {
       # it's good to know beforehand whether or not we have permission to
       # create dirs here, which allows us to handle such an exception
       # before it handles us.
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'cant dcreate',
-                  {
-                     'filename'  => $dir,
-                     'dirname'   => $up . $SL,
-                  }
-               )
+            'cant dcreate',
+            {
+               'filename'  => $dir,
+               'dirname'   => $up . SL,
+            }
          )
-            unless ($this->can_write($up));
+      unless (-w $up);
 
       mkdir($dir, $bitmask) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad make_dir',
-                     {
-                        'exception' => $!,
-                        'dir'       => $dir,
-                        'bitmask'   => $bitmask,
-                     }
-                  )
+               'bad make_dir',
+               {
+                  'exception' => $!,
+                  'dir'       => $dir,
+                  'bitmask'   => $bitmask,
+               }
             );
    }
 
@@ -1511,35 +1394,29 @@ sub open_handle {
 
    # if the call to this method didn't include a filename to which the caller
    # wants us to write, then complain about it
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'no input',
-               {
-                  'meth'      => 'write_file',
-                  'missing'   => 'a file name to create, write, or append',
-                  'opts'      => $opts,
-               }
-            )
+         'no input',
+         {
+            'meth'      => 'write_file',
+            'missing'   => 'a file name to create, write, or append',
+            'opts'      => $opts,
+         }
       )
-         unless length($filename);
+   unless length($filename);
 
    # if prospective filename contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
-   return
+   return $this->_throw
       (
-         $this->_throw
-            (
-               'bad chars',
-               {
-                  'string'    => $filename,
-                  'purpose'   => 'the name of a file or directory',
-                  'opts'      => $opts,
-               }
-            )
+         'bad chars',
+         {
+            'string'    => $filename,
+            'purpose'   => 'the name of a file or directory',
+            'opts'      => $opts,
+         }
       )
-         if ($filename =~ /(?:$DIRSPLIT){2,}/);
+   if ($filename =~ /(?:$DIRSPLIT){2,}/);
 
    # take care of idiots.  HEY!  I resent that!
    $filename =~ s/$DIRSPLIT$//;
@@ -1551,29 +1428,26 @@ sub open_handle {
    # if prospective file name has illegal chars then complain
    foreach (@dirs) {
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'bad chars',
-                  {
-                     'string'    => $_,
-                     'purpose'   => 'the name of a file or directory',
-                     'opts'      => $opts,
-                  }
-               )
+            'bad chars',
+            {
+               'string'    => $_,
+               'purpose'   => 'the name of a file or directory',
+               'opts'      => $opts,
+            }
          )
-            if (!$this->valid_filename($_));
+      if (!$this->valid_filename($_));
    }
 
    if (scalar(@dirs) > 0) {
 
-      $filename = pop(@dirs); $path = join($SL, @dirs);
+      $filename = pop(@dirs); $path = join(SL, @dirs);
    }
 
    if (length($path) > 0) {
 
-      $path = '.' . $SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
+      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
    }
    else { $path = '.'; }
 
@@ -1589,37 +1463,31 @@ sub open_handle {
 
       if (-e $openarg) {
 
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'cant fwrite',
-                     {
-                        'filename'  => $openarg,
-                        'dirname'   => $path . $SL,
-                        'opts'      => $opts,
-                     }
-                  )
+               'cant fwrite',
+               {
+                  'filename'  => $openarg,
+                  'dirname'   => $path . SL,
+                  'opts'      => $opts,
+               }
             )
-               unless ($this->can_write($openarg));
+         unless (-w $openarg);
       }
       else {
 
          # If file doesn't exist and the path isn't writable, the error is
          # one of unallowed creation.
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'cant fcreate',
-                     {
-                        'filename'  => $openarg,
-                        'dirname'   => $path . $SL,
-                        'opts'      => $opts,
-                     }
-                  )
+               'cant fcreate',
+               {
+                  'filename'  => $openarg,
+                  'dirname'   => $path . SL,
+                  'opts'      => $opts,
+               }
             )
-               unless ($this->can_write($path . $SL));
+         unless (-w $path . SL);
       }
    }
    elsif ($mode eq 'read') {
@@ -1627,48 +1495,39 @@ sub open_handle {
       # Check whether or not we have permission to open and perform reads
       # on this file, starting with file's housing directory.
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'cant dread',
-                  {
-                     'filename'  => $path . $SL . $filename,
-                     'dirname'   => $path . $SL,
-                     'opts'      => $opts,
-                  }
-               )
+            'cant dread',
+            {
+               'filename'  => $path . SL . $filename,
+               'dirname'   => $path . SL,
+               'opts'      => $opts,
+            }
          )
-            unless ($this->can_read($path . $SL));
+      unless (-r $path . SL);
 
       # Check the readability of the file itself
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'cant fread',
-                  {
-                     'filename'  => $path . $SL . $filename,
-                     'dirname'   => $path . $SL,
-                     'opts'      => $opts,
-                  }
-               )
+            'cant fread',
+            {
+               'filename'  => $path . SL . $filename,
+               'dirname'   => $path . SL,
+               'opts'      => $opts,
+            }
          )
-            unless ($this->can_read($path . $SL . $filename));
+      unless (-r $path . SL . $filename);
    }
    else {
 
-      return
+      return $this->_throw
          (
-            $this->_throw
-               (
-                  'no input',
-                  {
-                     'meth'      => 'open_handle',
-                     'missing'   => q[a valid IO mode. (eg- 'read', 'write'...],
-                     'opts'      => $opts,
-                  }
-               )
+            'no input',
+            {
+               'meth'      => 'open_handle',
+               'missing'   => q[a valid IO mode. (eg- 'read', 'write'...],
+               'opts'      => $opts,
+            }
          )
    }
 
@@ -1683,19 +1542,16 @@ sub open_handle {
       $mode = $$MODES{'popen'}{ $mode };
 
       open($fh, $mode . $openarg) or
-         return
+         return $this->_throw
             (
-               $this->_throw
-                  (
-                     'bad open',
-                     {
-                        'filename'  => $openarg,
-                        'mode'      => $mode,
-                        'exception' => $!,
-                        'cmd'       => $mode . $openarg,
-                        'opts'      => $opts,
-                     }
-                  )
+               'bad open',
+               {
+                  'filename'  => $openarg,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'cmd'       => $mode . $openarg,
+                  'opts'      => $opts,
+               }
             );
    }
    else {
@@ -1704,19 +1560,16 @@ sub open_handle {
       if (-e $openarg) {
 
          open($fh, '<' . $openarg) or
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad open',
-                        {
-                           'filename'  => $openarg,
-                           'mode'      => 'read',
-                           'exception' => $!,
-                           'cmd'       => $mode . $openarg,
-                           'opts'      => $opts,
-                        }
-                     )
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => 'read',
+                     'exception' => $!,
+                     'cmd'       => $mode . $openarg,
+                     'opts'      => $opts,
+                  }
                );
 
          # lock file before I/O on platforms that support it
@@ -1727,40 +1580,34 @@ sub open_handle {
          if ($mode ne 'read') {
 
             open($fh, $$MODES{'popen'}{ $mode } . $openarg) or
-               return
+               return $this->_throw
                   (
-                     $this->_throw
-                        (
-                           'bad open',
-                           {
-                              'exception' => $!,
-                              'filename'  => $openarg,
-                              'mode'      => $mode,
-                              'opts'      => $opts,
-                              'cmd'       => $$MODES{'popen'}{ $mode }
-                                          . $openarg,
-                           }
-                        )
+                     'bad open',
+                     {
+                        'exception' => $!,
+                        'filename'  => $openarg,
+                        'mode'      => $mode,
+                        'opts'      => $opts,
+                        'cmd'       => $$MODES{'popen'}{ $mode }
+                                    . $openarg,
+                     }
                   );
          }
       }
       else {
 
          open($fh, $$MODES{'popen'}{ $mode } . $openarg) or
-            return
+            return $this->_throw
                (
-                  $this->_throw
-                     (
-                        'bad open',
-                        {
-                           'exception' => $!,
-                           'filename'  => $openarg,
-                           'mode'      => $mode,
-                           'opts'      => $opts,
-                           'cmd'       => $$MODES{'popen'}{ $mode }
-                                       . $openarg,
-                        }
-                     )
+                  'bad open',
+                  {
+                     'exception' => $!,
+                     'filename'  => $openarg,
+                     'mode'      => $mode,
+                     'opts'      => $opts,
+                     'cmd'       => $$MODES{'popen'}{ $mode }
+                                 . $openarg,
+                  }
                );
 
          # lock file before I/O on platforms that support it
@@ -1773,12 +1620,6 @@ sub open_handle {
    # return file handle reference to the caller
    $fh;
 }
-
-
-# --------------------------------------------------------
-# File::Util::os()
-# --------------------------------------------------------
-sub os { $OS }
 
 
 # --------------------------------------------------------
@@ -1848,7 +1689,7 @@ sub _throw {
    }
    else { $error = shift(@_) || 'empty error' }
 
-   $in = shift(@_)||{};
+   $in = shift(@_)||{}; $in->{'_pak'} = __PACKAGE__;
 
    map { $_ = defined($_) ? $_ : 'undefined value' } keys(%$in);
 
@@ -1923,7 +1764,7 @@ sub _errors {
    {
 # NO SUCH FILE
 'no such file' => <<'__bad_open__',
-File::Util can't open
+$in->{'_pak'} can't open
    $EBL$in->{'filename'}$EBR
 because no such file or directory exists.
 
@@ -1934,7 +1775,7 @@ __bad_open__
 
 # CAN'T READ FILE
 'cant fread' => <<'__cant_read__',
-Permissions conflict.  File::Util can't read the contents of this file:
+Permissions conflict.  $in->{'_pak'} can't read the contents of this file:
    $EBL$in->{'filename'}$EBR
 
    Due to insufficient permissions, the system has denied Perl the right to
@@ -1948,9 +1789,9 @@ Permissions conflict.  File::Util can't read the contents of this file:
       $EBL@ONLOCKFAIL$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with File::Util.
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
 Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks File::Util to perform I/O.
+            of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
 __cant_read__
@@ -1958,10 +1799,10 @@ __cant_read__
 
 # CAN'T CREATE FILE
 'cant fcreate' => <<'__cant_write__',
-Permissions conflict.  File::Util can't create this file:
+Permissions conflict.  $in->{'_pak'} can't create this file:
    $EBL$in->{'filename'}$EBR
 
-   File::Util can't create this file because the system has denied Perl
+   $in->{'_pak'} can't create this file because the system has denied Perl
    the right to create files in the parent directory.
 
    The -e test returns $EBL@{[-e $in->{'dirname'} ]}$EBR for the directory.
@@ -1980,9 +1821,9 @@ Permissions conflict.  File::Util can't create this file:
       $EBL@ONLOCKFAIL$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with File::Util.
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
 Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks File::Util to perform I/O.
+            of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
 __cant_write__
@@ -1990,7 +1831,7 @@ __cant_write__
 
 # CAN'T WRITE TO FILE
 'cant fwrite' => <<'__cant_write__',
-Permissions conflict.  File::Util can't write to this file:
+Permissions conflict.  $in->{'_pak'} can't write to this file:
    $EBL$in->{'filename'}$EBR
 
    Due to insufficient permissions, the system has denied Perl the right
@@ -2004,9 +1845,9 @@ Permissions conflict.  File::Util can't write to this file:
       $EBL@ONLOCKFAIL$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with File::Util.
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
 Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks File::Util to perform I/O.
+            of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
 __cant_write__
@@ -2014,7 +1855,7 @@ __cant_write__
 
 # CAN'T LIST DIRECTORY
 'cant dread' => <<'__cant_read__',
-Permissions conflict.  File::Util can't list the contents of this directory:
+Permissions conflict.  $in->{'_pak'} can't list the contents of this directory:
    $EBL$in->{'dirname'}$EBR
 
    Due to insufficient permissions, the system has denied Perl the right to
@@ -2022,9 +1863,9 @@ Permissions conflict.  File::Util can't list the contents of this directory:
       $EBL@{[ sprintf('%04o',(stat($in->{'filename'}))[2] & 0777) ]}$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with File::Util.
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
 Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks File::Util to perform I/O.
+            of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
 __cant_read__
@@ -2032,10 +1873,10 @@ __cant_read__
 
 # CAN'T CREATE DIRECTORY
 'cant dcreate' => <<'__cant_write__',
-Permissions conflict.  File::Util can't create:
+Permissions conflict.  $in->{'_pak'} can't create:
    $EBL$in->{'filename'}$EBR
 
-   File::Util can't create this directory because the system has denied
+   $in->{'_pak'} can't create this directory because the system has denied
    Perl the right to create files in the parent directory.
 
    Parent directory: (path may be relative and/or redundant)
@@ -2045,9 +1886,9 @@ Permissions conflict.  File::Util can't create:
       $EBL@{[ sprintf('%04o',(stat($in->{'dirname'}))[2] & 0777) ]}$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with File::Util.
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
 Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks File::Util to perform I/O.
+            of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
 __cant_write__
@@ -2055,13 +1896,13 @@ __cant_write__
 
 # CAN'T OPEN
 'bad open' => <<'__bad_open__',
-File::Util can't open this file for $EBL$in->{'mode'}$EBR:
+$in->{'_pak'} can't open this file for $EBL$in->{'mode'}$EBR:
    $EBL$in->{'filename'}$EBR
 
    The system returned this error:
       $EBL$in->{'exception'}$EBR
 
-   File::Util used this directive in its attempt to open the file
+   $in->{'_pak'} used this directive in its attempt to open the file
       $EBL$in->{'cmd'}$EBR
 
    Current flock_rules policy:
@@ -2074,7 +1915,7 @@ __bad_open__
 
 # BAD CLOSE
 'bad close' => <<'__bad_close__',
-File::Util couldn't close this file after $EBL$in->{'mode'}$EBR
+$in->{'_pak'} couldn't close this file after $EBL$in->{'mode'}$EBR
    $EBL$in->{'filename'}$EBR
 
    The system returned this error:
@@ -2090,7 +1931,7 @@ __bad_close__
 
 # CAN'T TRUNCATE
 'bad systrunc' => <<'__bad_systrunc__',
-File::Util couldn't truncate() on $EBL$in->{'filename'}$EBR after having
+$in->{'_pak'} couldn't truncate() on $EBL$in->{'filename'}$EBR after having
 successfully opened the file in write mode.
 
 The system returned this error:
@@ -2106,7 +1947,7 @@ __bad_systrunc__
 
 # CAN'T GET NON-BLOCKING FLOCK
 'bad nblock' => <<'__bad_lock__',
-File::Util can't get a non-blocking exclusive lock on the file
+$in->{'_pak'} can't get a non-blocking exclusive lock on the file
    $EBL$in->{'filename'}$EBR
 
 The system returned this error:
@@ -2125,7 +1966,7 @@ __bad_lock__
 
 # CAN'T GET FLOCK AFTER BLOCKING
 'bad lock' => <<'__bad_lock__',
-File::Util can't get a blocking exclusive lock on the file.
+$in->{'_pak'} can't get a blocking exclusive lock on the file.
    $EBL$in->{'filename'}$EBR
 
 The system returned this error:
@@ -2143,32 +1984,33 @@ __bad_lock__
 
 # CAN'T OPEN ON A DIRECTORY
 'called open on a dir' => <<'__bad_open__',
-File::Util can't call open() on this file because it is a directory
+$in->{'_pak'} can't call open() on this file because it is a directory
    $EBL$in->{'filename'}$EBR
 
 Origin:     This is a human error.
-Solution:   Use File::Util::load_file() to load the contents of a file
-            Use File::Util::list_dir() to list the contents of a directory
+Solution:   Use $in->{'_pak'}::load_file() to load the contents of a file
+            Use $in->{'_pak'}::list_dir() to list the contents of a directory
 __bad_open__
 
 
 # CAN'T OPENDIR ON A FILE
 'called opendir on a file' => <<'__bad_open__',
-File::Util can't opendir() on this file because it is not a directory.
+$in->{'_pak'} can't opendir() on this file because it is not a directory.
    $EBL$in->{'filename'}$EBR
 
-Use File::Util::load_file() to load the contents of a file
-Use File::Util::list_dir() to list the contents of a directory
+Use $in->{'_pak'}::load_file() to load the contents of a file
+Use $in->{'_pak'}::list_dir() to list the contents of a directory
 
 Origin:     This is a human error.
-Solution:   Use File::Util::load_file() to load the contents of a file
-            Use File::Util::list_dir() to list the contents of a directory
+Solution:   Use $in->{'_pak'}::load_file() to load the contents of a file
+            Use $in->{'_pak'}::list_dir() to list the contents of a directory
 __bad_open__
 
 
 # CAN'T MKDIR ON A FILE
 'called mkdir on a file' => <<'__bad_open__',
-File::Util can't mkdir() for this path name because it already exists as a file.
+$in->{'_pak'} can't auto-create a directory for this path name because it
+already exists as a file.
    $EBL$in->{'filename'}$EBR
 
 Origin:     This is a human error.
@@ -2177,9 +2019,9 @@ Solution:   Resolve naming issue between the existant file and the directory
 __bad_open__
 
 
-# PASSED READLIMIT
+# EXCEEDED READLIMIT
 'readlimit exceeded' => <<'__readlimit__',
-File::Util can't load file: $EBL$in->{'filename'}$EBR
+$in->{'_pak'} can't load file: $EBL$in->{'filename'}$EBR
 into memory because its size exceeds the maximum file size allowed
 for a read.
 
@@ -2191,10 +2033,26 @@ Origin:     This is a human error.
 Solution:   Consider setting the limit to a higher number of bytes.
 __readlimit__
 
+# EXCEEDED MAXDIVES
+'maxdives exceeded' => <<'__maxdives__',
+Recursion limit reached at $EBL$MAXDIVES$EBR dives.  Maximum number of
+subdirectory dives is set to the value returned by $in->{'_pak'}::max_dives().
+Try manually setting the value to a higher number before calling list_dir()
+with option --follow or --recurse (synonymous).  Do so by calling
+$in->{'_pak'}::max_dives() with the numeric argument corresponding to the
+maximum number of subdirectory dives you want to allow when traversing
+directories recursively.
+
+This operation aborted.
+
+Origin:     This is a human error.
+Solution:   Consider setting the limit to a higher number.
+__maxdives__
+
 
 # BAD OPENDIR
 'bad opendir' => <<'__bad_opendir__',
-File::Util can't opendir this on $EBL$dir$EBR
+$in->{'_pak'} can't opendir this on $EBL$dir$EBR
 
 The system returned this error:
    $EBL$in->{'exception'}$EBR
@@ -2206,8 +2064,8 @@ __bad_opendir__
 
 # BAD MAKEDIR
 'bad make_dir' => <<'__bad_make_dir__',
-File::Util had a problem with the system while attempting to create the directory
-you specified with a bitmask of $EBL$in->{'bitmask'}$EBR
+$in->{'_pak'} had a problem with the system while attempting to create the
+directory you specified with a bitmask of $EBL$in->{'bitmask'}$EBR
 
 directory: $EBL$in->{'dir'}$EBR
 
@@ -2221,7 +2079,7 @@ __bad_make_dir__
 
 # BAD CALL TO METHOD FOO
 'no input' => <<'__no_input__',
-File::Util can't honor your call to ${\$EBL}File::Util::$in->{'meth'}()$EBR
+$in->{'_pak'} can't honor your call to $EBL$in->{'_pak'}::$in->{'meth'}()$EBR
 because you didn't provide $EBL@{[$in->{'missing'}||'the required input']}$EBR
 
 Origin:     This is a human error.
@@ -2231,14 +2089,14 @@ __no_input__
 
 # PLAIN ERROR TYPE
 'plain error' => <<'__plain_error__',
-File::Util failed with the following message:
+$in->{'_pak'} failed with the following message:
 $_[0]
 __plain_error__
 
 
 # INVALID ERROR TYPE
 'unknown error message' => <<'__foobar_input__',
-File::Util failed with an invalid error-type designation.
+$in->{'_pak'} failed with an invalid error-type designation.
 
 Origin:     This is a human error.
 Solution:   A human must fix the programming flaw.
@@ -2247,7 +2105,7 @@ __foobar_input__
 
 # EMPTY ERROR TYPE
 'empty error' => <<'__no_input__',
-File::Util failed with an empty error-type designation.
+$in->{'_pak'} failed with an empty error-type designation.
 
 Origin:     This is a human error.
 Solution:   A human must fix the programming flaw.
@@ -2256,7 +2114,7 @@ __no_input__
 
 # BAD CHARS
 'bad chars' => <<'__bad_chars__',
-File::Util can't use this string for $EBL$in->{'purpose'}$EBR.
+$in->{'_pak'} can't use this string for $EBL$in->{'purpose'}$EBR.
    $EBL$in->{'string'}$EBR
 It contains illegal characters.
 
@@ -2282,314 +2140,14 @@ __bad_chars__
 
 # NOT A VALID FILEHANDLE
 'not a FH' => <<'__bad_handle__',
-File::Util can't unlock file with an invalid file handle reference:
+$in->{'_pak'} can't unlock file with an invalid file handle reference:
    $EBL$fh$EBR is not a valid filehandle
 
-Origin:     This is most likely an internal error within the File::Util module.
+Origin:     This is most likely an internal error in the $in->{'_pak'} module.
 Solution:   A human must investigate the problem.  Send a usenet post with this
             error message in its entirety to usenet group:
             $EBL news:comp.lang.perl.modules $EBR
 __bad_handle__
 
- 'foo' => '' }->{ shift(@_) || 'foo' }
+ 'foo' => '' }->{ shift(@_) || 'unknown error message' }
 }
-
-=pod
-
-=head1 NAME
-
-File::Util - Easy, versatile, portable file handling
-
-=head1 IMPORTANT!
-
-This is a developer's release, and is not intended for use in the public sector.
-This code is made available for developers who wish to aid in the furthering of
-the code, though B<it _is_ stable>.
-
-This is I<not> a registered module in the CPAN module list.  It is not part of
-the CPAN yet.
-
-=head1 SYNOPSIS
-
-   Nothing here at present.
-
-=head1 DESCRIPTION
-
-File::Util provides a comprehensive toolbox of utilities to automate all
-kinds of common tasks on file / directories.  Its purpose is to do so
-in the most portable manner possible so that users of this module won't
-have to worry about whether their programs will work on other OSes
-and machines.
-
-=head1 INSTALLATION
-
-To install this module type the following at the command prompt:
-
-   perl Makefile.PL
-   make
-   make test
-   make install
-
-On windows machines use nmake rather than make; those running cygwin don't have
-to worry about this.  If you don't know what cygwin is, use nmake and check out
-<URL: http://cygwin.com/ > after you're done installing this module if you want
-to find out.
-
-=head1 File::Util ISA
-
-=over
-
-=item Exporter
-
-=item Class::OOorNO
-
-=back
-
-=head1 METHODS
-
-Item's marked with an asterisk (*) are AUTOLOAD-ed methods.  I<(see the
-L<AutoLoader> documentation.)>  Item's marked with the dagger symbol (E<0206>)
-are constant subroutines which take no argments and always return the same
-value.
-
-=over
-
-=head2 bitmask( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 can_flock * E<0206>
-
-I<Documentation is under way.>
-
-=head2 can_read( [file name] )
-
-I<Documentation is under way.>
-
-=head2 can_write( [file name] )
-
-I<Documentation is under way.>
-
-=head2 created( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 ebcdic * E<0206>
-
-I<Documentation is under way.>
-
-=head2 escape_filename( [string] ) *
-
-I<Documentation is under way.>
-
-=head2 existent( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 file_type( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 flock_rules( [KEYWORDs] ) *
-
-I<Documentation is under way.>
-
-=head2 isbin( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 last_access( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 last_mod( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 line_count( [file name] )
-
-I<Documentation is under way.>
-
-=head2 list_dir( [directory name] , [--opts] )
-
-I<Documentation is under way.>
-
-=head2 load_dir( [directory name] , [--opts] ) *
-
-I<Documentation is under way.>
-
-=head2 load_file( [file name] , [--opts] )
-
-I<Documentation is under way.>
-
-=head2 make_dir( [new directory name] , [--opts] ) *
-
-I<Documentation is under way.>
-
-=head2 max_dives( [integer] ) *
-
-I<Documentation is under way.>
-
-=head2 needs_binmode * E<0206>
-
-I<Documentation is under way.>
-
-=head2 new( [--opts] )
-
-I<Documentation is under way.>
-
-=head2 open_handle( [file name] , [--opts] ) *
-
-I<Documentation is under way.>
-
-=head2 os * E<0206>
-
-I<Documentation is under way.>
-
-=head2 readlimit( [integer] ) *
-
-I<Documentation is under way.>
-
-=head2 size( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 strip_path( [string] )
-
-I<Documentation is under way.>
-
-=head2 trunc( [file name] ) *
-
-I<Documentation is under way.>
-
-=head2 use_flock( [true / false value] ) *
-
-I<Documentation is under way.>
-
-=head2 write_file('file' =>  [file name] , 'content' =>  [data] ,  [--opts])
-
-I<Documentation is under way.>
-
-=head2 valid_filename( [string] )
-
-I<Documentation is under way.>
-
-=head2 VERSION E<0206>
-
-I<Documentation is under way.>
-
-=head1 CONSTANTS
-
-=head2 NL
-
-I<Documentation is under way.>
-
-=head2 SL
-
-I<Documentation is under way.>
-
-=head1 EXPORT
-
-None by default.
-
-=head1 EXPORT_OK
-
-=over
-
-=item L<bitmask()|/bitmask>
-
-=item L<can_flock()|/can_flock>
-
-=item L<can_read()|/can_read>
-
-=item L<can_write()|/can_write>
-
-=item L<ebcdic()|/ebcdic>
-
-=item L<escape_filename()|/escape_filename>
-
-=item L<existent()|/existent>
-
-=item L<file_type()|/file_type>
-
-=item L<isbin()|/isbin>
-
-=item L<NL|/NL>
-
-=item L<needs_binmode()|/needs_binmode>
-
-=item L<os()|/os>
-
-=item L<size()|/size>
-
-=item L<SL|/SL>
-
-=item L<strip_path()|/strip_path>
-
-=item L<valid_filename()|/valid_filename>
-
-=item Symbols in I<@Class::OOorNO::EXPORT_OK> are made available for import...
-
-=back
-
-=head2 EXPORT_TAGS
-
-   :all (exports all of @File::Util::EXPORT_OK)
-
-=head1 PREREQUISITES
-
-=over
-
-=item L<Perl|perl> 5.006 or better
-
-=item L<Class::OOorNO>        v0.00_2 or better
-
-=item L<Exception::Handler>   v1.00_0 or better
-
-=back
-
-=head1 EXAMPLES
-
-None at present.
-
-=head1 BUGS
-
-This documentation isn't done yet, as you can see.  This is being rectified
-as quickly as possible.  Please excercise caution if you choose to use this
-code before it can be further documented for you.  Please excuse the
-inconvenience.
-
-=head1 AUTHOR
-
-Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
-
-=head1 AUTHOR
-
-Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
-
-=head1 COPYRIGHT
-
-Copyright(c) 2001-2003, Tommy Butler.  All rights reserved.
-
-=head1 LICENSE
-
-This library is free software, you may redistribute and/or modify it under
-the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-=over
-
-=item L<Class::OOorNO>
-
-=item L<Exception::Handler>
-
-=item L<File::Slurp>
-
-=item L<Exporter>
-
-=item L<AutoLoader>
-
-=back
-
-=cut

@@ -3,7 +3,7 @@ use strict;
 use Test;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 38, todo => [] }
+BEGIN { plan tests => 37, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...
@@ -42,7 +42,6 @@ map { ok(ref(UNIVERSAL::can($f,$_)),'CODE') } qw
       needs_binmode
       new
       open_handle
-      os
       readlimit
       size
       strip_path

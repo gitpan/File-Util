@@ -15,11 +15,11 @@ my($f) = File::Util->new();
 my(@fls) = ( qq[t${\SL}txt], qq[t${\SL}bin], 't', '.', '..' );
 
 # types
-ok(join('',@{[$f->file_type($fls[0])]}), 'plaintext');
-ok(join('',@{[$f->file_type($fls[1])]}), 'plainbinary');
-ok(join('',@{[$f->file_type($fls[2])]}), 'binarydirectory');
-ok(join('',@{[$f->file_type($fls[3])]}), 'binarydirectory');
-ok(join('',@{[$f->file_type($fls[4])]}), 'binarydirectory');
+ok(join('',@{[$f->file_type($fls[0])]}), 'PLAINTEXT');
+ok(join('',@{[$f->file_type($fls[1])]}), 'PLAINBINARY');
+ok(join('',@{[$f->file_type($fls[2])]}), 'BINARYDIRECTORY');
+ok(join('',@{[$f->file_type($fls[3])]}), 'BINARYDIRECTORY');
+ok(join('',@{[$f->file_type($fls[4])]}), 'BINARYDIRECTORY');
 
 # file is/isn't binary
 ok($f->isbin($fls[1], 1));

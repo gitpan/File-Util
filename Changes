@@ -1,20 +1,42 @@
 Revision history for Perl extension File::Util.pm
 
+   3.14_1
+      1/2/03, 3:47 am
+      Added a substantial amount of new documentation.  Spelling errors in
+      documentation files corrected.
+
+      Previously available method, File::Util::os(), has been dropped from the
+      namespace and is no longer part of the module.
+
+      Method File::Util::file_type() no longer includes the 'tty' keyword among
+      its list of recognized file types, as the native Perl file test for
+      divining a TTY file can only be used on open file handles.
+
+      The keywords returned by this method are all upper case strings as of
+      version 3.13_9, though the release notes for that version errantly did
+      not include this statement.  The list of keywords otherwise remains
+      unchanged:
+         PLAIN       TEXT
+         BINARY      DIRECTORY
+         SYMLINK     PIPE
+         SOCKET      BLOCK
+         CHARACTER
+
    3.14_0
-      12/27/02, 5:50 pm
+      12/27/02, 5:50 pm
       File::Util no longer @ISA Handy::Dandy, and no longer includes it
       as a prerequisite dependency.  Added a little more documentation,
       but it has a _long_ way to go as yet.
 
    3.13_9
-      12/23/02, 3:22 pm
+      12/23/02, 3:22 pm
       A few small changes; no longer lists Handy::Dandy::TimeTools as a
       prerequisite dependency.
 
    3.13_8
-      12/22/02, 11:31 pm
+      12/22/02, 11:31 pm
       Method File::Util::file_type() now returns a list instead of a single
-      string of concatenated keyword substrings, the filetype keywords being:
+      string of concatenated keyword substrings, the file type keywords being:
          plain       text
          binary      directory
          symlink     pipe
@@ -23,16 +45,16 @@ Revision history for Perl extension File::Util.pm
 
       Methods File::Util::load_file() and File::Util::open_handle() both will
       truly guarantee the uniqueness of the underlying file handle which is
-      auto-generated, whereas before measures to acheive the uniqueness of
-      the filehandles were taken, but not verified.
+      auto-generated, whereas before measures to achieve the uniqueness of
+      the file handles were taken, but not verified.
 
       POD documentation got a big update.
 
    3.13_7
       12/6/02, 2:56 pm
-      Amost ready for CPAN!
+      Almost ready for CPAN!
 
-      License changed from the GNU LGPL to Perl's own liscencing scheme.
+      License changed from the GNU LGPL to Perl's own licensing scheme.
 
       Various tweaks to compile-time sequences.
 
@@ -47,7 +69,7 @@ Revision history for Perl extension File::Util.pm
       file contained in 'docs-basic.txt' (part of this distribution)
 
    3.13_4
-      11/14/02, 1:22 pm
+      11/14/02, 1:22 pm
       Got rid of all variables in @EXPORT_OK, namely:
          $OS
          $EBCDIC
@@ -65,14 +87,14 @@ Revision history for Perl extension File::Util.pm
 
       Added more thorough testing to distribution tests lineup, and an
       additional set of tests in an automated "empty subclass test" of the
-      modules native methods and all those it inherits from its ancestoral
+      modules native methods and all those it inherits from its ancestral
       classes.
 
       More flock() related tweaking in private methods that implement
       File::Util's automatic, transparent file locking mechanism.
 
    3.13_3
-      11/13/02, 9:41 pm
+      11/13/02, 9:41 pm
       Slightly optimized recursive directory listing features of package method
       File::Util::list_dir() and moved less-used method File::Util::load_dir()
       to AUTOLOAD.
@@ -88,13 +110,13 @@ Revision history for Perl extension File::Util.pm
       to these changes.
 
    3.13_1
-      11/13/02, 1:40 am
+      11/13/02, 1:40 am
       Fixed problem that caused File::Util to not recognize its set flock
-      usage policy, and flock failthrough ruleset when either was manually
+      usage policy, and flock failthrough rule set when either was manually
       set during runtime.  Added more flock tests to distribution test scripts.
 
    3.13_1
-      11/4/02, 12:28 pm
+      11/4/02, 12:28 pm
       Further preparations made to ready the module for PAUSE upload.
 
    3.13_0
@@ -109,7 +131,7 @@ Revision history for Perl extension File::Util.pm
       Example B.
 
          Example A. (default list order of directory contents)
-            Changes   COPYING   MANIFEST   Makefile.PL   README   test.pl
+            Changes   COPYING   MANIFEST   Makefile.PL   README   test.pl
 
          Example B. (case insensitive order)
             COPYING   Changes   Makefile.PL   MANIFEST   README   test.pl
@@ -123,7 +145,7 @@ Revision history for Perl extension File::Util.pm
    3.12_7
       10/10/02, 11:56 pm
       Method 'list_dir_a()' no longer suffixes directory items with the
-      system path seperator by force.
+      system path separator by force.
 
    3.12_6
       10/4/02, 4:22 am
@@ -167,7 +189,7 @@ Revision history for Perl extension File::Util.pm
    3.12_2
       9/11/02, 12:35 am
       Moved to OOorNO interface design in order to provide both an Object-
-      Oriented and a Procecural (non-Object-Oriented) programming style
+      Oriented and a Procedural (non-Object-Oriented) programming style
       interface to File::Util.
 
    1.10
@@ -177,7 +199,7 @@ Revision history for Perl extension File::Util.pm
 
       Constants and OS identification extended upon code from CGI.pm v.2.78
       (go Lincoln, it's your birthday, get busy...) as such, File::Util got path
-      seperator help to better support a wider variety of platforms.
+      separator help to better support a wider variety of platforms.
 
       Additionally, constants contributed to a major overhaul of how File::Util
       handles newlines.
@@ -185,7 +207,7 @@ Revision history for Perl extension File::Util.pm
    1.09
       Thursday, March 14, 2002,  1:29:55 AM
       Error messages got their own place as predefined key-value pairs in an
-      anonymous hash independent of any class methods.  eg-they are commited to
+      anonymous hash independent of any class methods.  eg-they are committed to
       memory at compile time for speedy destruction of intentionally halted
       processes.
 
@@ -193,7 +215,7 @@ Revision history for Perl extension File::Util.pm
       Saturday, February 9, 2002,  3:32:57 PM
       new method: File::Util::open_handle.  This method lets user pass a
       typeglob reference (eg- *TYPG) and in return the user will get back a new
-      filehandle which is opened to the filename of their specifications.
+      file handle which is opened to the filename of their specifications.
 
    1.06
       Tuesday, February 5, 2002,  9:47:35 AM
@@ -201,7 +223,7 @@ Revision history for Perl extension File::Util.pm
       12:00 PM appear with the 'AM' suffix rather than the correct 'PM suffix.
 
       Added a new format type to File::Util::stamp() called 'file' or 'filename'
-      which returns a timestamp suitible for placing into the name of a file
+      which returns a timestamp suitable for placing into the name of a file
       in order to archive old files or versions of code with a time/date stamp
       embedded into the filename for easy lookup.
 
@@ -218,7 +240,7 @@ Revision history for Perl extension File::Util.pm
          value returned is then passed back in the same format as the value
          returned from a call to Perl's built-in function: time()
 
-         consequently, the value returned is suitible for feeding to
+         consequently, the value returned is suitable for feeding to
          localtime, or any private methods and functions expecting the same
          type of input.
 
@@ -231,7 +253,7 @@ Revision history for Perl extension File::Util.pm
          Returns the last modified time of the file you pass to it in seconds
          since the epoch.  Just as with the new created() method described
          above, the value returned comes in the same format as the value
-         returned from a call to time(), and is therefore suitible for feeding
+         returned from a call to time(), and is therefore suitable for feeding
          to localtime() or any other private function or method expecting input
          of the same type.
 
@@ -251,7 +273,7 @@ Revision history for Perl extension File::Util.pm
 
    1.04
       Wednesday, December 5, 2001,  1:36:48 AM
-      Fixed some of the checks on files for existance, added the
+      Fixed some of the checks on files for existence, added the
       File::Util::file_size([filename]) method which returns the size of the
       filename you pass as the only argument.
 
@@ -264,7 +286,7 @@ Revision history for Perl extension File::Util.pm
       Tuesday, November 27, 2001,  2:23:55 PM
       More directory listing options.  Method File::Util::stamp() now takes
       optional format keyword argument; it lets you choose between different
-      output formats for the returned timemestamp. Format keywords are thus:
+      output formats for the returned time stamp.  Format keywords are thus:
 
       --short                 5/15/02, 4:22 pm
       --formal                Saturday, June 15, 2002, 4:22 pm
