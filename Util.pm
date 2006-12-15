@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = '3.14_7'; # Sat Jan 31 13:36:24 CST 2004
+$VERSION    = 3.14_8; # Thu Dec 14 20:13:03 CST 2006
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -57,7 +57,7 @@ $_LOCKS = {};
 $DIRSPLIT    = qr/[\\\/\:]/;
 $ILLEGAL_CHR = qr/[\/\|$NL\r\n\t\013\*\"\?\<\:\>\\]/;
 
-$READLIMIT  = 1048576;  # set readlimit to a default of 10 megabytes
+$READLIMIT  = 52428800; # set readlimit to a default of 50 megabytes
 $MAXDIVES   = 1000;     # maximum depth for recursive list_dir calls
 
 use Fcntl qw( );
@@ -505,7 +505,7 @@ sub load_file {
    # lock file before I/O on platforms that support it
    if ($$opts{'--no-lock'} || $$this{'opts'}{'--no-lock'}) {
 
-      # if you use the '--no-lock' option you are probably stupid
+      # if you use the '--no-lock' option you are probably inefficient
       open($fh, $cmd) or
          return $this->_throw
             (
@@ -549,7 +549,7 @@ sub load_file {
    if ($$opts{'--no-lock'} || $$this{'opts'}{'--no-lock'}) {
 
       # if execution gets here, you used the '--no-lock' option, and you
-      # are probably stupid
+      # are probably inefficient
       close($fh) or
          return $this->_throw
             (
@@ -728,7 +728,7 @@ sub write_file {
       # get open mode
       $mode = $$MODES{'popen'}{ $mode };
 
-      # if you use the '--no-lock' option you are probably stupid
+      # if you use the '--no-lock' option you are probably inefficient
       open(WRITE_FILE, $mode . $openarg) or
          return $this->_throw
             (
@@ -1176,7 +1176,15 @@ sub load_dir {
 # --------------------------------------------------------
 sub make_dir {
 
-   my($this,$dir,$bitmask) = @_;
+   my($this) = shift(@_);
+	my($opts) = $this->shave_opts(\@_);
+	my($dir,$bitmask) = @_;
+
+	if ($$opts{'--if-not-exists'}) {
+		if (-e $dir && -d $dir) {
+			return $dir
+		}
+	}
 
    # if the call to this method didn't include a directory name to create,
    # then complain about it
@@ -1188,7 +1196,7 @@ sub make_dir {
             'missing'   => 'a directory name',
          }
       )
-   unless (length($dir) > 0);
+   unless (defined($dir) && length($dir));
 
    # if prospective directory name contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
@@ -1307,6 +1315,29 @@ sub max_dives {
    }
 
    $MAXDIVES
+}
+
+
+# --------------------------------------------------------
+# File::Util::readlimt()
+# --------------------------------------------------------
+sub readlimit {
+
+   my($arg) = myargs(@_);
+
+   if (defined($arg)) {
+      return $this->_throw
+         (
+            'bad readlimit',
+            {
+               'bad' => $arg,
+            }
+         ) if $arg !~ /\D/o;
+
+      $READLIMIT = $arg;
+   }
+
+   $READLIMIT
 }
 
 
@@ -1476,7 +1507,7 @@ sub open_handle {
    do { $fh = int(rand(time)) . $$; $fh = eval('*' . 'OPEN_TO_FH' . $fh) }
    while ( fileno($fh) );
 
-   # if you use the '--no-lock' option you are probably stupid
+   # if you use the '--no-lock' option you are probably inefficient
    if ($$opts{'--no-lock'} || !$USE_FLOCK) {
 
       # get open mode
@@ -1560,19 +1591,6 @@ sub open_handle {
 
    # return file handle reference to the caller
    $fh;
-}
-
-
-# --------------------------------------------------------
-# File::Util::readlimit()
-# --------------------------------------------------------
-sub readlimit {
-
-   my($arg) = myargs(@_);
-
-   if (defined($arg)) { $READLIMIT = $arg }
-
-   $READLIMIT
 }
 
 
@@ -1990,8 +2008,8 @@ __readlimit__
 # BAD CALL TO File::Util::max_dives
 'bad maxdives' => <<'__maxdives__',
 Bad call to $in->{'_pak'}::max_dives().  This method can only be called with
-a numeric value.  Non-integer numbers will be converted to integer format if
-specified (numbers like 5.2), but don't do that, it's stupid.
+a numeric value (bytes).  Non-integer numbers will be converted to integer 
+format if specified (numbers like 5.2), but don't do that, it's inefficient.
 
 This operation aborted.
 
@@ -2014,6 +2032,19 @@ This operation aborted.
 
 Origin:     This is a human error.
 Solution:   Consider setting the limit to a higher number.
+__maxdives__
+
+
+# BAD CALL TO File::Util::readlimit
+'bad maxdives' => <<'__maxdives__',
+Bad call to $in->{'_pak'}::readlimit().  This method can only be called with
+a numeric value (bytes).  Non-integer numbers will be converted to integer 
+format if specified (numbers like 5.2), but don't do that, it's inefficient.
+
+This operation aborted.
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
 __maxdives__
 
 

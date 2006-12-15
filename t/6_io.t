@@ -3,7 +3,7 @@ use strict;
 use Test;
 
 # use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 40, todo => [] }
+BEGIN { plan tests => 41, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...
@@ -12,15 +12,16 @@ use File::Util qw( SL NL existent );
 
 my($f)   = File::Util->new();
 my($fh)  = undef;
+my($testbed) = 't/' . $$;
 
 # make a temporary testbed directory
-ok($f->make_dir('testbed'),'testbed');
+ok($f->make_dir($testbed), $testbed);
 
 # see if it's there
-ok(-e 'testbed',1);
+ok(-e $testbed, 1);
 
 # ...again
-ok($f->existent('testbed'), 1);
+ok($f->existent($testbed), 1);
 
 # directory listing
 {
@@ -36,7 +37,7 @@ ok($f->existent('testbed'), 1);
 }
 
 # make a temporary file
-my($tmpf) = 'testbed' . SL . 'tmptst';
+my($tmpf) = $testbed . SL . 'tmptst';
 ok($f->write_file('file' => $tmpf, 'content' => $$ . NL),$$ . NL);
 
 # get an open file handle
@@ -78,20 +79,20 @@ ok($f->line_count($tmpf),0);
 
 # big directory creation / removal sequence
 my($newdir) =
-  'testbed'
+  $testbed
   . SL . int(rand(time))
   . SL . int(rand(time))
   . SL . int(rand(time))
   . SL . int(rand(time));
 
 # make directories
-ok($f->make_dir($newdir),$newdir);
+ok($f->make_dir($newdir, '--if-not-exists'), $newdir);
 
 # read directories
-my(@items) = $f->list_dir('testbed', '--follow');
+my(@items) = $f->list_dir($testbed, '--follow');
 
 # remove directories, temp file, testbed.
-foreach (reverse(sort({ length($a) <=> length($b) } @items)),'testbed') {
+foreach (reverse(sort({ length($a) <=> length($b) } @items)), $testbed) {
 
    -d $_ ? rmdir($_) || &_rmdie($!) : unlink($_) || &_uldie($!);
 }

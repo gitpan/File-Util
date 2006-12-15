@@ -2,15 +2,6 @@
 
 File::Util - Easy, versatile, portable file handling
 
-=head1 IMPORTANT!
-
-This is a developer's release, and is not intended for use in the public sector.
-This code is made available for developers who wish to aid in the furthering of
-the code, though B<it _is_ stable>.
-
-This is I<not> a registered module in the CPAN module list.  It is not part of
-the CPAN yet.
-
 =head1 DESCRIPTION
 
 File::Util provides a comprehensive toolbox of utilities to automate all
@@ -604,7 +595,41 @@ and 'd.conf')
 
 =item I<Syntax:> C<load_file( [file name] , [--opts] )>
 
-I<-- Documentation for this method is not yet complete! -->
+=item I<OR:> C<< load_file( 'FH' => [file handle] , [--opts] ) >>
+
+If [file name] is passed, returns the contents of [file name] in a string.
+If a [file handle] is passed instead, the filehandle will be C<CORE::read()>
+and the data obtained by the read will be returned in a string.
+
+If you desire the contents of the file (or file handle data) in a list of
+lines instead of a single string, this can be accomplished through the use
+of the following switch:
+
+=item C<--as-lines>
+
+By default this method will attempt to get a lock on the file while it is
+being read, following whatever rules are in place for the flock policy
+established either by default (implicitly) or changed by you in a call to
+File::Util::flock_rules() 
+I<(see the L<flock_rules()|/flock_rules>) entry below>.
+
+This method will not try to get a lock on the file if the object was
+created with the option C<--no-lock> or if the method was called with the
+option C<--no-lock>.
+
+This method will automatically call binmode() on binary files for you.  If you
+pass in a filehandle instead of a file name you do not get this automatic
+check performed for you.  In such a case, you'll have to call binmode() on
+the filehandle yourself.  Once you pass a filehandle to this method it has no
+way of telling if the file opened to that filehandle is binary or not.
+
+B<Notes:> This method does not distinguish between plain files and other file
+types such as binaries, FIFOs, sockets, etc.
+
+Restrictions imposed by the current "read limit"
+I<(see the L<readlimit()|/readlimit>) entry below> will be applied to the
+files opened by this method as well.  Adjust the readlimit as necessary.
+
 
 =back
 
@@ -662,7 +687,7 @@ the system on which it is executed.
 
 =over
 
-=item I<Syntax:> C<new( ['parameters' => 'values', etc], [--flags] )>
+=item I<Syntax:> C<< new( ['parameters' => 'values', etc], [--flags] ) >>
 
 This is the File::Util constructor method.  eg- It returns a new File::Util
 object reference when you call it.  It recognizes various parameters and flags
