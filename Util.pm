@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.14_8; # Thu Dec 14 20:13:03 CST 2006
+$VERSION    = 3.15; # Fri Dec 22 14:12:45 CST 2006
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -1181,9 +1181,23 @@ sub make_dir {
 	my($dir,$bitmask) = @_;
 
 	if ($$opts{'--if-not-exists'}) {
-		if (-e $dir && -d $dir) {
-			return $dir
+		if (-e $dir) {
+			if (-d $dir) {
+				return $dir
+			}
+			else {
+				return $this->_throw
+					(
+						'called mkdir on a file',
+						{
+							'filename'  => $dir,
+							'dirname'   => join(SL,(split(SL,$dir))[0 .. -1]) . SL
+						}
+					);
+
+			}
 		}
+		
 	}
 
    # if the call to this method didn't include a directory name to create,
@@ -1663,9 +1677,9 @@ sub _throw {
    my($bad_news) =
       CORE::eval
          (
-            q[<<__ERRORBLOCK__]
+            q{<<__ERRORBLOCK__}
             . &NL . &_errors($error)
-            . &NL . q[__ERRORBLOCK__]
+            . &NL . q{__ERRORBLOCK__}
          );
 
    if ($opts->{'--as-warning'}) {

@@ -1,5 +1,10 @@
 Revision history for Perl extension File::Util.pm
 
+   3.15
+      Fri Dec 22 14:12:45 CST 2006
+      Fixed broken test suite that was causing `make test` to fail falsely.
+      Revisited documentation, adding a little, and various small improvements.
+
    3.14_8
       Thu Dec 14 20:13:03 CST 2006
       Fixed some error messages to be more clear.  Tweaked the

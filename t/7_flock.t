@@ -17,6 +17,12 @@ my($probe_flock) = sub { local($@); eval(<<'__canflock__'); $@ ? 0 : 1 };
 flock(STDIN, &Fcntl::LOCK_SH);
 flock(STDIN, &Fcntl::LOCK_UN);
 __canflock__
+my($skip) = !$f->can_write('.') || !$f->can_write('t');
+
+$skip = $skip ? <<'__WHYSKIP__' : $skip;
+Insufficient permissions to perform IO in this directory.  Can't perform tests!
+__WHYSKIP__
+
 
 # using flock? get/set flock-ing usage toggle
 ok($f->use_flock( ),1);                                                # test 1
@@ -41,50 +47,63 @@ exit;
 sub test_flock {
 
    # lock file, keep open handle on it
-   my($fh) = $f->open_handle('file' => $tmpf);
+   my($fh);
+	
+	unless ($skip) { 
+		$fh = $f->open_handle('file' => $tmpf);
 
-   # write something into the file
-   my($tstr) = 'Hello world!' . NL;
-   print($fh $tstr x 50);
+		# write something into the file
+		my($tstr) = 'Hello world!' . NL;
+		print($fh $tstr x 50);
+
+	}
 
    # try to $f->trunc locked file (should fail)
-   ok( sub {                                                          # test 10
+   skip(
+		$skip,
+		sub { # test 10
 
-      # FORKING!!
-      my($pid) = fork; $| = 1; die(qq[Can't fork: $!]) unless defined($pid);
+			# FORKING!!
+			my($pid) = fork; $| = 1; die(qq{Can't fork: $!}) unless defined($pid);
 
-      if (!$pid) { $f->trunc($tmpf); exit } else { waitpid($pid, 0) }
+			if (!$pid) { $f->trunc($tmpf); exit } else { waitpid($pid, 0) }
 
-      # DONE WITH THAT NOW.
-      -s $tmpf
-   });
+			# DONE WITH THAT NOW.
+			-s $tmpf
+	});
 
-   # try to $f->write_file on locked file (should fail)               # test 11
-   ok( sub {
+   # test 11 - try to $f->write_file on locked file (should fail)
+   skip(
+		$skip,
+		sub {
 
-      # FORKING!!
-      my($pid) = fork; $| = 1; die(qq[Can't fork: $!]) unless defined($pid);
+			# FORKING!!
+			my($pid) = fork; $| = 1; die(qq{Can't fork: $!}) unless defined($pid);
 
-      if (!$pid) {
+			if (!$pid) {
 
-         $f->write_file('file' => $tmpf, 'content' => '', '--empty-writes-OK');
+				$f->write_file(
+					'file' => $tmpf, 
+					'content' => '', 
+					'--empty-writes-OK'
+				);
 
-         exit
-      }
-      else { waitpid($pid, 0) }
+				exit
+			}
+			else { waitpid($pid, 0) }
 
-      # DONE WITH THAT NOW.
-      -s $tmpf
-   });
+			# DONE WITH THAT NOW.
+			-s $tmpf
+	});
 
    # unlock file
-   close($fh);
+   close($fh) unless $skip;
 
-   # try to trunc the file; should succeed
-   ok( sub { $f->trunc($tmpf); -s $tmpf }, 0);                        # test 12
+   # test 12 - try to trunc the file; should succeed
+   skip($skip, sub { $f->trunc($tmpf); -s $tmpf }, 0); 
 
    # try to delete the file; should succeed
-   unlink($tmpf);
+   unlink($tmpf) unless $skip;
 
    !-e $tmpf;
 }

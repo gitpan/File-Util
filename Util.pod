@@ -232,9 +232,9 @@ value for the system on which it is executed.
 
 Returns it's argument in an escaped form that is suitable for use as a filename.
 Illegal characters (i.e.- any type of newline character, tab, vtab, and the
-following C</ | * " ? < : > \>), are replaced with [escape char] or "B<_>" if
-no [escape char] is specified.  Returns an empty string if no arguments are
-provided.  This is an autoloaded method.
+following C<< / | * " ? < : > \ >>), are replaced with [escape char] or 
+"B<_>" if no [escape char] is specified.  Returns an empty string if no 
+arguments are provided.  This is an autoloaded method.
 
 =back
 
@@ -545,6 +545,10 @@ Recognized options are listed below.
 
 =over
 
+=item B<Flags accepted by C<load_dir()>>
+
+=over 
+
 =item C<--as-list>
 
 Causes the method to return a list comprised of the contents loaded from
@@ -561,6 +565,8 @@ Implicit.  If no option is passed in, the default behavior is to return a
 reference to an anonymous hash whose keys are the names of each file in the
 specified directory; the hash values for contain the contents of the file
 represented by its corresponding key.
+
+=back
 
 =back
 
@@ -595,15 +601,21 @@ and 'd.conf')
 
 =item I<Syntax:> C<load_file( [file name] , [--opts] )>
 
-=item I<OR:> C<< load_file( 'FH' => [file handle] , [--opts] ) >>
+=item I<OR:> C<< load_file( 'FH' => [file handle reference] , [--opts] ) >>
 
 If [file name] is passed, returns the contents of [file name] in a string.
-If a [file handle] is passed instead, the filehandle will be C<CORE::read()>
-and the data obtained by the read will be returned in a string.
+If a [file handle reference] is passed instead, the filehandle will be 
+C<CORE::read()> and the data obtained by the read will be returned in a string.
 
 If you desire the contents of the file (or file handle data) in a list of
 lines instead of a single string, this can be accomplished through the use
 of the following switch:
+
+=over
+
+=item B<Flags accepted by C<load_file()>>
+
+=over 
 
 =item C<--as-lines>
 
@@ -630,6 +642,9 @@ Restrictions imposed by the current "read limit"
 I<(see the L<readlimit()|/readlimit>) entry below> will be applied to the
 files opened by this method as well.  Adjust the readlimit as necessary.
 
+=back
+
+=back
 
 =back
 
@@ -637,9 +652,48 @@ files opened by this method as well.  Adjust the readlimit as necessary.
 
 =over
 
-=item I<Syntax:> C<make_dir( [new directory name] , [--opts] )>
+=item I<Syntax:> C<make_dir( [new directory name] , [bitmask], [--opts] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Attempts to create (recursively) a directory as [new directory name] with
+the [bitmask] provided.  The bitmask is an optional argument and defaults to 
+0777.  If specified, the bitmask must be supplied in the form required by the
+native perl umask function.  I<see L<perlfunc/"umask">> for more information
+about the format of the bitmask argument.
+
+As mentioned above, the recursive creation of directories is transparently
+handled for you.  This means that if the name of the directory you pass in
+contains a parent directory that does not exist, the parent directory(ies) will
+be created for you automatically and silently in order to create the final
+directory in the [new directory name].
+
+Simply put, if [new directory] is "/path/to/directory" and the directory
+"/path/to" does not exist, the directory "/path/to" will be created and the
+"/path/to/directory" directory will be created thereafter.  All directories
+created will be created with the [bitmask] you specify, or with the default
+of 0777.
+
+Upon successful creation of the [new directory name], the [new directory name]
+is returned to the caller.
+
+=over
+
+=item B<Flags accepted by C<make_dir()>>
+
+=over 
+
+=item C<--if-not-exists>
+
+If this flag is passed in then make_dir will not attempt to create the directory
+if it already exists.  Rather it will return the name of the directory as it
+normally would if the directory did not exist previous to calling this method.
+
+If a call to this method is made without the C<--if-not-exists> flag and the
+directory specified as [new directory name] does in fact exist, an error will
+result as it is impossible to create a directory that already exists.
+
+=back
+
+=back
 
 This is an autoloaded method.
 
@@ -785,7 +839,7 @@ This is an autoloaded method.
 =item I<Syntax:> C<return_path( [string] )>
 
 Takes the file path from the file name provided and returns it such that
-"/foo/bar/baz.txt" is returned "baz.txt".
+"/foo/bar/baz.txt" is returned "/foo/bar".
 
 This is an autoloaded method.
 
