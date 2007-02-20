@@ -31,6 +31,7 @@ and machines.
    print $lines[$line];
 
    my(@files) = $f->list_dir('/var/tmp', qw/ --files-only --recurse /);
+   my(@textfiles) = $f->list_dir('/var/tmp', '--pattern=\.txt$');
 
    if ($f->can_write('wibble.log')) {
 
@@ -47,6 +48,13 @@ and machines.
    my($log_line_count) = $f->line_count('/var/log/httpd/access_log');
 
    print "My file has a bitmask of " . $f->bitmask('my.file');
+
+	print "My file is a " . join(', ', $f->file_type('my.file')) . " file."
+
+	warn 'This file is binary!' if $f->isbin('my.file');
+
+	print "My file was last modified on " . 
+		scalar localtime($f->last_modified('my.file'));
 
    # ...and _lots_ more
 
@@ -468,9 +476,12 @@ return only files/directories matching pattern provided. argument
 should be plain text string.  It will be converted to a perl regex and passed
 to CORE::grep as the method scans through directory listings for a match.
 
-(ex- C<--pattern='\.txt$'> returns all file/directory names ending in ".txt".
+(ex- C<'--pattern=\.txt$'> returns all file/directory names ending in ".txt".
 It will match "foo.txt", but not "foo.txt.gz" because of the "$" anchor in the
 regular expression passed in.)
+
+or for the opposite effect, C<<'--pattern=.*(?<!\.txt)$'>> returns all 
+file/directory names that don't end in ".txt"
 
 =item C<--with-paths>
 
@@ -767,7 +778,7 @@ Optionally specify this option to the File::Util::new method to instruct the
 new object that it should never attempt to open and read in a file greater
 than the number of bytes you specify.  Obviously this argument can only be
 a numeric integer value, otherwise it will be silently ignored.  The default
-readlimit for File::Util objects is 1,048,576 bytes (10 megabytes).
+readlimit for File::Util objects is 52428800 bytes (50 megabytes).
 
 =item max_dives   => positive integer
 
@@ -826,7 +837,15 @@ This is an autoloaded method.
 
 =item I<Syntax:> C<readlimit( [integer] )>
 
-I<-- Documentation for this method is not yet complete! -->
+By default, the largest size file that File::Util will read into memory and
+return via the L<load_file|/load_file> is 52428800 byptes (50 megabytes).
+
+This value can be modified by calling this method with an integer value 
+reflecting the new limit you want to impose, in bytes.  For example, if you want
+to set the limit to 10 megabytes, call the method with an argument of 10485760.
+
+If this method is called without an argument, the read limit currently in force
+for the File::Util object will be returned.
 
 This is an autoloaded method.
 
@@ -851,7 +870,8 @@ This is an autoloaded method.
 
 =item I<Syntax:> C<size( [file name] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Returns the file size of [file name] in bytes.  Returns C<0> if the file is
+empty, returns C<undef> if the file does not exist.
 
 This is an autoloaded method.
 
@@ -873,7 +893,9 @@ Strips the file path from the file name provided and returns the file name only.
 
 =item I<Syntax:> C<trunc( [file name] )>
 
-I<-- Documentation for this method is not yet complete! -->
+Truncates [file name] (i.e.- wipes out, or "clobbers" the contents of the 
+specified file.  Returns C<1> if successful.  If unsuccessful, fails with a
+descriptive error message about what went wrong.
 
 This is an autoloaded method.
 

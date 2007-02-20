@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.15; # Fri Dec 22 14:12:45 CST 2006
+$VERSION    = 3.16; # Tue Feb 20 14:16:45 CST 2007
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -836,7 +836,7 @@ sub write_file {
             }
          );
 
-   return($in->{'content'});
+   return(1);
 }
 
 
@@ -1186,19 +1186,26 @@ sub make_dir {
 				return $dir
 			}
 			else {
-				return $this->_throw
-					(
-						'called mkdir on a file',
-						{
-							'filename'  => $dir,
-							'dirname'   => join(SL,(split(SL,$dir))[0 .. -1]) . SL
-						}
-					);
-
+				return $this->_throw(
+					'called mkdir on a file',
+					{
+						'filename'  => $dir,
+						'dirname'   => join(SL,(split(SL,$dir))[0 .. -1]) . SL
+					}
+				);
 			}
 		}
-		
 	}
+	else {
+		return $this->_throw(
+			'make_dir target exists',
+			{
+				'filename'  => $dir,
+				'filetype'  => [ $this->file_type($dir) ],
+			}
+		);
+	}
+
 
    # if the call to this method didn't include a directory name to create,
    # then complain about it
@@ -1226,41 +1233,50 @@ sub make_dir {
 
    $bitmask ||= 0777; if (length($bitmask) == 3) {$bitmask = '0' . $bitmask}
 
-   $dir =~ s/$DIRSPLIT$//;
+   $dir =~ s/$DIRSPLIT$// unless $dir eq $DIRSPLIT;
 
-   my(@dirs_in_path) = split(/$DIRSPLIT/,$dir);
-   my(@substitute)   = @dirs_in_path;
+   my(@dirs_in_path) = split(/$DIRSPLIT/, $dir);
 
-   foreach (@dirs_in_path) {
+	# for absolute pathnames
+	if (substr($dir,0,1) eq SL) {
+		$dirs_in_path[0] = SL;
+	}
 
-      # if prospective directory name contains illegal chars then complain
-      return $this->_throw
-         (
-            'bad chars',
-            {
-               'string'    => $_,
-               'purpose'   => 'the name of a directory',
-            }
-         )
-      if (!$this->valid_filename($_))
-   }
+	for (my($i) = 0; $i < scalar @dirs_in_path; ++$i) {
+		next if $i == 0 && $dirs_in_path[$i] eq SL;
 
-   my($depth) = 0;
+		# if prospective directory name contains illegal chars then complain
+		return $this->_throw(
+			'bad chars',
+			{
+				'string'    => $dirs_in_path[$i],
+				'purpose'   => 'the name of a directory',
+			}
+		)
+		if (!$this->valid_filename($dirs_in_path[$i]))
+	}
 
-   foreach (@substitute) {
+	# qualify each subdir in @dirs_in_path by prepending its preceeding dir
+	# names to it. Above, "/foo/bar/baz" becomes ("/", "foo", "bar", "baz")
+	# and below it becomes ("/", "/foo", "/foo/bar", "/foo/bar/baz")
 
-      ++$depth; last if ($depth == scalar(@dirs_in_path));
-
-      $dirs_in_path[$depth] ||= '.';
-
-      $dirs_in_path[$depth] = join(SL, @dirs_in_path[($depth-1)..$depth]);
-   }
+	if (scalar(@dirs_in_path) > 1) {
+		for (my($depth) = 1; $depth < scalar @dirs_in_path; ++$depth) {
+			if ($dirs_in_path[$depth-1] eq SL) {
+				$dirs_in_path[$depth] = SL . $dirs_in_path[$depth]
+			}
+			else {
+				$dirs_in_path[$depth] = join(SL, @dirs_in_path[($depth-1)..$depth])
+			}
+		}
+	}
 
    my($i) = 0;
 
    foreach (@dirs_in_path) {
 
-      my($dir) = $_; my($up) = ($i > 0) ? $dirs_in_path[$i-1] : '..';
+      my($dir) = $_; 
+		my($up) 	= ($i > 0) ? $dirs_in_path[$i-1] : '..';
 
       ++$i;
 
@@ -1286,7 +1302,7 @@ sub make_dir {
             'cant dcreate',
             {
                'filename'  => $dir,
-               'dirname'   => $up . SL,
+               'dirname'   => $up,
             }
          )
       unless (-w $up);
@@ -1875,8 +1891,8 @@ Solution:   A human must fix the conflict by adjusting the file permissions
 __cant_read__
 
 
-# CAN'T CREATE DIRECTORY
-'cant dcreate' => <<'__cant_write__',
+# CAN'T CREATE DIRECTORY - PERMISSIONS
+'cant dcreate' => <<'__cant_dcreate__',
 Permissions conflict.  $in->{'_pak'} can't create:
    $EBL$in->{'filename'}$EBR
 
@@ -1895,7 +1911,26 @@ Solution:   A human must fix the conflict by adjusting the file permissions
             of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
-__cant_write__
+__cant_dcreate__
+
+
+# CAN'T CREATE DIRECTORY - TARGET EXISTS
+'make_dir target exists' => <<'__cant_dcreate__',
+make_dir target already exists.  
+   $EBL$in->{'filename'}$EBR
+
+	$in->{'_pak'} can't create the directory you specified because that
+	directory already exists, with filetype attributes of 
+	@{[join(', ', @{ $in->{'filetype'} })]} and permissions 
+	set to $EBL@{[ sprintf('%04o',(stat($in->{'dirname'}))[2] & 0777) ]}$EBR
+
+Origin:     This is *most likely* due to human error.  The program has tried
+            to make a directory where a directory already exists.
+Solution:   Weaken the requirement somewhat by using the "--if-not-exists"
+            flag when calling the make_dir object method.  This option
+            will cause $in->{'_pak'} to ignore attempts to create directories
+            that already exist, while still creating the ones that don't.
+__cant_dcreate__
 
 
 # CAN'T OPEN

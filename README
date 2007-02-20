@@ -1,4 +1,4 @@
-File::Util version 3.14_8
+File::Util version 3.16
 =========================
 
 DESCRIPTION
@@ -11,6 +11,28 @@ and machines.
 
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
+
+   3.16
+      Tue Feb 20 14:16:45 CST 2007
+      Fixed problem with method File::Util::make_dir() when used with
+      absolute pathnames (path names starting with "/", for example).
+
+      Fixed documentation error concerning the File::Util::list_dir method,
+      specifically regarding the "--pattern" option flag.
+
+      Method File::Util::make_dir() now enforces the policy of failing when
+      asked to create a directory that already exists as a file of any kind.
+      Use the "--if-not-exists" flag if you are counting on the old behavior
+      or if you want to create directories which could possibly exist already.
+
+      More documentation added.	
+
+
+   3.15
+      Fri Dec 22 14:12:45 CST 2006
+      Fixed broken test suite that was causing `make test` to fail falsely.
+      Revisited documentation, adding a little, and various small improvements.
+
 
    3.14_8
       Thu Dec 14 20:13:03 CST 2006
@@ -27,42 +49,6 @@ CHANGES IN LAST FEW RELEASES
 
 		Releasing this version as an official release and NOT a developer's
 		release only.
-
-   3.14_7
-      Sat Jan 31 13:36:24 CST 2004
-      Changes to method File::Util::flock_rules() to output helpful error
-      message if specification of invalid file locking policy attempted.
-
-      More documentation added for various methods whose documentation had
-      yet to be written.
-
-   3.14_6
-      Mon Sep 22 11:10:46 CDT 2003
-      Changes to methods File::Util::list_dir() and
-      File::Util::escape_filename() increase efficiency and fix some bugs.
-      Both methods retain the same interface and return values in the same
-      manner.
-
-      Added new method File::Util::return_path() (see documentation).
-
-      Method File::Util::last_mod changed to File::Util::last_modified for
-      clarity, better readability, and consistency with other similar methods
-      in the File::Util namespace. (eg- File::Util::last_access, etc)
-
-      Added the following methods to @EXPORT_OK
-         File::Util::return_path()
-         File::Util::created()
-         File::Util::last_access()
-         File::Util::last_modified()
-
-      Much more documentation added.  Test suite revisited to reflect changes
-      to the methods mentioned above.
-
-   3.14_2
-      1/14/03, 12:05 am
-      Much more documentation added.  Various methods slightly altered to stay
-      in keeping with the docs and with standard conventions.  Test suite
-      revisited somewhat.
 
 
 INSTALLATION

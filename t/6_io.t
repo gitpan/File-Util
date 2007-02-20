@@ -20,7 +20,7 @@ Insufficient permissions to perform IO in this directory.  Can't perform tests!
 __WHYSKIP__
 
 # make a temporary testbed directory
-skip($skip, sub { $f->make_dir($testbed) }, $testbed);
+skip($skip, sub { $f->make_dir($testbed, '--if-not-exists') }, $testbed);
 
 # see if it's there
 skip($skip, -e $testbed, 1);
