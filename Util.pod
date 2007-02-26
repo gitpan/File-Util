@@ -20,9 +20,13 @@ and machines.
    $content =~ s/this/that/g;
 
    $f->write_file(
-      'file' => 'bar.txt,
+      'file' => 'bar.txt',
       'content' => $content,
       'bitmask' => 0644
+   );
+
+   $f->write_file(
+      'file' => 'file.bin', 'content' => $binary_content, '--binmode'
    );
 
    my(@lines) = $f->load_file('randomquote.txt', '--as-lines');
@@ -53,7 +57,7 @@ and machines.
 
 	warn 'This file is binary!' if $f->isbin('my.file');
 
-	print "My file was last modified on " . 
+	print "My file was last modified on " .
 		scalar localtime($f->last_modified('my.file'));
 
    # ...and _lots_ more
@@ -152,7 +156,7 @@ Methods listed in alphabetical order.
 
 Gets the bitmask of the named file, provided the file exists. If the file
 exists, the bitmask of the named file is returned in four digit octal
-notation eg- C<0644>.  Otherwise, returns C<undef> if the file does I<not>
+notation e.g.- C<0644>.  Otherwise, returns C<undef> if the file does I<not>
 exist.  This is an autoloaded method.
 
 =back
@@ -240,8 +244,8 @@ value for the system on which it is executed.
 
 Returns it's argument in an escaped form that is suitable for use as a filename.
 Illegal characters (i.e.- any type of newline character, tab, vtab, and the
-following C<< / | * " ? < : > \ >>), are replaced with [escape char] or 
-"B<_>" if no [escape char] is specified.  Returns an empty string if no 
+following C<< / | * " ? < : > \ >>), are replaced with [escape char] or
+"B<_>" if no [escape char] is specified.  Returns an empty string if no
 arguments are provided.  This is an autoloaded method.
 
 =back
@@ -480,7 +484,7 @@ to CORE::grep as the method scans through directory listings for a match.
 It will match "foo.txt", but not "foo.txt.gz" because of the "$" anchor in the
 regular expression passed in.)
 
-or for the opposite effect, C<<'--pattern=.*(?<!\.txt)$'>> returns all 
+or for the opposite effect, C<< '--pattern=.*(?<!\.txt)$' >> returns all
 file/directory names that don't end in ".txt"
 
 =item C<--with-paths>
@@ -558,7 +562,7 @@ Recognized options are listed below.
 
 =item B<Flags accepted by C<load_dir()>>
 
-=over 
+=over
 
 =item C<--as-list>
 
@@ -615,28 +619,39 @@ and 'd.conf')
 =item I<OR:> C<< load_file( 'FH' => [file handle reference] , [--opts] ) >>
 
 If [file name] is passed, returns the contents of [file name] in a string.
-If a [file handle reference] is passed instead, the filehandle will be 
+If a [file handle reference] is passed instead, the filehandle will be
 C<CORE::read()> and the data obtained by the read will be returned in a string.
 
 If you desire the contents of the file (or file handle data) in a list of
 lines instead of a single string, this can be accomplished through the use
-of the following switch:
+of the C<--as-lines> flag (see below).
 
 =over
 
 =item B<Flags accepted by C<load_file()>>
 
-=over 
+=over
 
 =item C<--as-lines>
+
+If this flag is passed then your call to C<load_file> will return an ordered
+list of strings, each of which is a line from the file [file name].  The lines
+are returned in the order they are read, from the beginning of the file to the
+end.
+
+This is not the default behavior.  The default behavior is for C<load_file> to
+return a single string containing the entire contents of the file, including
+line break characters.
+
+=item C<--no-lock>
 
 By default this method will attempt to get a lock on the file while it is
 being read, following whatever rules are in place for the flock policy
 established either by default (implicitly) or changed by you in a call to
-File::Util::flock_rules() 
+File::Util::flock_rules()
 I<(see the L<flock_rules()|/flock_rules>) entry below>.
 
-This method will not try to get a lock on the file if the object was
+This method will not try to get a lock on the file if the File::Util object was
 created with the option C<--no-lock> or if the method was called with the
 option C<--no-lock>.
 
@@ -666,7 +681,7 @@ files opened by this method as well.  Adjust the readlimit as necessary.
 =item I<Syntax:> C<make_dir( [new directory name] , [bitmask], [--opts] )>
 
 Attempts to create (recursively) a directory as [new directory name] with
-the [bitmask] provided.  The bitmask is an optional argument and defaults to 
+the [bitmask] provided.  The bitmask is an optional argument and defaults to
 0777.  If specified, the bitmask must be supplied in the form required by the
 native perl umask function.  I<see L<perlfunc/"umask">> for more information
 about the format of the bitmask argument.
@@ -690,7 +705,7 @@ is returned to the caller.
 
 =item B<Flags accepted by C<make_dir()>>
 
-=over 
+=over
 
 =item C<--if-not-exists>
 
@@ -840,7 +855,7 @@ This is an autoloaded method.
 By default, the largest size file that File::Util will read into memory and
 return via the L<load_file|/load_file> is 52428800 byptes (50 megabytes).
 
-This value can be modified by calling this method with an integer value 
+This value can be modified by calling this method with an integer value
 reflecting the new limit you want to impose, in bytes.  For example, if you want
 to set the limit to 10 megabytes, call the method with an argument of 10485760.
 
@@ -893,7 +908,7 @@ Strips the file path from the file name provided and returns the file name only.
 
 =item I<Syntax:> C<trunc( [file name] )>
 
-Truncates [file name] (i.e.- wipes out, or "clobbers" the contents of the 
+Truncates [file name] (i.e.- wipes out, or "clobbers" the contents of the
 specified file.  Returns C<1> if successful.  If unsuccessful, fails with a
 descriptive error message about what went wrong.
 
@@ -924,9 +939,80 @@ This is an autoloaded method.
 
 =over
 
-=item I<Syntax:> C<< write_file('file' => [file name], 'content' => [data], [--opts]) >>
+=item I<Syntax:> C<< write_file('file' => [file name], 'content' => [string], [ 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
 
-I<-- Documentation for this method is not yet complete! -->
+Attempts to write [string] to [file name] in mode [mode].  If the file does
+not yet exist it will be created, and it will be created with a bitmask of
+[bitmask] if you specify a file creation bitmask using the C<'bitmask'> option,
+otherwise the file will be created with the default bitmask of 0777.
+
+[string] should be a string or a scalar variable containing a string.  The
+string can be any type of data, such as a binary stream, or ascii text with
+line breaks, etc.  Be sure to pass in the C<--binmode> flag for binary streams.
+
+If specified, the bitmask must be supplied in the form required by the
+native perl umask function.  I<see L<perlfunc/"umask">> for more information
+about the format of the bitmask argument.  If the file [file name] already
+exists then the bitmask argument has no effect and is silently ignored.
+
+Returns 1 if successful or fails (fatal) with an error message if not
+successful.
+
+Any non-existent directories in the path preceeding the actual file name will
+be automatically (and silently - no warnings) created for you and any new
+directories will be created with a bitmask of [dbitmask], provided you specify
+a directory creation bitmask with the C<'dbitmask'> option.
+
+If specified, the directory creation bitmask [dbitmask] must be supplied in
+the form required by the native perl umask function.
+
+If there is an error while trying to create any preceeding directories, the
+failure results in a fatal error with a diagnostic error message.  If all
+directories preceeding the name of the file already exist, the dbitmask
+argument has no effect and is silently ignored.
+
+=over
+
+=item C<< 'mode' => 'write' >> (this is the default mode)
+
+[file name] is created if it does not yet exist.  If [file name] already exists
+then its contents are overwritten with the new content provided.
+
+=item C<< 'mode' => 'append' >>
+
+[file name] is created if it does not yet exist.  If [file name] already exists
+its contents will be preserved and the new content you provide will be appended
+to the end of the file.
+
+=back
+
+=over
+
+=item B<Flags accepted by C<write_file()>>
+
+=over
+
+=item C<--binmode>
+
+Makes sure that CORE::binmode() is called on the filehandle when your content
+is written.  This is useful for times when the content you are writing to file
+is a binary stream.
+
+=item C<--no-lock>
+
+By default this method will attempt to get a lock on the file while it is
+being read, following whatever rules are in place for the flock policy
+established either by default (implicitly) or changed by you in a call to
+File::Util::flock_rules()
+I<(see the L<flock_rules()|/flock_rules>) entry below>.
+
+This method will not try to get a lock on the file if the File::Util object was
+created with the option C<--no-lock> or if this method is called with the
+option C<--no-lock>.
+
+=back
+
+=back
 
 =back
 
@@ -1476,10 +1562,7 @@ This is a constant.
 
 =head1 BUGS
 
-This documentation isn't done yet, as you can see.  This is being rectified
-as quickly as possible.  Please exercise caution if you choose to use this
-code before it can be further documented for you.  Please excuse the
-inconvenience.
+Send bug reports to the AUTHOR.  There are no known bugs at this time.
 
 =head1 AUTHOR
 
@@ -1487,7 +1570,7 @@ Tommy Butler <L<cpan@atrixnet.com|mailto:cpan@atrixnet.com>>
 
 =head1 COPYRIGHT
 
-Copyright(C) 2001-2003, Tommy Butler.  All rights reserved.
+Copyright(C) 2001-2007, Tommy Butler.  All rights reserved.
 
 =head1 LICENSE
 
