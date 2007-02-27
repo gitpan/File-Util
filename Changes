@@ -1,5 +1,30 @@
 Revision history for Perl extension File::Util.pm
 
+   3.18
+      Tue Feb 27 15:54:51 CST 2007
+      Finished documentation for ALL methods.  Whew!  That was a lot of
+      writing.  The documentation will continue to evolve.
+
+      Implemented the --use-sysopen flag for File::Util::open_handle()
+      and thereafter the following extra open modes for it (only valid if
+      the --use-sysopen flag is used):
+         rwcreate
+         rwupdate
+         rwclobber
+         rwappend
+
+      (See the documentation for more details about this new feature).
+
+      Added new method File::Util::release_open_file() for the purpose
+      of releasing file locks placed on file handles by the
+      File::Util::open_file() method, that is, when file locking is
+      NOT turned off.  If file locking is disabled by the user, this new
+      method has no effect.
+
+   3.17_*
+      Fri Feb 23 - Mon Feb 26
+      Developer's releases (testing); not released to the public.
+
    3.16
 	   Tue Feb 20 14:16:45 CST 2007
 		Fixed problem with method File::Util::make_dir() when used with

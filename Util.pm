@@ -10,14 +10,14 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.17_6; # Fri Feb 23 17:58:43 CST 2007
+$VERSION    = 3.18; # Tue Feb 27 15:54:51 CST 2007
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
       can_flock   ebcdic   existent   isbin   bitmask   NL   SL
       strip_path   can_read   can_write   file_type   needs_binmode
       valid_filename   size   escape_filename   return_path
-      created   last_access   last_modified
+      created   last_access   last_modified  OS
    )
 );
 %EXPORT_TAGS = ( 'all'  => [ @EXPORT_OK ] );
@@ -52,7 +52,11 @@ $SL =
 
 $_LOCKS = {};
 
-} BEGIN { use constant NL => $NL; use constant SL => $SL; }
+} BEGIN {
+   use constant NL => $NL;
+   use constant SL => $SL;
+   use constant OS => $OS;
+}
 
 $DIRSPLIT    = qr/[\\\/\:]/;
 $ILLEGAL_CHR = qr/[\/\|$NL\r\n\t\013\*\"\?\<\:\>\\]/;
@@ -644,7 +648,7 @@ sub write_file {
    # make sure that open mode is a valid mode
    unless ($mode eq 'write' || $mode eq 'append' || $mode eq 'trunc') {
       return $this->_throw(
-         'bad openmode',
+         'bad openmode popen',
          {
             'meth'      => 'write_file',
             'filename'  => $filename,
@@ -674,7 +678,7 @@ sub write_file {
          'cant fwrite',
          {
             'filename'  => $openarg,
-            'dirname'   => $path . SL,
+            'dirname'   => $path,
             'opts'      => $opts,
          }
       ) unless (-w $openarg);
@@ -685,7 +689,7 @@ sub write_file {
          'cant fcreate',
          {
             'filename'  => $openarg,
-            'dirname'   => $path . SL,
+            'dirname'   => $path,
             'opts'      => $opts,
          }
       ) unless (-w $path . SL);
@@ -1364,6 +1368,8 @@ sub open_handle {
 
    $path = $filename;
 
+   # begin user input validation/sanitation sequence
+
    # if the call to this method didn't include a filename to which the caller
    # wants us to write, then complain about it
    return $this->_throw(
@@ -1406,19 +1412,42 @@ sub open_handle {
    }
 
    # make sure that open mode is a valid mode
-   unless (
-      exists($$MODES{'popen'}{ $mode }) &&
-      defined($$MODES{'popen'}{ $mode })
+   if (
+      !exists($opts->{'--use-sysopen'}) &&
+      !defined($opts->{'--use-sysopen'})
    ) {
-      return $this->_throw(
-         'bad openmode',
-         {
-            'meth'      => 'open_handle',
-            'filename'  => $filename,
-            'badmode'   => $mode,
-            'opts'      => $opts,
-         }
-      )
+      # native Perl open modes
+      unless (
+         exists($$MODES{'popen'}{ $mode }) &&
+         defined($$MODES{'popen'}{ $mode })
+      ) {
+         return $this->_throw(
+            'bad openmode popen',
+            {
+               'meth'      => 'open_handle',
+               'filename'  => $filename,
+               'badmode'   => $mode,
+               'opts'      => $opts,
+            }
+         )
+      }
+   }
+   else {
+      # system open modes
+      unless (
+         exists($$MODES{'sysopen'}{ $mode }) &&
+         defined($$MODES{'sysopen'}{ $mode })
+      ) {
+         return $this->_throw(
+            'bad openmode sysopen',
+            {
+               'meth'      => 'open_handle',
+               'filename'  => $filename,
+               'badmode'   => $mode,
+               'opts'      => $opts,
+            }
+         )
+      }
    }
 
    if (scalar(@dirs) > 0) { $filename = pop(@dirs); $path = join(SL, @dirs); }
@@ -1436,7 +1465,14 @@ sub open_handle {
 
    my($openarg) = qq[$path$SL$filename];
 
-   if ($mode eq 'write' or $mode eq 'append') {
+   # sanity checks based on requested mode
+   if (
+         $mode eq 'write'     ||
+         $mode eq 'append'    ||
+         $mode eq 'rwcreate'  ||
+         $mode eq 'rwclobber' ||
+         $mode eq 'rwappend'
+   ) {
       # Check whether or not we have permission to open and perform writes
       # on this file.
 
@@ -1445,7 +1481,7 @@ sub open_handle {
             'cant fwrite',
             {
                'filename'  => $openarg,
-               'dirname'   => $path . SL,
+               'dirname'   => $path,
                'opts'      => $opts,
             }
          ) unless (-w $openarg);
@@ -1457,30 +1493,40 @@ sub open_handle {
             'cant fcreate',
             {
                'filename'  => $openarg,
-               'dirname'   => $path . SL,
+               'dirname'   => $path,
                'opts'      => $opts,
             }
          ) unless (-w $path . SL);
       }
    }
-   elsif ($mode eq 'read') {
+   elsif ($mode eq 'read' || $mode eq 'rwupdate') {
       # Check whether or not we have permission to open and perform reads
       # on this file, starting with file's housing directory.
       return $this->_throw(
          'cant dread',
          {
             'filename'  => $path . SL . $filename,
-            'dirname'   => $path . SL,
+            'dirname'   => $path,
             'opts'      => $opts,
          }
       ) unless (-r $path . SL);
+
+      # Seems obvious, but we can't read non-existent files
+      return $this->_throw(
+         'cant fread not found',
+         {
+            'filename'  => $path . SL . $filename,
+            'dirname'   => $path,
+            'opts'      => $opts,
+         }
+      ) unless (-e $path . SL . $filename);
 
       # Check the readability of the file itself
       return $this->_throw(
          'cant fread',
          {
             'filename'  => $path . SL . $filename,
-            'dirname'   => $path . SL,
+            'dirname'   => $path,
             'opts'      => $opts,
          }
       ) unless (-r $path . SL . $filename);
@@ -1495,6 +1541,7 @@ sub open_handle {
          }
       )
    }
+   # input validation sequence finished
 
    # we need a unique filehandle
    do { $fh = int(rand(time)) . $$; $fh = eval('*' . 'OPEN_TO_FH' . $fh) }
@@ -1502,44 +1549,82 @@ sub open_handle {
 
    # if you use the '--no-lock' option you are probably inefficient
    if ($$opts{'--no-lock'} || !$USE_FLOCK) {
+      if (
+         !exists($opts->{'--use-sysopen'}) &&
+         !defined($opts->{'--use-sysopen'})
+      ) { # perl open
+         # get open mode
+         $mode = $$MODES{'popen'}{ $mode };
 
-      # get open mode
-      $mode = $$MODES{'popen'}{ $mode };
-
-      open($fh, $mode . $openarg) or
-         return $this->_throw(
-            'bad open',
-            {
-               'filename'  => $openarg,
-               'mode'      => $mode,
-               'exception' => $!,
-               'cmd'       => $mode . $openarg,
-               'opts'      => $opts,
-            }
-         );
-   }
-   else {
-      # open read-only first to safely check if we can get a lock.
-      if (-e $openarg) {
-
-         open($fh, '<' . $openarg) or
+         open($fh, $mode . $openarg) or
             return $this->_throw(
                'bad open',
                {
                   'filename'  => $openarg,
-                  'mode'      => 'read',
+                  'mode'      => $mode,
                   'exception' => $!,
                   'cmd'       => $mode . $openarg,
                   'opts'      => $opts,
                }
             );
+      }
+      else { # sysopen
+         # get open mode
+         $mode = $$MODES{'sysopen'}{ $mode };
 
-         # lock file before I/O on platforms that support it
-         my($lockstat) = $this->_seize($openarg, $fh);
+         sysopen($fh, $openarg, eval($$MODES{'sysopen'}{ $mode })) or
+            return $this->_throw(
+               'bad open',
+               {
+                  'filename'  => $openarg,
+                  'mode'      => $mode,
+                  'exception' => $!,
+                  'cmd'       => qq{$openarg, $$MODES{'sysopen'}{ $mode }},
+                  'opts'      => $opts,
+               }
+            );
+      }
+   }
+   else {
+      if (
+         !exists($opts->{'--use-sysopen'}) &&
+         !defined($opts->{'--use-sysopen'})
+      ) { # perl open
+         # open read-only first to safely check if we can get a lock.
+         if (-e $openarg) {
 
-         return($lockstat) unless $lockstat;
+            open($fh, '<' . $openarg) or
+               return $this->_throw(
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => 'read',
+                     'exception' => $!,
+                     'cmd'       => $mode . $openarg,
+                     'opts'      => $opts,
+                  }
+               );
 
-         if ($mode ne 'read') {
+            # lock file before I/O on platforms that support it
+            my($lockstat) = $this->_seize($openarg, $fh);
+
+            return($lockstat) unless $lockstat;
+
+            if ($mode ne 'read') {
+               open($fh, $$MODES{'popen'}{ $mode } . $openarg) or
+                  return $this->_throw(
+                     'bad open',
+                     {
+                        'exception' => $!,
+                        'filename'  => $openarg,
+                        'mode'      => $mode,
+                        'opts'      => $opts,
+                        'cmd'       => $$MODES{'popen'}{ $mode } . $openarg,
+                     }
+                  );
+            }
+         }
+         else {
             open($fh, $$MODES{'popen'}{ $mode } . $openarg) or
                return $this->_throw(
                   'bad open',
@@ -1551,25 +1636,68 @@ sub open_handle {
                      'cmd'       => $$MODES{'popen'}{ $mode } . $openarg,
                   }
                );
+
+            # lock file before I/O on platforms that support it
+            my($lockstat) = $this->_seize($openarg, $fh);
+
+            return($lockstat) unless $lockstat;
          }
       }
-      else {
-         open($fh, $$MODES{'popen'}{ $mode } . $openarg) or
-            return $this->_throw(
+      else { # sysopen
+         # open read-only first to safely check if we can get a lock.
+         if (-e $openarg) {
+
+            open($fh, '<' . $openarg) or
+               return $this->_throw(
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => 'read',
+                     'exception' => $!,
+                     'cmd'       => $mode . $openarg,
+                     'opts'      => $opts,
+                  }
+               );
+
+            # lock file before I/O on platforms that support it
+            my($lockstat) = $this->_seize($openarg, $fh);
+
+            return($lockstat) unless $lockstat;
+
+            sysopen($fh, $openarg, eval($$MODES{'sysopen'}{ $mode }))
+               or return $this->_throw(
+                  'bad open',
+                  {
+                     'filename'  => $openarg,
+                     'mode'      => $mode,
+                     'opts'      => $opts,
+                     'exception' => $!,
+                     'cmd'       => qq{$openarg, $$MODES{'sysopen'}{ $mode }},
+                  }
+               );
+         }
+         else { # only non-existent files get bitmask arguments
+            sysopen(
+               $fh,
+               $openarg,
+               eval($$MODES{'sysopen'}{ $mode }),
+               $bitmask
+            ) or return $this->_throw(
                'bad open',
                {
-                  'exception' => $!,
                   'filename'  => $openarg,
                   'mode'      => $mode,
                   'opts'      => $opts,
-                  'cmd'       => $$MODES{'popen'}{ $mode } . $openarg,
+                  'exception' => $!,
+                  'cmd'   => qq{$openarg, $$MODES{'sysopen'}{$mode}, $bitmask},
                }
             );
 
-         # lock file before I/O on platforms that support it
-         my($lockstat) = $this->_seize($openarg, $fh);
+            # lock file before I/O on platforms that support it
+            my($lockstat) = $this->_seize($openarg, $fh);
 
-         return($lockstat) unless $lockstat;
+            return($lockstat) unless $lockstat;
+         }
       }
    }
 
@@ -1578,6 +1706,21 @@ sub open_handle {
 
    # return file handle reference to the caller
    $fh;
+}
+
+
+# --------------------------------------------------------
+# File::Util::unlock_open_handle()
+# --------------------------------------------------------
+sub unlock_open_handle() {
+   my($this,$fh) = @_;
+
+   return 1 if !$USE_FLOCK;
+
+   return($this->_throw('Not a filehandle.', {'arg' => $fh}))
+      unless ($fh && ref(\$fh||'') eq 'GLOB');
+
+   if ($CAN_FLOCK) { return flock($fh, &Fcntl::LOCK_UN) } 1;
 }
 
 
@@ -1747,14 +1890,14 @@ Solution:   A human must fix the programming flaw.
 __bad_lockrules__
 
 
-# CAN'T READ FILE
+# CAN'T READ FILE - PERMISSIONS
 'cant fread' => <<'__cant_read__',
 Permissions conflict.  $in->{'_pak'} can't read the contents of this file:
    $EBL$in->{'filename'}$EBR
 
 Due to insufficient permissions, the system has denied Perl the right to
 view the contents of this file.  It has a bitmask of: (octal number)
-   $EBL@{[ sprintf('%04o',(stat($in->{'filename'}))[2] & 0777 ]}$EBR
+   $EBL@{[ sprintf('%04o',(stat($in->{'filename'}))[2] & 0777) ]}$EBR
 
    The directory housing it has a bitmask of: (octal number)
       $EBL@{[ sprintf('%04o',(stat($in->{'dirname'}))[2] & 0777) ]}$EBR
@@ -1768,6 +1911,21 @@ Solution:   A human must fix the conflict by adjusting the file permissions
             of directories where a program asks $in->{'_pak'} to perform I/O.
             Try using Perl's chmod command, or the native system chmod()
             command from a shell.
+__cant_read__
+
+
+# CAN'T READ FILE - NOT EXISTENT
+'cant fread not found' => <<'__cant_read__',
+File not found.  $in->{'_pak'} can't read the contents of this file:
+   $EBL$in->{'filename'}$EBR
+
+The file specified does not exist.  It can not be opened or read from.
+
+Origin:     This is *most likely* due to human error.  External system errors
+            can occur however, but this doesn't have to do with $in->{'_pak'}.
+Solution:   A human must investigate why the application tried to open a
+            non-existent file, and/or why the file is expected to exist and
+            is not found.
 __cant_read__
 
 
@@ -1839,8 +1997,8 @@ Solution:   A human must fix the conflict by adjusting the file permissions
 __cant_write__
 
 
-# BAD OPEN MODE
-'bad openmode' => <<'__bad_openmode__',
+# BAD OPEN MODE - PERL
+'bad openmode popen' => <<'__bad_openmode__',
 Illegal mode specified for file open.  $in->{'_pak'} can't open this file:
    $EBL$in->{'filename'}$EBR
 
@@ -1856,6 +2014,8 @@ Supported open modes for $in->{'_pak'}::write_file() are:
 Supported open modes for $in->{'_pak'}::open_handle() are the same as above, but
 also include the following:
    read        - open the file in read-only mode
+
+   (and if the --use-sysopen flag is used):
    rwcreate    - open the file for update (read+write), creating it if necessary
    rwupdate    - open the file for update (read+write). Causes fatal error if
                  the file doesn't yet exist
@@ -1869,6 +2029,38 @@ Solution:   A human must fix the programming flaw by specifying the desired
 __bad_openmode__
 
 
+# BAD OPEN MODE - SYSOPEN
+'bad openmode sysopen' => <<'__bad_openmode__',
+Illegal mode specified for file sysopen.  $in->{'_pak'} can't sysopen this file:
+   $EBL$in->{'filename'}$EBR
+
+When calling $in->{'_pak'}::$in->{'meth'}() you specified that the file
+opened in this I/O operation should be sysopen()'d in $EBL$in->{'badmode'}$EBR
+but that is not a recognized open mode.
+
+Supported open modes for $in->{'_pak'}::write_file() are:
+   write       - open the file in write mode, creating it if necessary, and
+                 overwriting any existing contents of the file.
+   append      - open the file in append mode
+
+Supported open modes for $in->{'_pak'}::open_handle() are the same as above, but
+also include the following:
+   read        - open the file in read-only mode
+
+   (and if the --use-sysopen flag is used, as the application JUST did):
+   rwcreate    - open the file for update (read+write), creating it if necessary
+   rwupdate    - open the file for update (read+write). Causes fatal error if
+                 the file doesn't yet exist
+   rwappend    - open the file for update in append mode
+   rwclobber   - open the file for update, erasing all contents (truncating,
+                 i.e- "clobbering" the file first)
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw by specifying the desired
+            sysopen mode from the list above.
+__bad_openmode__
+
+
 # CAN'T LIST DIRECTORY
 'cant dread' => <<'__cant_read__',
 Permissions conflict.  $in->{'_pak'} can't list the contents of this directory:
@@ -1876,7 +2068,7 @@ Permissions conflict.  $in->{'_pak'} can't list the contents of this directory:
 
 Due to insufficient permissions, the system has denied Perl the right to
 view the contents of this directory.  It has a bitmask of: (octal number)
-   $EBL@{[ sprintf('%04o',(stat($in->{'filename'}))[2] & 0777) ]}$EBR
+   $EBL@{[ sprintf('%04o',(stat($in->{'dirname'}))[2] & 0777) ]}$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
             can occur however, but this doesn't have to do with $in->{'_pak'}.

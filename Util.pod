@@ -95,43 +95,43 @@ Exports nothing by default.
 The following symbols comprise C<@File::Util::EXPORT_OK>), and as such are
 available for import to your namespace only upon request.
 
-C<bitmask>           I<(see L<bitmask|/bitmask>)>
+C<bitmask>            I<(see L<bitmask|/bitmask>)>
 
-C<can_flock>         I<(see L<can_flock|/can_flock>)>
+C<can_flock>          I<(see L<can_flock|/can_flock>)>
 
-C<can_read>          I<(see L<can_read|/can_read>)>
+C<can_read>           I<(see L<can_read|/can_read>)>
 
-C<can_write>         I<(see L<can_write|/can_write>)>
+C<can_write>          I<(see L<can_write|/can_write>)>
 
-C<created>           I<(see L<created|/created>)>
+C<created>            I<(see L<created|/created>)>
 
-C<ebcdic>            I<(see L<ebcdic|/ebcdic>)>
+C<ebcdic>             I<(see L<ebcdic|/ebcdic>)>
 
-C<escape_filename>   I<(see L<escape_filename|/escape_filename>)>
+C<escape_filename>    I<(see L<escape_filename|/escape_filename>)>
 
-C<existent>          I<(see L<existent|/existent>)>
+C<existent>           I<(see L<existent|/existent>)>
 
-C<file_type>         I<(see L<file_type|/file_type>)>
+C<file_type>          I<(see L<file_type|/file_type>)>
 
-C<isbin>             I<(see L<isbin|/isbin>)>
+C<isbin>              I<(see L<isbin|/isbin>)>
 
-C<last_access>       I<(see L<last_access|/last_access>)>
+C<last_access>        I<(see L<last_access|/last_access>)>
 
-C<last_modified>     I<(see L<last_modified|/last_modified>)>
+C<last_modified>      I<(see L<last_modified|/last_modified>)>
 
-C<NL>                I<(see L<NL|/NL>)>
+C<NL>                 I<(see L<NL|/NL>)>
 
-C<needs_binmode>     I<(see L<needs_binmode|/needs_binmode>)>
+C<needs_binmode>      I<(see L<needs_binmode|/needs_binmode>)>
 
-C<return_path>       I<(see L<return_path|/return_path>)>
+C<return_path>        I<(see L<return_path|/return_path>)>
 
-C<size>              I<(see L<size|/size>)>
+C<size>               I<(see L<size|/size>)>
 
-C<SL>                I<(see L<SL|/SL>)>
+C<SL>                 I<(see L<SL|/SL>)>
 
-C<strip_path>        I<(see L<strip_path|/strip_path>)>
+C<strip_path>         I<(see L<strip_path|/strip_path>)>
 
-C<valid_filename>    I<(see L<valid_filename|/valid_filename>)>
+C<valid_filename>     I<(see L<valid_filename|/valid_filename>)>
 
 B<Note:> Symbols in C<@L<Class::OOorNO|Class::OOorNO>::EXPORT_OK> are also
 available for import.
@@ -838,9 +838,185 @@ instead of the value(s) that would normally be returned by the call.
 
 =over
 
-=item I<Syntax:> C<open_handle( [file name] , [--opts] )>
+=item I<Syntax:> C<< open_handle('file' => [file name], [ 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
 
-I<-- Documentation for this method is not yet complete! -->
+Attempts to get a unique open file handle on [file name] in [mode] mode.
+Returns the file handle if successful or generates a fatal error with a
+diagnostic message if the operation fails.
+
+You will need to remember to call C<close()> on the filehandle yourself, at
+your own discretion.  Leaving filehandles open is not a good practice, and
+is not recommended.
+
+Once you have the file handle you would use it as you would use any file handle.
+Remember that unless you specifically turn file locking off when the
+C<File::Util> object is created (see I<(see L<new|/new>)> or by using the
+C<--no-lock> flag when calling C<open_handle>, that file locking is going to
+automagically be handled for you behind the scenes, so long as your OS supports
+file locking of any kind at all.  Great!  It's very convenient for you to not
+have to worry about portably taking care of file locking between one
+application and the next; by using C<File::Util> in all of them, you know
+that you're covered.
+
+A slight inconvenience for the price of a larger set of features (compare
+L<write_file|/write_file> to this method)
+I<B<you will have to release the file lock on the open handle yourself.>>
+C<File::Util> can't manage it for you anymore once it hands the handle over
+to you.  At that point, it's all yours.  In order to release the file lock
+on your file handle, call L<unlock_open_handle()|/unlock_open_handle> on it.
+Otherwise the lock will remain for the life of your process.  If you don't
+want to use the free portable file locking, remember the C<--no-lock> flag,
+which will turn off file locking for your open handle.  Seldom, however, should
+you ever opt to not use file locking unless you really know what you are doing.
+
+If the file does not yet exist it will be created, and it will be created
+with a bitmask of [bitmask] if you specify a file creation bitmask using
+the C<'bitmask'> option, otherwise the file will be created with the default
+bitmask of 0777.
+
+If specified, the bitmask must be supplied in the form required by the
+native perl umask function.  I<see L<perlfunc/"umask">> for more information
+about the format of the bitmask argument.  If the file [file name] already
+exists then the bitmask argument has no effect and is silently ignored.
+
+Any non-existent directories in the path preceeding the actual file name will
+be automatically (and silently - no warnings) created for you and any new
+directories will be created with a bitmask of [dbitmask], provided you specify
+a directory creation bitmask with the C<'dbitmask'> option.
+
+If specified, the directory creation bitmask [dbitmask] must be supplied in
+the form required by the native perl umask function.
+
+If there is an error while trying to create any preceeding directories, the
+failure results in a fatal error with a diagnostic error message.  If all
+directories preceeding the name of the file already exist, the dbitmask
+argument has no effect and is silently ignored.
+
+=back
+
+=over
+
+=item B<Native Perl open modes>
+
+The default behavior of C<open_handle()> is to open file handles using Perl's
+native C<open()>.  Unless you use the C<--use-sysopen> flag, the following modes
+and only these modes are valid.
+
+=over
+
+=item C<< 'mode' => 'read' >>
+
+[file name] is opened in read-only mode.  If the file does not yet exist then
+a fatal error will occur with a diagnostic help message to help you troubleshoot
+the problem.
+
+=item C<< 'mode' => 'write' >> (this is the default mode)
+
+[file name] is created if it does not yet exist.  If [file name] already exists
+then its contents are overwritten with the new content provided.
+
+=item C<< 'mode' => 'append' >>
+
+[file name] is created if it does not yet exist.  If [file name] already exists
+its contents will be preserved and the new content you provide will be appended
+to the end of the file.
+
+=back
+
+=back
+
+=over
+
+=item B<System level open modes ("open a la C")>
+
+Optionally you can ask C<File::Util> to open your handle using C<CORE::sysopen>
+instead of using the native Perl C<CORE::open()>.  This is accomplished by
+passing in the C<--use-sysopen> flag.  Using this feature opens up more
+possibilities as far as the open modes you can choose from, but also carries
+with it a few caveats so you have to be careful, just as you'd have to be a
+little more careful when using C<sysopen()> anyway.
+
+Specifically you need to remember that when using this feature you must NOT
+mix different types of I/O when working with the file handle.  You can't go
+opening file handles with C<sysopen()> and print to them as you normally
+would print to a file handle.  You have to use C<syswrite()> instead.  The
+same applies here.  If you get a C<sysopen()>'d filehandle from C<open_handle()>
+it is imperative that you use C<syswrite()> on it.  You'll also need to use
+C<sysseek()> and other type of C<sys>* commands on the filehandle instead of
+their native Perl equivalents.
+
+That said, here are the different modes you can choose from to get a file handle
+when using the C<--use-sysopen> flag.  Remember that these won't work unless
+you use the flag, and will generate an error if you try using them without it.
+The standard C<'read'>, C<'write'>, and C<'append'> modes are already available
+to you by default.  These are the extended modes:
+
+=over
+
+=item C<< 'mode' => 'rwcreate' >>
+
+[file name] is opened in read-write mode, and will be created for you if it
+does not already exist.
+
+=item C<< 'mode' => 'rwupdate' >>
+
+[file name] is opened for you in read-write mode, but must already exist.  If
+it does not exist, a fatal error will result and a diagnostic help message will
+be printed out to help you troubleshoot the problem.
+
+=item C<< 'mode' => 'rwclobber' >>
+
+[file name] is opened for you in read-write mode.  If the file already exists
+it's contents will be "clobbered" or wiped out.  The file will then be empty
+and you will be working with the then-truncated file.  This can not be undone.
+Once you call C<open_handle()> using this option, your file WILL be wiped out.
+If the file does not exist yet, it will be created for you.
+
+=item C<< 'mode' => 'rwappend' >>
+
+[file name] will be opened for you in read-write mode ready for appending.  The
+file's contents will not be wiped out; they will be preserved and you will be
+working in append fashion.  You will only be able to write starting at the end
+of the file.  If the file does not exist, it will be created for you.
+
+=back
+
+=back
+
+=over
+
+=item B<Flags accepted by C<open_handle()>>
+
+=over
+
+=item C<--binmode>
+
+Makes sure that CORE::binmode() is called on the filehandle when your content
+is written.  This is useful for times when the content you are writing to file
+is a binary stream.
+
+=item C<--no-lock>
+
+By default this method will attempt to get a lock on the file while it is
+being read, following whatever rules are in place for the flock policy
+established either by default (implicitly) or changed by you in a call to
+File::Util::flock_rules()
+I<(see the L<flock_rules()|/flock_rules>) entry below>.
+
+This method will not try to get a lock on the file if the File::Util object was
+created with the option C<--no-lock> or if this method is called with the
+option C<--no-lock>.
+
+=item C<--use-sysopen>
+
+Instead of opening the file using Perl's native C<open()> command, C<File::Util>
+will open the file with the C<sysopen()> command.  You will have to remember
+that your filehandle is a C<sysopen()>'d one, and that you will not be able to
+use native Perl I/O functions on it.  You will have to use the C<sys>*
+equivalents.  See L<perlopentut> for a more in-depth explanation of why you
+can't mix native Perl I/O with system I/O.
+
+=back
 
 This is an autoloaded method.
 
@@ -913,6 +1089,35 @@ specified file.  Returns C<1> if successful.  If unsuccessful, fails with a
 descriptive error message about what went wrong.
 
 This is an autoloaded method.
+
+=back
+
+=head2 C<unlock_open_handle>
+
+=over
+
+=item I<Syntax:> C<unlock_open_handle([file handle])>
+
+Release the flock on a file handle you opened with L<open_handle|/open_handle>.
+
+Returns true on success, false on failure.  Will not raise a fatal error if
+the unlock operation fails.  You can capture the return value from your call
+to this method and C<die()> if you so desire.  Failure is not ever very likely,
+or C<File::Util> wouldn't have been able to get a portable lock on the file
+in the first place.
+
+If C<File::Util> wasn't able to ever lock the file due to limitations of your
+operating system, a call to this method will return a true value.
+
+If file locking has been disabled on the file handle via the C<--no-lock> flag
+at the time L<open_handle|/open_handle> was called, or if file locking was
+disabled using the L<use_flock|/use_flock> method, or if file locking was
+disabled on the entire C<File::Util> object at the time of its creation
+I<(see L<new()|/new>)>, calling this method will have no effect and a true value
+will be returned.
+
+This is an autoloaded method, due to L<open_handle|open_handle> also being
+autoloaded.
 
 =back
 
@@ -1053,7 +1258,60 @@ on which your program runs.
 Returns the correct directory path seperator for the system on which your
 program runs.
 
-This is a constant.
+=back
+
+=head2 C<OS>
+
+=over
+
+=item I<Syntax:> C<OS>
+
+Returns the File::Util keyword for the operating system FAMILY it detected.  The
+keyword for the detected operating system will be one of the following, derived
+from the conents of C<$^O>, or if C<$^O> can not be found, from the contents of
+C<$Config::Config{osname}> (see native L<Config> library), or if that
+doesn't contain a recognizable value, finally falls back to C<UNIX>.
+
+Generally speaking, Linux operating systems are going to be detected as C<UNIX>.
+This isn't a bug.  The OS FAMILY to which it belongs uses C<UNIX> style
+filesystem conventions and line endings, which are the relevant things to
+file handling operations.
+
+=over
+
+=item UNIX
+
+Specifics: OS name =~ /^(?:darwin|bsdos)/i
+
+=item CYGWIN
+
+Specifics: OS name =~ /^cygwin/i
+
+=item WINDOWS
+
+Specifics: OS name =~ /^MSWin/i
+
+=item VMS
+
+Specifics: OS name =~ /^vms/i
+
+=item DOS
+
+Specifics: OS name =~ /^dos/i
+
+=item MACINTOSH
+
+Specifics: OS name =~ /^MacOS/i
+
+=item EPOC
+
+Specifics: OS name =~ /^epoc/i
+
+=item OS2
+
+Specifics: OS name =~ /^os2/i
+
+=back
 
 =back
 
@@ -1563,6 +1821,11 @@ This is a constant.
 =head1 BUGS
 
 Send bug reports to the AUTHOR.  There are no known bugs at this time.
+
+=head1 TODO
+
+Add full support for PerlIO layers in C<File::Util::open_handle()> and possibly
+C<File::Util::write_file()>.
 
 =head1 AUTHOR
 
