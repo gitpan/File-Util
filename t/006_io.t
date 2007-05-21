@@ -50,7 +50,7 @@ skip(
       );
       return $fh;
    },
-	'/\*File\:\:Util\:\:OPEN\_TO\_FH/',
+	'/File..Util..OPEN.TO.FH/',
    $fh,
 );
 

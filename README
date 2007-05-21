@@ -12,6 +12,12 @@ and machines.
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
 
+   3.21
+      Mon May 21 18:22:11 CDT 2007
+      Fixed solaris-specific bug in test suite causing a simple regular
+      expression to fail.  Previous changes up to this point merit a public
+      release, pending the fixing of afforementioned bug, hence this release.
+
    3.20_2
       Mon May 21 16:15:23 CDT 2007
       Fixed small but important incompatibility with some versions of
