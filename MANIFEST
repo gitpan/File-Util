@@ -5,15 +5,16 @@ Makefile.PL
 README
 Util.pm
 Util.pod
-t/1_canuseit.t
-t/2_isa.t
-t/3_can.t
-t/4_portable.t
-t/5_ftests.t
-t/6_io.t
-t/7_flock.t
-t/8_export_ok.t
-t/9_empty_subclass.t
+t/001_canuseit.t
+t/002_isa.t
+t/003_can.t
+t/004_portable.t
+t/005_ftests.t
+t/006_io.t
+t/007_flock.t
+t/008_export_ok.t
+t/009_empty_subclass.t
+t/010_diesnice.t
 t/bin
 t/txt
 META.yml                                Module meta-data (added by MakeMaker)

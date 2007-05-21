@@ -1,5 +1,28 @@
 Revision history for Perl extension File::Util.pm
 
+   3.20_2
+      Mon May 21 16:15:23 CDT 2007
+      Fixed small but important incompatibility with some versions of
+      Exception::Handler
+
+   3.20_1
+      Fri May 18 15:42:01 CDT 2007
+      Improved error handling mechanism even more, and created 31 new test
+      scenarios to make sure that any failure events are handled correctly.
+
+      Fixed some small latent bugs, for example, corrected file handle
+      reference verification error handling--checking for validity of
+      file handle references.
+
+   3.19
+      Wed May 16 18:07:49 CDT 2007
+      Documentation.  Documentation.  Documentation.  Small corrections and
+      several enhancements.  More examples.
+
+      Improved error-handling mechanism by adding cascading logic to prioritize
+      fatality-handling rules of failed calls over the rules of the File::Util
+      object, whether they be defaults or manually set up via File::Util::new()
+
    3.18
       Tue Feb 27 15:54:51 CST 2007
       Finished documentation for ALL methods.  Whew!  That was a lot of

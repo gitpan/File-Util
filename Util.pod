@@ -53,12 +53,12 @@ and machines.
 
    print "My file has a bitmask of " . $f->bitmask('my.file');
 
-	print "My file is a " . join(', ', $f->file_type('my.file')) . " file."
+   print "My file is a " . join(', ', $f->file_type('my.file')) . " file."
 
-	warn 'This file is binary!' if $f->isbin('my.file');
+   warn 'This file is binary!' if $f->isbin('my.file');
 
-	print "My file was last modified on " .
-		scalar localtime($f->last_modified('my.file'));
+   print "My file was last modified on " .
+      scalar localtime($f->last_modified('my.file'));
 
    # ...and _lots_ more
 
@@ -838,7 +838,13 @@ instead of the value(s) that would normally be returned by the call.
 
 =over
 
-=item I<Syntax:> C<< open_handle('file' => [file name], [ 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
+=item I<Syntax:> C<< open_handle('file' => [file name], [--opts]) >>
+
+=item I<OR:> C<< open_handle('file' => [file name], 'mode' => [mode], [--opts]) >>
+
+=item I<OR:> C<< open_handle('file' => [file name], 'mode' => [mode], 'bitmask' => [bitmask], [--opts]) >>
+
+=item I<OR:> C<< open_handle('file' => [file name], 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
 
 Attempts to get a unique open file handle on [file name] in [mode] mode.
 Returns the file handle if successful or generates a fatal error with a
@@ -846,7 +852,7 @@ diagnostic message if the operation fails.
 
 You will need to remember to call C<close()> on the filehandle yourself, at
 your own discretion.  Leaving filehandles open is not a good practice, and
-is not recommended.
+is not recommended.  I<see L<perlfunc/close>>).
 
 Once you have the file handle you would use it as you would use any file handle.
 Remember that unless you specifically turn file locking off when the
@@ -899,8 +905,8 @@ argument has no effect and is silently ignored.
 =item B<Native Perl open modes>
 
 The default behavior of C<open_handle()> is to open file handles using Perl's
-native C<open()>.  Unless you use the C<--use-sysopen> flag, the following modes
-and only these modes are valid.
+native C<open()> I<(see L<perlfunc/open>)>.  Unless you use the
+C<--use-sysopen> flag, the following modes and only these modes are valid.
 
 =over
 
@@ -945,6 +951,9 @@ it is imperative that you use C<syswrite()> on it.  You'll also need to use
 C<sysseek()> and other type of C<sys>* commands on the filehandle instead of
 their native Perl equivalents.
 
+(see L<perlfunc/sysopen>, L<perlfunc/syswrite>, L<perlfunc/sysseek>,
+L<perlfunc/sysread>)
+
 That said, here are the different modes you can choose from to get a file handle
 when using the C<--use-sysopen> flag.  Remember that these won't work unless
 you use the flag, and will generate an error if you try using them without it.
@@ -981,6 +990,9 @@ of the file.  If the file does not exist, it will be created for you.
 
 =back
 
+Remember to use C<sysread()> and not plain C<read()> when reading those
+C<sysopen()>'d filehandles!
+
 =back
 
 =over
@@ -993,7 +1005,7 @@ of the file.  If the file does not exist, it will be created for you.
 
 Makes sure that CORE::binmode() is called on the filehandle when your content
 is written.  This is useful for times when the content you are writing to file
-is a binary stream.
+is a binary stream. I<(see L<perlfunc/binmode>)>.
 
 =item C<--no-lock>
 
@@ -1144,7 +1156,13 @@ This is an autoloaded method.
 
 =over
 
-=item I<Syntax:> C<< write_file('file' => [file name], 'content' => [string], [ 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
+=item I<Syntax:> C<< write_file('file' => [file name], 'content' => [string], [--opts]) >>
+
+=item I<OR:> C<< write_file('file' => [file name], 'content' => [string], 'mode' => [mode], [--opts]) >>
+
+=item I<OR:> C<< write_file('file' => [file name], 'content' => [string], 'mode' => [mode], 'bitmask' => [bitmask], [--opts]) >>
+
+=item I<OR:> C<< write_file('file' => [file name], 'content' => [string], 'mode' => [mode], 'bitmask' => [bitmask], 'dbitmask' => [bitmask], [--opts]) >>
 
 Attempts to write [string] to [file name] in mode [mode].  If the file does
 not yet exist it will be created, and it will be created with a bitmask of

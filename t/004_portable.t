@@ -55,7 +55,7 @@ ok                                                                     # test 6
    );
 
 # path stripping in general
-ok(strip_path(__FILE__),'4_portable.t');                               # test 7
+ok(strip_path(__FILE__),'004_portable.t');                               # test 7
 
 # illegal filename character intolerance
 ok(!valid_filename(qq[?foo]));      # question mark

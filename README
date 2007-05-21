@@ -1,4 +1,4 @@
-File::Util version 3.16
+File::Util
 =========================
 
 DESCRIPTION
@@ -11,6 +11,29 @@ and machines.
 
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
+
+   3.20_2
+      Mon May 21 16:15:23 CDT 2007
+      Fixed small but important incompatibility with some versions of
+      Exception::Handler
+
+   3.20_1
+      Fri May 18 15:42:01 CDT 2007
+      Improved error handling mechanism even more, and created 31 new test
+      scenarios to make sure that any failure events are handled correctly.
+
+      Fixed some small latent bugs, for example, corrected file handle
+      reference verification error handling--checking for validity of
+      file handle references.
+
+   3.19
+      Wed May 16 18:07:49 CDT 2007
+      Documentation.  Documentation.  Documentation.  Small corrections and
+      several enhancements.  More examples.
+
+      Improved error-handling mechanism by adding cascading logic to prioritize
+      fatality-handling rules of failed calls over the rules of the File::Util
+      object, whether they be defaults or manually set up via File::Util::new()
 
    3.18
       Tue Feb 27 15:54:51 CST 2007
@@ -32,25 +55,6 @@ CHANGES IN LAST FEW RELEASES
       File::Util::open_file() method, that is, when file locking is
       NOT turned off.  If file locking is disabled by the user, this new
       method has no effect.
-
-   3.17_*
-      Fri Feb 23 - Mon Feb 26
-      Developer's releases (testing); not released to the public.
-
-   3.16
-      Tue Feb 20 14:16:45 CST 2007
-      Fixed problem with method File::Util::make_dir() when used with
-      absolute pathnames (path names starting with "/", for example).
-
-      Fixed documentation error concerning the File::Util::list_dir method,
-      specifically regarding the "--pattern" option flag.
-
-      Method File::Util::make_dir() now enforces the policy of failing when
-      asked to create a directory that already exists as a file of any kind.
-      Use the "--if-not-exists" flag if you are counting on the old behavior
-      or if you want to create directories which could possibly exist already.
-
-      More documentation added.
 
 
 INSTALLATION

@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.18; # Tue Feb 27 15:54:51 CST 2007
+$VERSION    = 3.20_2; # Mon May 21 16:15:23 CDT 2007
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -191,7 +191,7 @@ sub list_dir {
             (
                'bad opendir',
                {
-                  'dir'       => $dir,
+                  'dirname'    => $dir,
                   'exception' => $!,
                   'opts'      => $opts,
                }
@@ -894,7 +894,7 @@ sub _seize {
 sub _release {
    my($this,$fh) = @_;
 
-   return($this->_throw('Not a filehandle.', {'arg' => $fh}))
+   return($this->_throw('not a filehandle.', {'argtype' => ref(\$fh||'')}))
       unless ($fh && ref(\$fh||'') eq 'GLOB');
 
    if ($CAN_FLOCK) { flock($fh, &Fcntl::LOCK_UN) } 1;
@@ -1199,7 +1199,7 @@ sub make_dir {
          return $this->_throw(
             'make_dir target exists',
             {
-               'filename'  => $dir,
+               'dirname'  => $dir,
                'filetype'  => [ $this->file_type($dir) ],
             }
          );
@@ -1289,8 +1289,8 @@ sub make_dir {
       return $this->_throw(
          'cant dcreate',
          {
-            'filename'  => $dir,
-            'dirname'   => $up,
+            'dirname'  => $dir,
+            'parentd'   => $up,
          }
       ) unless -w $up;
 
@@ -1299,7 +1299,7 @@ sub make_dir {
             'bad make_dir',
             {
                'exception' => $!,
-               'dir'       => $dir,
+               'dirname'   => $dir,
                'bitmask'   => $bitmask,
             }
          );
@@ -1717,7 +1717,7 @@ sub unlock_open_handle() {
 
    return 1 if !$USE_FLOCK;
 
-   return($this->_throw('Not a filehandle.', {'arg' => $fh}))
+   return($this->_throw('not a filehandle.', {'argtype' => ref(\$fh||'')}))
       unless ($fh && ref(\$fh||'') eq 'GLOB');
 
    if ($CAN_FLOCK) { return flock($fh, &Fcntl::LOCK_UN) } 1;
@@ -1759,19 +1759,26 @@ sub use_flock {
 # --------------------------------------------------------
 sub _throw {
    my($this) = shift(@_); my($opts) = $this->shave_opts(\@_);
+   my(%fatal_rules) = ();
 
-   return(0) if
-      (
-         $this->{'opts'}{'--fatals-as-status'}
-            ||
-         $this->{'fatals-as-status'}
-      );
+   # fatalality-handling rules passed to the failing caller trump the
+   # rules set up in the attributes of the object; the mechanism below
+   # also allows for the implicit handling of '--fatals-are-fatal'
+   map { $fatal_rules{ $_ } = $_ }
+   grep(/^--fatals/o, values %$opts);
+
+   unless (scalar keys %fatal_rules) {
+      map { $fatal_rules{ $_ } = $_ }
+      grep(/^--fatals/o, keys %{ $this->{'opts'} })
+   }
+
+   return(0) if $fatal_rules{'--fatals-as-status'};
 
    $this->{'expt'}||={};
 
    unless (UNIVERSAL::isa($this->{'expt'},'Exception::Handler')) {
-
-      require Exception::Handler; $this->{'expt'} = Exception::Handler->new();
+      require Exception::Handler;
+      $this->{'expt'} = Exception::Handler->new();
    }
 
    my($error) = ''; my($in) = {};
@@ -1796,28 +1803,16 @@ sub _throw {
             . &NL . q{__ERRORBLOCK__}
          );
 
-   if ($opts->{'--as-warning'}) {
+## for debugging only
+#   if ($@) { return $this->{'expt'}->trace($@) }
 
-      warn($this->{'expt'}->trace(($@ || $bad_news))) and return()
+   if ($fatal_rules{'--fatals-as-warning'}) {
+
+      warn($this->{'expt'}->trace(($@ || $bad_news))) and return
    }
-   elsif
-      (
-         $this->{'opts'}{'--fatals-as-errmsg'}
-            ||
-         $opts->{'--return'}
-      )
-   {
+   elsif ( $fatal_rules{'--fatals-as-errmsg'} || $opts->{'--return'}) {
+
       return($this->{'expt'}->trace(($@ || $bad_news)))
-   }
-   elsif
-      (
-         $this->{'opts'}{'--fatals-as-status'}
-            ||
-         $opts->{'--return-status'}
-      )
-   { return undef } elsif ($this->{'opts'}{'--fatals-as-warning'}) {
-
-      warn($this->{'expt'}->trace(($@ || $bad_news))) and return undef
    }
 
    foreach (keys(%{$in})) {
@@ -1852,8 +1847,10 @@ sub _errors {
    use vars qw($EBL $EBR);
    ($EBL,$EBR) = (chr(187), chr(171));
    ($EBL,$EBR) = ('{','}') if ($OS eq 'DOS');
+   my($error_thrown) = shift(@_);
 
-   {
+   # begin long table of helpful diag error messages
+   my(%error_msg_table) = (
 # NO SUCH FILE
 'no such file' => <<'__bad_open__',
 $in->{'_pak'} can't open
@@ -2082,16 +2079,16 @@ __cant_read__
 # CAN'T CREATE DIRECTORY - PERMISSIONS
 'cant dcreate' => <<'__cant_dcreate__',
 Permissions conflict.  $in->{'_pak'} can't create:
-   $EBL$in->{'filename'}$EBR
+   $EBL$in->{'dirname'}$EBR
 
    $in->{'_pak'} can't create this directory because the system has denied
    Perl the right to create files in the parent directory.
 
    Parent directory: (path may be relative and/or redundant)
-      $EBL$in->{'dirname'}$EBR
+      $EBL$in->{'parentd'}$EBR
 
    Parent directory has a bitmask of: (octal number)
-      $EBL@{[ sprintf('%04o',(stat($in->{'dirname'}))[2] & 0777) ]}$EBR
+      $EBL@{[ sprintf('%04o',(stat($in->{'parentd'}))[2] & 0777) ]}$EBR
 
 Origin:     This is *most likely* due to human error.  External system errors
             can occur however, but this doesn't have to do with $in->{'_pak'}.
@@ -2105,7 +2102,7 @@ __cant_dcreate__
 # CAN'T CREATE DIRECTORY - TARGET EXISTS
 'make_dir target exists' => <<'__cant_dcreate__',
 make_dir target already exists.
-   $EBL$in->{'filename'}$EBR
+   $EBL$in->{'dirname'}$EBR
 
 $in->{'_pak'} can't create the directory you specified because that
 directory already exists, with filetype attributes of
@@ -2227,6 +2224,19 @@ Solution:   Resolve naming issue between the existent file and the directory
 __bad_open__
 
 
+# BAD CALL TO File::Util::readlimit
+'bad readlimit' => <<'__maxdives__',
+Bad call to $in->{'_pak'}::readlimit().  This method can only be called with
+a numeric value (bytes).  Non-integer numbers will be converted to integer
+format if specified (numbers like 5.2), but don't do that, it's inefficient.
+
+This operation aborted.
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
+__maxdives__
+
+
 # EXCEEDED READLIMIT
 'readlimit exceeded' => <<'__readlimit__',
 $in->{'_pak'} can't load file: $EBL$in->{'filename'}$EBR
@@ -2257,8 +2267,9 @@ __maxdives__
 
 # EXCEEDED MAXDIVES
 'maxdives exceeded' => <<'__maxdives__',
-Recursion limit reached at $EBL${\ $in->{'maxdives'} || $MAXDIVES }$EBR dives.
-Maximum number of subdirectory dives is set to the value returned by
+Recursion limit reached at $EBL${\ scalar(
+   (exists $in->{'maxdives'} && defined $in->{'maxdives'}) ?
+   $in->{'maxdives'} : $MAXDIVES) }$EBR dives.  Maximum number of subdirectory dives is set to the value returned by
 $in->{'_pak'}::max_dives().  Try manually setting the value to a higher number
 before calling list_dir() with option --follow or --recurse (synonymous).  Do
 so by calling $in->{'_pak'}::max_dives() with the numeric argument corresponding
@@ -2272,22 +2283,10 @@ Solution:   Consider setting the limit to a higher number.
 __maxdives__
 
 
-# BAD CALL TO File::Util::readlimit
-'bad maxdives' => <<'__maxdives__',
-Bad call to $in->{'_pak'}::readlimit().  This method can only be called with
-a numeric value (bytes).  Non-integer numbers will be converted to integer
-format if specified (numbers like 5.2), but don't do that, it's inefficient.
-
-This operation aborted.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__maxdives__
-
-
 # BAD OPENDIR
 'bad opendir' => <<'__bad_opendir__',
-$in->{'_pak'} can't opendir this on $EBL$dir$EBR
+$in->{'_pak'} can't opendir on directory:
+   $EBL$in->{'dirname'}$EBR
 
 The system returned this error:
    $EBL$in->{'exception'}$EBR
@@ -2302,7 +2301,7 @@ __bad_opendir__
 $in->{'_pak'} had a problem with the system while attempting to create the
 directory you specified with a bitmask of $EBL$in->{'bitmask'}$EBR
 
-directory: $EBL$in->{'dir'}$EBR
+directory: $EBL$in->{'dirname'}$EBR
 
 The system returned this error:
    $EBL$in->{'exception'}$EBR
@@ -2310,41 +2309,6 @@ The system returned this error:
 Origin:     Could be either human _or_ system error.
 Solution:   Cannot diagnose.  A Human must investigate the problem.
 __bad_make_dir__
-
-
-# BAD CALL TO METHOD FOO
-'no input' => <<'__no_input__',
-$in->{'_pak'} can't honor your call to $EBL$in->{'_pak'}::$in->{'meth'}()$EBR
-because you didn't provide $EBL@{[$in->{'missing'}||'the required input']}$EBR
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__no_input__
-
-
-# PLAIN ERROR TYPE
-'plain error' => <<'__plain_error__',
-$in->{'_pak'} failed with the following message:
-$_[0]
-__plain_error__
-
-
-# INVALID ERROR TYPE
-'unknown error message' => <<'__foobar_input__',
-$in->{'_pak'} failed with an invalid error-type designation.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__foobar_input__
-
-
-# EMPTY ERROR TYPE
-'empty error' => <<'__no_input__',
-$in->{'_pak'} failed with an empty error-type designation.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__no_input__
 
 
 # BAD CHARS
@@ -2374,15 +2338,61 @@ __bad_chars__
 
 
 # NOT A VALID FILEHANDLE
-'not a FH' => <<'__bad_handle__',
+'not a filehandle' => <<'__bad_handle__',
 $in->{'_pak'} can't unlock file with an invalid file handle reference:
-   $EBL$fh$EBR is not a valid filehandle
+   $EBL$in->{'argtype'}$EBR is not a valid filehandle
 
-Origin:     This is most likely an internal error in the $in->{'_pak'} module.
-Solution:   A human must investigate the problem.  Send a usenet post with this
-            error message in its entirety to usenet group:
-            $EBL news:comp.lang.perl.modules $EBR
+Origin:     This is most likely a human error, although it is remotely possible
+            that this message is the result of an internal error in the
+            $in->{'_pak'} module, but this is not likely if you called
+            $in->{'_pak'}'s internal ::_release() method directly on your own.
+Solution:   A human must fix the programming flaw.  Alternatively, in the
+            second listed scenario, the package maintainer must investigate the
+            problem.  Please send a usenet post with this error message in its
+            entirety to Tommy Butler <tommy\@atrixnet.com>, or to usenet group:
+            $EBL news://comp.lang.perl.modules $EBR
 __bad_handle__
 
- 'foo' => '' }->{ shift(@_) || 'unknown error message' }
+
+# BAD CALL TO METHOD FOO
+'no input' => <<'__no_input__',
+$in->{'_pak'} can't honor your call to $EBL$in->{'_pak'}::$in->{'meth'}()$EBR
+because you didn't provide $EBL@{[$in->{'missing'}||'the required input']}$EBR
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
+__no_input__
+
+
+# PLAIN ERROR TYPE
+'plain error' => <<'__plain_error__',
+$in->{'_pak'} failed with the following message:
+${\ scalar ($_[0] || ((exists $in->{'error'} && defined $in->{'error'}) ?
+   $in->{'error'} : '[error unspecified]')) }
+__plain_error__
+
+
+# INVALID ERROR TYPE
+'unknown error message' => <<'__foobar_input__',
+$in->{'_pak'} failed with an invalid error-type designation.
+
+Origin:     This is a bug!  Please inform Tommy Butler <tommy\@atrixnet.com>
+Solution:   A human must fix the programming flaw.
+__foobar_input__
+
+
+# EMPTY ERROR TYPE
+'empty error' => <<'__no_input__',
+$in->{'_pak'} failed with an empty error-type designation.
+
+Origin:     This is a human error.
+Solution:   A human must fix the programming flaw.
+__no_input__
+
+   ); # end of error message table
+
+   exists $error_msg_table{ $error_thrown }
+   ? $error_msg_table{ $error_thrown }
+   : $error_msg_table{'unknown error message'}
 }
+
