@@ -1,5 +1,11 @@
 Revision history for Perl extension File::Util.pm
 
+   3.22
+      Wed May 23 16:27:20 CDT 2007
+      Fixed windows-specific bugs associated with the handling of newlines
+      and directory path separators.  Now compatible with Strawberry Perl
+      and once again Active$tate Perl for MSWin*.
+
    3.21
       Mon May 21 18:22:11 CDT 2007
       Fixed solaris-specific bug in test suite causing a simple regular

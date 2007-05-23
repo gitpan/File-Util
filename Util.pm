@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.21; # Mon May 21 18:22:11 CDT 2007
+$VERSION    = 3.22; # Wed May 23 16:27:20 CDT 2007
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -47,7 +47,7 @@ $NL =
             : qq[\012];
 $SL =
    { 'DOS' => '\\', 'EPOC'   => '/', 'MACINTOSH' => ':',
-     'OS2' => '\\', 'UNIX'   => '/', 'WINDOWS'   => '\\',
+     'OS2' => '\\', 'UNIX'   => '/', 'WINDOWS'   => chr(92),
      'VMS' => '/',  'CYGWIN' => '/', }->{ $OS }||'/';
 
 $_LOCKS = {};
@@ -58,8 +58,8 @@ $_LOCKS = {};
    use constant OS => $OS;
 }
 
-$DIRSPLIT    = qr/[\\\/\:]/;
-$ILLEGAL_CHR = qr/[\/\|$NL\r\n\t\013\*\"\?\<\:\>\\]/;
+$DIRSPLIT    = qr/[\x5C\/\:]/;
+$ILLEGAL_CHR = qr/[\x5C\/\|$NL\r\n\t\013\*\"\?\<\:\>]/;
 
 $READLIMIT  = 52428800; # set readlimit to a default of 50 megabytes
 $MAXDIVES   = 1000;     # maximum depth for recursive list_dir calls
@@ -940,7 +940,7 @@ sub line_count {
       );
 
    while (sysread(LINES, $buff, 4096)) {
-      $lines += eval('$buff =~ tr/' . $NL . '//'); $buff  = '';
+      $lines += $buff =~ tr/\n//; $buff  = '';
    }
 
    close(LINES); $lines;
@@ -1181,7 +1181,7 @@ sub make_dir {
             'called mkdir on a file',
             {
                'filename'  => $dir,
-               'dirname'   => join(SL,(split(SL,$dir))[0 .. -1]) . SL
+               'dirname'   => join(SL,(split(/$DIRSPLIT/,$dir))[0 .. -1]) . SL
             }
          );
       }
@@ -1192,7 +1192,7 @@ sub make_dir {
             'called mkdir on a file',
             {
                'filename'  => $dir,
-               'dirname'   => join(SL,(split(SL,$dir))[0 .. -1]) . SL
+               'dirname'   => join(SL,(split(/$DIRSPLIT/,$dir))[0 .. -1]) . SL
             }
          ) unless -d $dir;
 
@@ -1712,7 +1712,7 @@ sub open_handle {
 # --------------------------------------------------------
 # File::Util::unlock_open_handle()
 # --------------------------------------------------------
-sub unlock_open_handle() {
+sub unlock_open_handle {
    my($this,$fh) = @_;
 
    return 1 if !$USE_FLOCK;
