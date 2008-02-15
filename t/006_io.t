@@ -41,7 +41,8 @@ skip(
 		$f->write_file('file' => $tmpf, 'content' => $$ . NL),
 	}, 1, $skip
 );
-
+warn $tmpf;
+sleep 50;
 # 5
 # get an open file handle
 $fh = 'Unable to open file handle for unknown reason';
@@ -51,7 +52,7 @@ skip(
       $fh = $f->open_handle(
          'file' => $tmpf,
          'mode' => 'append',
-         '--fatals-as-errmsg'
+         qw(--fatals-as-errmsg --warn-also)
       );
       return $fh;
    },

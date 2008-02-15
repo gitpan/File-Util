@@ -1491,15 +1491,15 @@ Specifics: OS name =~ /^os2/i
 
    # On Windows
    #  (prints "C:\WINDOWS\system32\drivers\etc")
-   my($path) = $f->strip_path('C:\WINDOWS\system32\drivers\etc\hosts');
+   my($path) = $f->return_path('C:\WINDOWS\system32\drivers\etc\hosts');
 
    # On Linux/Unix
    #  (prints "/usr/bin")
-   print $f->strip_path('/usr/bin/perl');
+   print $f->return_path('/usr/bin/perl');
 
    # On a Mac
    #  (prints "foo:bar")
-   print $f->strip_path('foo:bar:baz');
+   print $f->return_path('foo:bar:baz');
 
 =head2 Find out if the host system can use flock
 
