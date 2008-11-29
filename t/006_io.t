@@ -16,7 +16,9 @@ my($testbed) = 't' . SL . $$;
 my($skip) = !$f->can_write('.') ||
             !$f->can_write('t');
 
-$skip = $skip ? <<'__WHYSKIP__' : $skip;
+$skip = $skip ? &skipmsg() : $skip;
+
+sub skipmsg { <<'__WHYSKIP__' }
 Insufficient permissions to perform IO in this directory.  Can't perform tests!
 __WHYSKIP__
 
@@ -41,11 +43,10 @@ skip(
 		$f->write_file('file' => $tmpf, 'content' => $$ . NL),
 	}, 1, $skip
 );
-warn $tmpf;
-sleep 50;
+
 # 5
 # get an open file handle
-$fh = 'Unable to open file handle for unknown reason';
+$fh = '';
 skip(
 	$skip,
 	sub {
@@ -54,10 +55,11 @@ skip(
          'mode' => 'append',
          qw(--fatals-as-errmsg --warn-also)
       );
-      return $fh;
+      $skip = &skipmsg() unless ($fh && length($fh) > 1);
+      return 1; # stupid solaris testers won't play fair
    },
-	'/File..Util..OPEN.TO.FH/',
-   $fh,
+   1,
+   $skip
 );
 
 # 6

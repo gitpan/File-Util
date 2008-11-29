@@ -10,14 +10,14 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.23; # Wed May 23 16:27:20 CDT 2007
+$VERSION    = 3.24; # Wed May 23 16:27:20 CDT 2007
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
       can_flock   ebcdic   existent   isbin   bitmask   NL   SL
       strip_path   can_read   can_write   file_type   needs_binmode
       valid_filename   size   escape_filename   return_path
-      created   last_access   last_modified  OS
+      created   last_access   last_changed   last_modified   OS
    )
 );
 %EXPORT_TAGS = ( 'all'  => [ @EXPORT_OK ] );
@@ -1038,6 +1038,89 @@ sub existent { my($f) = myargs(@_); defined $f ? -e $f : undef }
 
 
 # --------------------------------------------------------
+# File::Util::touch()
+# --------------------------------------------------------
+sub touch {
+   my($this) = shift(@_); my($opts) = $this->shave_opts(\@_);
+   my($in) = $this->coerce_array(@_); my(@dirs) = ();
+   my($file) = ''; my($path) = '';
+   my($mode) = 'read';
+
+   $file = shift(@_)||'';
+
+   @dirs = split(/$DIRSPLIT/, $file);
+
+   if (scalar(@dirs) > 0) {
+
+      $file = pop(@dirs); $path = join(SL, @dirs);
+   }
+
+   if (length($path) > 0) {
+      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
+   }
+   else { $path = '.'; }
+
+   return $this->_throw(
+         'no input',
+         {
+            'meth'      => 'touch',
+            'missing'   => 'a file name or file handle reference',
+            'opts'      => $opts,
+         }
+      ) if (length($path . SL . $file) == 0);
+
+   # see if the file exists already and is a directory
+   return $this->_throw(
+      'cant touch on a dir'
+      {
+         'filename'  => $path . SL . $file,
+         'dirname'   => $path . SL,
+         'opts'      => $opts,
+      }
+   ) if (-e $path . SL . $file && -d $path . SL . $file);
+
+   # if the path doesn't exist, make it
+   $this->make_dir($path) unless -e $path . SL . $file;
+
+   # it's good to know beforehand whether or not we have permission to open
+   # and read from this file allowing us to handle such an exception before
+   # it handles us.
+
+   # first check the readability of the file's housing dir
+   return $this->_throw(
+      'cant dread',
+      {
+         'filename'  => $path . SL . $file,
+         'dirname'   => $path . SL,
+         'opts'      => $opts,
+      }
+   ) unless (-r $path . SL);
+
+   # now check the writability of the file itself
+   return $this->_throw(
+      'cant fwrite',
+      {
+         'filename'  => $path . SL . $file,
+         'dirname'   => $path . SL,
+         'opts'      => $opts,
+      }
+   ) if (-e $path . SL . $file && !-w $path . SL . $file);
+
+   # create the file if it doesn't exist (like the *nix touch command does)
+   $this->write_file(
+      'filename' => $path . SL . $file,
+      'content'  => '',
+      '--empty-writes-OK'
+   ) if !-e $path . SL . $file;
+
+   my($now) = time();
+
+   # return
+   return utime $now, $now, $path . SL . $file;
+}
+
+
+# --------------------------------------------------------
 # File::Util::file_type()
 # --------------------------------------------------------
 sub file_type {
@@ -1115,6 +1198,20 @@ sub last_modified {
 
    return undef unless -e $f;
 
+   # return the last modified time of $f
+   $^T - ((-M $f) * 60 * 60 * 24)
+}
+
+
+# --------------------------------------------------------
+# File::Util::last_changed()
+# --------------------------------------------------------
+sub last_changed {
+   my($f) = myargs(@_); $f ||= '';
+
+   return undef unless -e $f;
+
+   # return the last changed time of $f
    $^T - ((-C $f) * 60 * 60 * 24)
 }
 
@@ -1968,6 +2065,18 @@ Origin:     This is a human error.
 Solution:   Resolve naming issue between the existent directory and the file
             you wish to create/write/append.
 __bad_writefile__
+
+
+# CAN'T TOUCH A FILE - EXISTS AS DIRECTORY
+'cant touch on a dir' => <<'__bad_touchfile__',
+$in->{'_pak'} can't touch the specified file because it already exists
+as a directory.
+   $EBL$in->{'filename'}$EBR
+
+Origin:     This is a human error.
+Solution:   Resolve naming issue between the existent directory and the file
+            you wish to touch.
+__bad_touchfile__
 
 
 # CAN'T WRITE TO FILE

@@ -12,6 +12,16 @@ and machines.
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
 
+   3.24
+      Wed May 23 16:27:20 CDT 2007
+      Added method File::Util::last_changed (get inode change time for a file)
+      Added method File::Util::touch (works like *nix touch command)
+
+      Both touch and last_changed are autoloaded methods
+
+      Applied patch from S. Muskiewicz that fixes the File::Util::last_modified
+      method that was using a similar but incorrect "-" file test operator.
+
    3.23
       Fri Feb 15 07:34:29 CST 2008
       No major code changes.  Small bug fixes--
@@ -25,35 +35,6 @@ CHANGES IN LAST FEW RELEASES
       Fixed windows-specific bugs associated with the handling of newlines
       and directory path separators.  Now compatible with Strawberry Perl
       and once again Active$tate Perl for MSWin*.
-
-   3.21
-      Mon May 21 18:22:11 CDT 2007
-      Fixed solaris-specific bug in test suite causing a simple regular
-      expression to fail.  Previous changes up to this point merit a public
-      release, pending the fixing of afforementioned bug, hence this release.
-
-   3.20_2
-      Mon May 21 16:15:23 CDT 2007
-      Fixed small but important incompatibility with some versions of
-      Exception::Handler
-
-   3.20_1
-      Fri May 18 15:42:01 CDT 2007
-      Improved error handling mechanism even more, and created 31 new test
-      scenarios to make sure that any failure events are handled correctly.
-
-      Fixed some small latent bugs, for example, corrected file handle
-      reference verification error handling--checking for validity of
-      file handle references.
-
-   3.19
-      Wed May 16 18:07:49 CDT 2007
-      Documentation.  Documentation.  Documentation.  Small corrections and
-      several enhancements.  More examples.
-
-      Improved error-handling mechanism by adding cascading logic to prioritize
-      fatality-handling rules of failed calls over the rules of the File::Util
-      object, whether they be defaults or manually set up via File::Util::new()
 
 
 INSTALLATION

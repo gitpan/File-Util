@@ -117,6 +117,8 @@ C<isbin>              I<(see L<isbin|/isbin>)>
 
 C<last_access>        I<(see L<last_access|/last_access>)>
 
+C<last_changed>       I<(see L<last_changed|/last_changed>)>
+
 C<last_modified>      I<(see L<last_modified|/last_modified>)>
 
 C<NL>                 I<(see L<NL|/NL>)>
@@ -417,6 +419,19 @@ is an autoloaded method.
 =item I<Syntax:> C<last_access( [file name] )>
 
 Returns the last accessed time for the named file in non-leap seconds since
+whatever your system considers to be the epoch.  Suitable for feeding to
+Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
+This is an autoloaded method.
+
+=back
+
+=head2 C<last_changed>
+
+=over
+
+=item I<Syntax:> C<last_changed( [file name] )>
+
+Returns the inode change time for the named file in non-leap seconds since
 whatever your system considers to be the epoch.  Suitable for feeding to
 Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
 This is an autoloaded method.
@@ -1090,6 +1105,24 @@ Strips the file path from the file name provided and returns the file name only.
 
 =back
 
+=head2 C<touch>
+
+=over
+
+=item I<Syntax:> C<touch( [file name] )>
+
+Behaves like the *nix C<touch> command; Updates the access and modification
+times of the specified file to the current time.  If the file does not exist,
+C<File::Util> tries to create it empty.  This method will fail with a fatal
+error if system permissions deny alterations to or creation of the file.
+
+Returns C<1> if successful.  If unsuccessful, fails with a descriptive error
+message about what went wrong.
+
+This is an autoloaded method.
+
+=back
+
 =head2 C<trunc>
 
 =over
@@ -1220,6 +1253,13 @@ to the end of the file.
 Makes sure that CORE::binmode() is called on the filehandle when your content
 is written.  This is useful for times when the content you are writing to file
 is a binary stream.
+
+=item C<--empty-writes-OK>
+
+Allows you to call this method without providing a content argument (it lets
+you create an empty file without warning you or failing.  Be advised that
+if you use this flag, it will have the same effect as truncating a file
+that already has content in it (i.e.- it will "clobber" non-empty files)
 
 =item C<--no-lock>
 
@@ -1603,52 +1643,57 @@ Specifics: OS name =~ /^os2/i
 =head2 Get time of creation for a file
 
    use File::Util qw( created );
-   # prints "Fri Aug 22 14:57:58 2003" on my system
    print scalar localtime created('/usr/bin/exim');
 
       -OR-
    use File::Util;
-   # prints "Fri Apr 23 22:22:00 1999" on my system
    print scalar localtime File::Util->created('C:\COMMAND.COM');
 
       -OR-
    use File::Util;
    my($f) = File::Util->new();
-   # prints "Thu Jul 24 05:51:30 2003" on my system
    print scalar localtime $f->created('/bin/less');
 
 =head2 Get the last access time for a file
 
    use File::Util qw( last_access );
-   # prints "Fri Sep  5 04:11:41 2003" on my system
    print scalar localtime last_access('/usr/bin/exim');
 
       -OR-
    use File::Util;
-   # prints "Mon Sep 22 18:51:53 2003" on my system
    print scalar localtime File::Util->last_access('C:\COMMAND.COM');
 
       -OR-
    use File::Util;
    my($f) = File::Util->new();
-   # prints "Mon Sep 22 03:14:38 2003" on my system
    print scalar localtime $f->last_access('/bin/less');
+
+=head2 Get the inode change time for a file
+
+   use File::Util qw( last_changed );
+   print scalar localtime last_modified('/usr/bin/vim');
+
+      -OR-
+   use File::Util;
+   print scalar localtime File::Util->last_changed('C:\COMMAND.COM');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   print scalar localtime $f->last_changed('/bin/cpio');
 
 =head2 Get the last modified time for a file
 
    use File::Util qw( last_modified );
-   # prints "Fri Sep  5 01:14:51 2003" on my system
    print scalar localtime last_modified('/usr/bin/exim');
 
       -OR-
    use File::Util;
-   # prints "Fri Apr 23 22:22:00 1999" on my system
    print scalar localtime File::Util->last_modified('C:\COMMAND.COM');
 
       -OR-
    use File::Util;
    my($f) = File::Util->new();
-   # prints "Fri Sep  5 01:15:17 2003" on my system
    print scalar localtime $f->last_modified('/bin/less');
 
 =head2 Make a new directory, recursively if neccessary
@@ -1660,11 +1705,21 @@ Specifics: OS name =~ /^os2/i
    # optionally specify a creation bitmask to be used in directory creations
    $f->make_dir('/var/tmp/tempfiles/foo/bar/',0755);
 
+=head2 Touch a file
+
+   use File::Util qw( touch );
+   touch('somefile.txt');
+
+      -OR-
+   use File::Util;
+   my($f) = File::Util->new();
+   $f->touch('/foo/bar/baz.tmp');
+
 =head2 Truncate a file
 
    use File::Util;
    my($f) = File::Util->new();
-   $f->trunc('/foo/bar/baz.tmp');
+   $f->trunc('/wibble/wombat/noot.tmp');
 
 =head2 Get the correct path seperator for the host system
 

@@ -48,7 +48,7 @@ foreach (@fls) {
    ok($f->last_access($file),$^T - ((-A $file) * 60 * 60 * 24));
 
    # get file last modified time
-   ok($f->last_modified($file),$^T - ((-C $file) * 60 * 60 * 24));
+   ok($f->last_modified($file),$^T - ((-M $file) * 60 * 60 * 24));
 
    # get file's bitmask
    ok($f->bitmask($file),sprintf('%04o',(stat($file))[2] & 0777));
