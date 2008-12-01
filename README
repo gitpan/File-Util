@@ -12,8 +12,17 @@ and machines.
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
 
+   3.25
+      Mon Dec 1 15:11:20 CST 2008
+      Fixed a bug in File::Util::touch()
+
+      Added some extra examples and corrected one minor error in the
+      documentation.
+
    3.24
       Wed May 23 16:27:20 CDT 2007
+      **Don't use this version.  It has a bug.  Use 3.25 or greater.
+
       Added method File::Util::last_changed (get inode change time for a file)
       Added method File::Util::touch (works like *nix touch command)
 

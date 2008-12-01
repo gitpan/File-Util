@@ -1671,7 +1671,7 @@ Specifics: OS name =~ /^os2/i
 =head2 Get the inode change time for a file
 
    use File::Util qw( last_changed );
-   print scalar localtime last_modified('/usr/bin/vim');
+   print scalar localtime last_changed('/usr/bin/vim');
 
       -OR-
    use File::Util;
@@ -1785,6 +1785,65 @@ Specifics: OS name =~ /^os2/i
    File retained as "$_"
    __NOCHANGE__
    }
+
+=head2 Wrap the lines in a file at 72 columns, then save it
+
+   # This code opens a file, wraps its lines, and saves the file with
+   # the newly formatted content
+
+   use strict; # always
+
+   use File::Util qw( NL );
+   use Text::Wrap qw( wrap );
+
+   $Text::Wrap::columns = 72; # wrap text at this many columns
+
+   my($f) = File::Util->new();
+   my($textfile) = 'myreport.txt'; # file to wrap and save
+
+   $f->write_file(
+     'filename' => $textfile,
+     'content' => wrap('', '', $f->load_file($textfile))
+   );
+
+   print 'Done.', NL x 2;
+
+=head2 Read and increment a counter file, then save it
+
+   # This code opens a file, reads a number value, increments it,
+   # then saves the newly incremented value back to the file
+
+   use strict; # always
+
+   use File::Util;
+
+   my($f) = File::Util->new();
+   my($counterfile) = 'counter.txt';
+
+   # if the counter file doesn't exist, let's make one
+   if (! $f->existent($counterfile)) {
+      $f->touch($counterfile);
+   }
+
+   my($count) = $f->load_file($counterfile);
+
+   # convert textual number to in-memory int type, -this will default
+   # to a zero if it encounters non-numerical or empty content
+   chomp($count); # strip off any trailing lines
+   $count =~ s/[^[:digit:]]//g; # remove non-numeric data
+   $count = 0 if "$count" eq '';   # set count to 0 if empty string
+   $count = int($count); # numberify $count
+
+   print 'Count value from file: ' . $f->load_file($counterfile), $f->NL;
+
+   $count++; # increment the counter value by 1
+
+   # save the incremented count back to the counter file
+   $f->write_file( 'filename' => $counterfile, 'content' => $count);
+
+   # verify that "it worked"
+   print 'Count is now: ' . $f->load_file($counterfile), $f->NL;
+   print 'Done.', $f->NL x 2;
 
 =head2 Batch Search & Replace
 

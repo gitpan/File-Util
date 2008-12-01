@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.24; # Wed May 23 16:27:20 CDT 2007
+$VERSION    = 3.25; # Mon Dec 1 15:11:20 CST 2008
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -90,6 +90,7 @@ $MODES->{'sysopen'} = {
    'rwclobber' => '&Fcntl::O_RDWR | &Fcntl::O_TRUNC | &Fcntl::O_CREAT',
    'rwappend'  => '&Fcntl::O_RDWR | &Fcntl::O_APPEND | &Fcntl::O_CREAT',
 };
+
 
 # --------------------------------------------------------
 # Constructor
@@ -1071,7 +1072,7 @@ sub touch {
 
    # see if the file exists already and is a directory
    return $this->_throw(
-      'cant touch on a dir'
+      'cant touch on a dir',
       {
          'filename'  => $path . SL . $file,
          'dirname'   => $path . SL,
@@ -1080,7 +1081,7 @@ sub touch {
    ) if (-e $path . SL . $file && -d $path . SL . $file);
 
    # if the path doesn't exist, make it
-   $this->make_dir($path) unless -e $path . SL . $file;
+   $this->make_dir($path) unless -e $path . SL;
 
    # it's good to know beforehand whether or not we have permission to open
    # and read from this file allowing us to handle such an exception before
