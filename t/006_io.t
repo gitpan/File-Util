@@ -2,8 +2,8 @@
 use strict;
 use Test;
 
-# use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 12, todo => [] }
+# use a BEGIN block so we print our plan before File::Util is loaded
+BEGIN { plan tests => 13, todo => [] }
 BEGIN { $| = 1 }
 
 # load your module...
@@ -45,6 +45,19 @@ skip(
 );
 
 # 5
+# File::Util::touch() a file, and see if it was created ok
+skip(
+	$skip,
+	sub {
+        my($tmpf) = $testbed . SL . 'touched';
+		$f->touch($tmpf);
+        my($return) = $f->existent($tmpf);
+        unlink($tmpf);
+        return($return);
+	}, 1, $skip
+);
+
+# 6
 # get an open file handle
 $fh = '';
 skip(
@@ -62,18 +75,18 @@ skip(
    $skip
 );
 
-# 6
+# 7
 # make sure it's still open
 skip($skip, eval(q{fileno($fh)}), '/^\d/', $skip);
 
 # write to it, close it, write to it in append mode
 unless ($skip) { print( $fh 'Hello world!' . NL ); close($fh); }
 
-# 7
+# 8
 # load file
 skip($skip, sub { $f->load_file($tmpf),$f->load_file($tmpf) });
 
-# 8
+# 9
 # write to it with method File::Util::write_file(), compare file contents
 # with the returned value
 skip (
@@ -87,15 +100,15 @@ skip (
 	}, 1, $skip
 );
 
-# 9
+# 10
 # get line count of file
 skip($skip, sub { $f->line_count($tmpf) }, 3, $skip);
 
-# 10
+# 11
 # truncate file
 skip($skip, sub { $f->trunc($tmpf); -s $tmpf }, 0, $skip);
 
-# 11
+# 12
 # get line count of file
 skip($skip, sub { $f->line_count($tmpf)}, 0, $skip);
 
@@ -107,7 +120,7 @@ my($newdir) =
   . SL . int(rand(time))
   . SL . int(rand(time));
 
-# 12
+# 13
 # make directories
 skip($skip, sub { $f->make_dir($newdir, '--if-not-exists') }, $newdir, $skip);
 

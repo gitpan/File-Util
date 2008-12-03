@@ -19,10 +19,7 @@ flock(STDIN, &Fcntl::LOCK_UN);
 __canflock__
 my($skip) = !$f->can_write('.') || !$f->can_write('t');
 
-$skip = $skip ? <<'__WHYSKIP__' : $skip;
-Insufficient permissions to perform IO in this directory.  Can't perform tests!
-__WHYSKIP__
-
+$skip = $skip ? &skipmsg() : $skip;
 
 # using flock? get/set flock-ing usage toggle
 ok($f->use_flock( ),1);                                                # test 1
@@ -48,8 +45,8 @@ sub test_flock {
 
    # lock file, keep open handle on it
    my($fh);
-	
-	unless ($skip) { 
+
+	unless ($skip) {
 		$fh = $f->open_handle('file' => $tmpf);
 
 		# write something into the file
@@ -83,8 +80,8 @@ sub test_flock {
 			if (!$pid) {
 
 				$f->write_file(
-					'file' => $tmpf, 
-					'content' => '', 
+					'file' => $tmpf,
+					'content' => '',
 					'--empty-writes-OK'
 				);
 
@@ -100,11 +97,25 @@ sub test_flock {
    close($fh) unless $skip;
 
    # test 12 - try to trunc the file; should succeed
-   skip($skip, sub { $f->trunc($tmpf); -s $tmpf }, 0); 
+   #  - skip this on solaris...
+   if ($^O =~ /solaris/i) {
+      skip(&skip_trunc_solaris(), 0, 0);
+   }
+   else {
+      skip($skip, sub { $f->trunc($tmpf); return -s $tmpf }, 0);
+   }
 
    # try to delete the file; should succeed
    unlink($tmpf) unless $skip;
 
    !-e $tmpf;
 }
+
+sub skipmsg { <<'__WHYSKIP__' }
+Insufficient permissions to perform IO in this directory.  Can't perform tests!
+__WHYSKIP__
+
+sub skip_trunc_solaris { <<'__WHYSKIP__' }
+Solaris can flock, but won't let go of discretionary lock yet.
+__WHYSKIP__
 

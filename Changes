@@ -1,5 +1,13 @@
 Revision history for Perl extension File::Util.pm
 
+   3.26
+      Tue Dec  2 20:07:09 CST 2008
+      Added to test suite in order to avoid errant test failures
+      when flock'ing on solaris.  This is a big deal, since the point of
+      File::Util is to be easy, and portable!
+
+      Added some yet more extra examples in the documentation.
+
    3.25
       Mon Dec 1 15:11:20 CST 2008
       Fixed a bug in File::Util::touch()

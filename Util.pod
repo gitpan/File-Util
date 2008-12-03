@@ -1786,6 +1786,29 @@ Specifics: OS name =~ /^os2/i
    __NOCHANGE__
    }
 
+=head2 Recursively remove a directory and all its contents
+
+   # This code removes a directory and everything in it
+
+   use strict; # always
+
+   use File::Util qw( NL );
+
+   my($f) = File::Util->new();
+   my($removedir) = '/path/to/directory/youwanttodelete';
+
+   my(@gonners) = $f->list_dir($removedir, '--follow');
+
+   # remove directory and everything in it
+   my($a, $b);
+   foreach (reverse(sort({ length($a) <=> length($b) } @gonners)), $removedir) {
+      print "Removing $_ ..." . NL;
+      -d $_ ? rmdir($_) || die $! : unlink($_) || die $!;
+    }
+
+   print 'Done.  w00T!', NL x 2;
+
+
 =head2 Wrap the lines in a file at 72 columns, then save it
 
    # This code opens a file, wraps its lines, and saves the file with
