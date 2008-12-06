@@ -10,7 +10,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.26; # Tue Dec  2 20:07:09 CST 2008
+$VERSION    = 3.27; # Sat Dec  6 13:10:00 CST 2008
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
@@ -142,9 +142,12 @@ sub list_dir {
 
    return($this->_throw('no such file', {'filename' => $dir})) unless -e $dir;
 
-   # whack off any trailing directory separator
-   unless (length($dir) == 1)
-   { $dir =~ s/$DIRSPLIT$//o; $path =~ s/$DIRSPLIT$//o; }
+   # whack off any trailing directory separator, except for root directories
+   # -account for both posix filesystem AND micro$oft directory notation
+   unless ( length($dir) == 1 || $dir =~ /^(?:[[:alpha:]]:)(?:\\|\/)$/o ) {
+      # removes one or more dirsep at the end of $dir
+      $dir =~ s/(?:$DIRSPLIT){1,}$//o;
+   }
 
    return
       $this->_throw

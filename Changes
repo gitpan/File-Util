@@ -1,5 +1,11 @@
 Revision history for Perl extension File::Util.pm
 
+   2.27
+      Sat Dec  6 13:10:00 CST 2008
+      Fixed a bug that caused root directories using Micro$oft filesystem
+      notation to be mis-read when using the '--dirs-only' flag for
+      File::Util::list_dir()
+
    3.26
       Tue Dec  2 20:07:09 CST 2008
       Added to test suite in order to avoid errant test failures

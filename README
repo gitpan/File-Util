@@ -12,6 +12,12 @@ and machines.
 CHANGES IN LAST FEW RELEASES
 (listed in reverse chronological order by date and subversion)
 
+   2.27
+      Sat Dec  6 13:10:00 CST 2008
+      Fixed a bug that caused root directories using Micro$oft filesystem
+      notation to be mis-read when using the '--dirs-only' flag for
+      File::Util::list_dir()
+
    3.26
       Tue Dec  2 20:07:09 CST 2008
       Added to test suite in order to avoid errant test failures
@@ -38,21 +44,6 @@ CHANGES IN LAST FEW RELEASES
 
       Applied patch from S. Muskiewicz that fixes the File::Util::last_modified
       method that was using a similar but incorrect "-" file test operator.
-
-   3.23
-      Fri Feb 15 07:34:29 CST 2008
-      No major code changes.  Small bug fixes--
-      Corrected syntax on package makefile that causes warnings to be
-      generated in cases of older Perl versions. Also corrected a problem
-      in the documentation where the section "Get the path preceeding a
-      file name" was showing incorrect information.
-
-   3.22
-      Wed May 23 16:27:20 CDT 2007
-      Fixed windows-specific bugs associated with the handling of newlines
-      and directory path separators.  Now compatible with Strawberry Perl
-      and once again Active$tate Perl for MSWin*.
-
 
 INSTALLATION
 To install this module type the following:
