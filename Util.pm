@@ -11,7 +11,7 @@ use vars qw(
 use Exporter;
 use AutoLoader qw( AUTOLOAD );
 use Class::OOorNO qw( :all );
-$VERSION    = 3.30_001; # Mon Nov 12 18:04:14 CST 2012
+$VERSION    = '3.30_001'; # DEVELOPER RELEASE # Mon Nov 12 21:48:57 CST 2012
 @ISA        = qw( Exporter   Class::OOorNO );
 @EXPORT_OK  = (
    @Class::OOorNO::EXPORT_OK, qw(
