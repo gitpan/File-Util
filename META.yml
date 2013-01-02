@@ -1,22 +1,33 @@
 ---
 abstract: 'Easy, versatile, portable file handling'
 author:
-  - 'Tommy Butler <just.go.to.my.website@atrixnet.com>'
+  - 'Tommy Butler'
 build_requires:
-  ExtUtils::MakeMaker: 0
+  File::Temp: 0
+  Module::Build: 0.3601
+  Test: 0
 configure_requires:
-  ExtUtils::MakeMaker: 0
-dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.62, CPAN::Meta::Converter version 2.112150'
-license: unknown
+  ExtUtils::MakeMaker: 6.30
+  Module::Build: 0.3601
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 4.300028, CPAN::Meta::Converter version 2.120921'
+license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
 name: File-Util
-no_index:
-  directory:
-    - t
-    - inc
 requires:
-  Exception::Handler: 1
-version: 3.32
+  AutoLoader: 0
+  Config: 0
+  Exporter: 0
+  Fcntl: 0
+  constant: 0
+  perl: 5.006
+  strict: 0
+  vars: 0
+  warnings: 0
+resources:
+  bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
+  homepage: https://github.com/tommybutler/file-util/wiki
+  repository: git://github.com/tommybutler/file-util.git
+version: 3.33
