@@ -20,7 +20,7 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "3.35",
+  "dist_version" => "3.36",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},
@@ -28,8 +28,13 @@ my %module_build_args = (
   "requires" => {
     "AutoLoader" => 0,
     "Config" => 0,
+    "Exception::Handler" => "1.00_0",
     "Exporter" => 0,
+    "ExtUtils::MakeMaker" => 0,
     "Fcntl" => 0,
+    "File::Temp" => 0,
+    "Module::Build" => 0,
+    "Test" => 0,
     "constant" => 0,
     "perl" => "5.006",
     "strict" => 0,

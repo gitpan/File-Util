@@ -19,8 +19,13 @@ name: File-Util
 requires:
   AutoLoader: 0
   Config: 0
+  Exception::Handler: 1.00_0
   Exporter: 0
+  ExtUtils::MakeMaker: 0
   Fcntl: 0
+  File::Temp: 0
+  Module::Build: 0
+  Test: 0
   constant: 0
   perl: 5.006
   strict: 0
@@ -30,4 +35,4 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 3.35
+version: 3.36

@@ -27,14 +27,19 @@ my %WriteMakefileArgs = (
   "PREREQ_PM" => {
     "AutoLoader" => 0,
     "Config" => 0,
+    "Exception::Handler" => "1.00_0",
     "Exporter" => 0,
+    "ExtUtils::MakeMaker" => 0,
     "Fcntl" => 0,
+    "File::Temp" => 0,
+    "Module::Build" => 0,
+    "Test" => 0,
     "constant" => 0,
     "strict" => 0,
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "3.35",
+  "VERSION" => "3.36",
   "test" => {
     "TESTS" => "t/*.t"
   }
