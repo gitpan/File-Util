@@ -26,6 +26,7 @@ t/008_export_ok.t
 t/009_empty_subclass.t
 t/010_diesnice.t
 t/011_abspaths.t
+t/012_atomize_path.t
 t/author-critic.t
 t/bin
 t/release-pod-coverage.t

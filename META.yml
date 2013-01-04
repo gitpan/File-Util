@@ -6,6 +6,8 @@ build_requires:
   File::Temp: 0
   Module::Build: 0.3601
   Test: 0
+  Test::More: 0
+  Test::NoWarnings: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
   Module::Build: 0.3601
@@ -35,4 +37,4 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 3.37
+version: 3.38
