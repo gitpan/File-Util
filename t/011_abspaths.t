@@ -1,13 +1,11 @@
 
 use strict;
-use Test;
+use warnings;
+use Test::More tests => 3;
+use Test::NoWarnings;
 use File::Temp qw( tmpnam );
 
-# use a BEGIN block so we print our plan before MyModule is loaded
-BEGIN { plan tests => 2, todo => [] }
-
-# load your module...
-use lib './';
+use lib './lib';
 use File::Util;
 
 # check object constructor
@@ -15,28 +13,24 @@ my $f = File::Util->new();
 
 my $fn = tmpnam(); # get absolute filename
 
-my $skip  = !$f->can_write( $f->return_path( $fn ) );
+my $have_perms  = $f->can_write( $f->return_path( $fn ) );
 
-$skip = $skip ? &skipmsg() : $skip;
+SKIP: {
 
-sub skipmsg { <<__WHYSKIP__ }
-Insufficient permissions to perform IO on proposed temp file "$fn"
-__WHYSKIP__
+   if ( !$have_perms ) {
 
-# test write
-skip(
-   $skip,
-   sub {
-      $f->write_file( file => $fn, content => 'JAPH' );
-   },
-   1, $skip
-);
+      skip 'Insufficient permissions to perform IO' => 2;
+   }
+   elsif ( $^O =~ /solaris|sunos/i ) {
 
-skip(
-   $skip,
-   sub { $f->load_file( $fn ) },
-   'JAPH', $skip
-);
+      skip 'Solaris flock is broken' => 2;
+   }
+
+   # test write
+   ok( $f->write_file( file => $fn, content => 'JAPH' ) == 1 );
+
+   ok( $f->load_file( $fn ) eq 'JAPH' );
+}
 
 unlink $fn;
 

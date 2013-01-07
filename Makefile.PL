@@ -14,7 +14,6 @@ my %WriteMakefileArgs = (
   "BUILD_REQUIRES" => {
     "File::Temp" => 0,
     "Module::Build" => "0.3601",
-    "Test" => 0,
     "Test::More" => 0,
     "Test::NoWarnings" => 0
   },
@@ -41,7 +40,7 @@ my %WriteMakefileArgs = (
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "3.38",
+  "VERSION" => "3.39",
   "test" => {
     "TESTS" => "t/*.t"
   }

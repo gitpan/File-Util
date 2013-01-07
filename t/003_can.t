@@ -1,3 +1,4 @@
+
 use strict;
 use warnings;
 
@@ -5,13 +6,13 @@ use Test::More tests => 38;
 use Test::NoWarnings;
 
 # load your module...
-use lib './';
+use lib './lib';
 use File::Util;
 
 my $f = File::Util->new();
 
 # check to see if non-autoloaded File::Util methods are can-able ;O)
-map { ok( ref( UNIVERSAL::can( $f, $_ ) ) eq 'CODE', $_ ) } qw
+map { ok( ref( UNIVERSAL::can( $f, $_ ) ) eq 'CODE', "can $_" ) } qw
    (
       _dropdots
       _errors

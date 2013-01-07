@@ -15,7 +15,7 @@ use vars qw(
 
 use Exporter;
 
-$VERSION    = 3.38;
+$VERSION    = 3.39;
 $AUTHORITY  = 'cpan:TOMMY';
 @ISA        = qw( Exporter );
 @EXPORT_OK  = qw(
@@ -536,7 +536,11 @@ sub load_file {
    my $cmd = '<' . $clean_name;
 
    # lock file before I/O on platforms that support it
-   if ( $$opts{'--no-lock'} || $$this{opts}{'--no-lock'} ) {
+   if (
+      $$opts{'--no-lock'}        ||
+      $$this{opts}{'--no-lock'}  ||
+      !$this->use_flock()
+   ) {
 
       # if you use the '--no-lock' option you are probably inefficient
       open $fh, $cmd  or                           ## no critic
@@ -781,9 +785,6 @@ sub write_file {
    # if you use the --no-lock option, please consider the risks
 
    if ( $$opts{'--no-lock'} || !$USE_FLOCK ) {
-
-      # get open mode
-      $mode = $$MODES{popen}{ $mode };
 
       # only non-existent files get bitmask arguments
       if ( -e $clean_name ) {
@@ -1131,44 +1132,26 @@ sub touch {
    my $opts  = $this->_remove_opts( \@_ );
    my $in    = $this->_names_values( @_ );
    my @dirs  = ();
-   my $file  = ''; my($path) = '';
-   my $mode  = 'read';
-
-   $file = shift @_ ||'';
-
-   @dirs = split(/$DIRSPLIT/, $file);
-
-   if (scalar(@dirs) > 0) {
-
-      $file = pop(@dirs); $path = join(SL, @dirs);
-   }
-
-   if (length($path) > 0) {
-      $path = '.' . SL . $path if ($path !~ /(?:^\/)|(?:^\w\:)/o);
-   }
-   else { $path = '.'; }
+   my $file  = shift @_ ||'';
 
    return $this->_throw(
-         'no input',
-         {
-            'meth'      => 'touch',
-            'missing'   => 'a file name or file handle reference',
-            'opts'      => $opts,
-         }
-      ) if (length($path . SL . $file) == 0);
+      'no input',
+      {
+         meth    => 'touch',
+         missing => 'a file name or file handle reference',
+         opts    => $opts,
+      }
+   ) unless defined $file && length $file;
 
    # see if the file exists already and is a directory
    return $this->_throw(
       'cant touch on a dir',
       {
-         'filename'  => $path . SL . $file,
-         'dirname'   => $path . SL,
-         'opts'      => $opts,
+         filename => $file,
+         dirname  => $this->return_path( $file ) || '',
+         opts     => $opts,
       }
-   ) if (-e $path . SL . $file && -d $path . SL . $file);
-
-   # if the path doesn't exist, make it
-   $this->make_dir($path) unless -e $path . SL;
+   ) if -e $file && -d $file;
 
    # it's good to know beforehand whether or not we have permission to open
    # and read from this file allowing us to handle such an exception before
@@ -1178,33 +1161,23 @@ sub touch {
    return $this->_throw(
       'cant dread',
       {
-         'filename'  => $path . SL . $file,
-         'dirname'   => $path . SL,
-         'opts'      => $opts,
+         filename => $file,
+         dirname  => $this->return_path( $file ),
+         opts     => $opts,
       }
-   ) unless (-r $path . SL);
-
-   # now check the writability of the file itself
-   return $this->_throw(
-      'cant fwrite',
-      {
-         'filename'  => $path . SL . $file,
-         'dirname'   => $path . SL,
-         'opts'      => $opts,
-      }
-   ) if (-e $path . SL . $file && !-w $path . SL . $file);
+   ) unless -r $this->return_path( $file );
 
    # create the file if it doesn't exist (like the *nix touch command does)
    $this->write_file(
-      'filename' => $path . SL . $file,
-      'content'  => '',
+      filename => $file,
+      content  => '',
       '--empty-writes-OK'
-   ) if !-e $path . SL . $file;
+   ) unless -e $file;
 
    my $now = time();
 
    # return
-   return utime $now, $now, $path . SL . $file;
+   return utime $now, $now, $file;
 }
 
 
@@ -1431,24 +1404,25 @@ sub make_dir {
 
    $dir =~ s/$DIRSPLIT$// unless $dir eq $DIRSPLIT;
 
-   my @dirs_in_path = split /$DIRSPLIT/, $dir;
+   my ( $root, $path ) = atomize_path( $dir . SL );
 
-   # for absolute pathnames
-   $dirs_in_path[0] = SL if substr $dir, 0, 1 eq SL;
+   my @dirs_in_path = split /$DIRSPLIT/, $path;
 
-   for ( my $i = 0; $i < scalar @dirs_in_path; ++$i ) {
+   # if prospective file name has illegal chars then complain
+   foreach ( @dirs_in_path ) {
 
-      next if $i == 0 && $dirs_in_path[ $i ] eq SL;
-
-      # if prospective directory name contains illegal chars then complain
       return $this->_throw(
          'bad chars',
          {
-            'string'    => $dirs_in_path[ $i ],
-            'purpose'   => 'the name of a directory',
+            string  => $_,
+            purpose => 'the name of a file or directory',
+            opts    => $opts,
          }
-      ) unless $this->valid_filename( $dirs_in_path[ $i ] )
+      ) if !$this->valid_filename( $_ );
    }
+
+   # do this AFTER the above check!!
+   unshift @dirs_in_path, $root if $root;
 
    # qualify each subdir in @dirs_in_path by prepending its preceeding dir
    # names to it. Above, "/foo/bar/baz" becomes ("/", "foo", "bar", "baz")

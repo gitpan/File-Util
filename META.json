@@ -53,7 +53,6 @@
       "test" : {
          "requires" : {
             "File::Temp" : "0",
-            "Test" : "0",
             "Test::More" : "0",
             "Test::NoWarnings" : "0"
          }
@@ -72,6 +71,6 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "3.38"
+   "version" : "3.39"
 }
 

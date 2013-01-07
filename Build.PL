@@ -9,7 +9,6 @@ my %module_build_args = (
   "build_requires" => {
     "File::Temp" => 0,
     "Module::Build" => "0.3601",
-    "Test" => 0,
     "Test::More" => 0,
     "Test::NoWarnings" => 0
   },
@@ -22,7 +21,7 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "3.38",
+  "dist_version" => "3.39",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},
