@@ -3,30 +3,67 @@ abstract: 'Easy, versatile, portable file handling'
 author:
   - 'Tommy Butler'
 build_requires:
-  File::Temp: 0
-  Module::Build: 0.3601
-  Test::More: 0
-  Test::NoWarnings: 0
-configure_requires:
-  ExtUtils::MakeMaker: 6.30
-  Module::Build: 0.3601
-dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.300028, CPAN::Meta::Converter version 2.120921'
-license: perl
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
-name: File-Util
-requires:
   AutoLoader: 0
   Config: 0
   Exception::Handler: 1.00_0
   Exporter: 0
   ExtUtils::MakeMaker: 0
   Fcntl: 0
+  File::Find: 0
   File::Temp: 0
-  Module::Build: 0
+  Module::Build: 0.3601
+  Scalar::Util: 0
   Test: 0
+  Test::Fatal: 0
+  Test::More: 0.88
+  Test::NoWarnings: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.30
+  Module::Build: 0.3601
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 4.300029, CPAN::Meta::Converter version 2.120921'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: File-Util
+provides:
+  File::Util:
+    file: lib/File/Util.pm
+    version: 4.130420
+  File::Util::Cookbook:
+    file: lib/File/Util/Cookbook.pod
+    version: 4.130420
+  File::Util::Definitions:
+    file: lib/File/Util/Definitions.pm
+    version: 4.130420
+  File::Util::Exception:
+    file: lib/File/Util/Exception.pm
+    version: 4.130420
+  File::Util::Exception::Diagnostic:
+    file: lib/File/Util/Exception/Diagnostic.pm
+    version: 4.130420
+  File::Util::Exception::Standard:
+    file: lib/File/Util/Exception/Standard.pm
+    version: 4.130420
+  File::Util::Interface::Classic:
+    file: lib/File/Util/Interface/Classic.pm
+    version: 4.130420
+  File::Util::Interface::Modern:
+    file: lib/File/Util/Interface/Modern.pm
+    version: 4.130420
+  File::Util::Manual:
+    file: lib/File/Util/Manual.pod
+    version: 4.130420
+  File::Util::Manual::Examples:
+    file: lib/File/Util/Manual/Examples.pod
+    version: 4.130420
+requires:
+  Config: 0
+  Exception::Handler: 0
+  Exporter: 0
+  Fcntl: 0
+  Scalar::Util: 0
   constant: 0
   perl: 5.006
   strict: 0
@@ -36,4 +73,245 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 3.39
+version: 4.130420
+x_Dist_Zilla:
+  perl:
+    version: 5.010001
+  plugins:
+    -
+      class: Dist::Zilla::Plugin::GatherDir
+      name: '@Basic/GatherDir'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::PruneCruft
+      name: '@Basic/PruneCruft'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ManifestSkip
+      name: '@Basic/ManifestSkip'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MetaYAML
+      name: '@Basic/MetaYAML'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::License
+      name: '@Basic/License'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::Readme
+      name: '@Basic/Readme'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ExtraTests
+      name: '@Basic/ExtraTests'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ExecDir
+      name: '@Basic/ExecDir'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ShareDir
+      name: '@Basic/ShareDir'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MakeMaker
+      name: '@Basic/MakeMaker'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::Manifest
+      name: '@Basic/Manifest'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::TestRelease
+      name: '@Basic/TestRelease'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ConfirmRelease
+      name: '@Basic/ConfirmRelease'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::UploadToCPAN
+      name: '@Basic/UploadToCPAN'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ModuleBuild
+      name: ModuleBuild
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::AutoVersion
+      name: AutoVersion
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::PkgVersion
+      name: PkgVersion
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::PodVersion
+      name: PodVersion
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MetaProvides::Package
+      name: MetaProvides::Package
+      version: 1.14000001
+    -
+      class: Dist::Zilla::Plugin::MinimumPerl
+      name: MinimumPerl
+      version: 1.003
+    -
+      class: Dist::Zilla::Plugin::MetaConfig
+      name: MetaConfig
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MetaJSON
+      name: MetaJSON
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MetaResources
+      name: MetaResources
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ReportVersions::Tiny
+      name: ReportVersions::Tiny
+      version: 1.08
+    -
+      class: Dist::Zilla::Plugin::Test::LocalBrew
+      name: Test::LocalBrew
+      version: 0.04
+    -
+      class: Dist::Zilla::Plugin::Test::UnusedVars
+      name: '@TestingMania/Test::UnusedVars'
+      version: 2.000003
+    -
+      class: Dist::Zilla::Plugin::Test::Version
+      name: '@TestingMania/Test::Version'
+      version: 0.002004
+    -
+      class: Dist::Zilla::Plugin::PodCoverageTests
+      name: '@TestingMania/PodCoverageTests'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::Test::Perl::Critic
+      name: '@TestingMania/Test::Perl::Critic'
+      version: 2.112410
+    -
+      class: Dist::Zilla::Plugin::Test::CPAN::Changes
+      name: '@TestingMania/Test::CPAN::Changes'
+      version: 0.005
+    -
+      class: Dist::Zilla::Plugin::Test::CPAN::Meta::JSON
+      name: '@TestingMania/Test::CPAN::Meta::JSON'
+      version: 0.003
+    -
+      class: Dist::Zilla::Plugin::Test::DistManifest
+      name: '@TestingMania/Test::DistManifest'
+      version: 2.000002
+    -
+      class: Dist::Zilla::Plugin::MetaTests
+      name: '@TestingMania/MetaTests'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::Test::Compile
+      name: '@TestingMania/Test::Compile'
+      version: 1.112820
+    -
+      class: Dist::Zilla::Plugin::Test::Kwalitee
+      name: '@TestingMania/Test::Kwalitee'
+      version: 2.03
+    -
+      class: Dist::Zilla::Plugin::NoTabsTests
+      name: '@TestingMania/NoTabsTests'
+      version: 0.01
+    -
+      class: Dist::Zilla::Plugin::Test::MinimumVersion
+      name: '@TestingMania/Test::MinimumVersion'
+      version: 2.000002
+    -
+      class: Dist::Zilla::Plugin::Test::Pod::LinkCheck
+      name: '@TestingMania/Test::Pod::LinkCheck'
+      version: 1.001
+    -
+      class: Dist::Zilla::Plugin::PodSyntaxTests
+      name: '@TestingMania/PodSyntaxTests'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::MojibakeTests
+      name: '@TestingMania/MojibakeTests'
+      version: 0.3
+    -
+      class: Dist::Zilla::Plugin::CheckChangesHasContent
+      name: CheckChangesHasContent
+      version: 0.006
+    -
+      class: Dist::Zilla::Plugin::TestRelease
+      name: TestRelease
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::ConfirmRelease
+      name: ConfirmRelease
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::InstallRelease
+      name: InstallRelease
+      version: 0.008
+    -
+      class: Dist::Zilla::Plugin::Signature
+      name: Signature
+      version: 1.100930
+    -
+      class: Dist::Zilla::Plugin::Git::Check
+      name: '@Git/Check'
+      version: 2.006
+    -
+      class: Dist::Zilla::Plugin::Git::Commit
+      name: '@Git/Commit'
+      version: 2.006
+    -
+      class: Dist::Zilla::Plugin::Git::Tag
+      name: '@Git/Tag'
+      version: 2.006
+    -
+      class: Dist::Zilla::Plugin::Git::Push
+      name: '@Git/Push'
+      version: 2.006
+    -
+      class: Dist::Zilla::Plugin::AutoPrereqs
+      name: AutoPrereqs
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::Prereqs
+      config:
+        Dist::Zilla::Plugin::Prereqs:
+          phase: test
+          type: requires
+      name: TestRequires
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':InstallModules'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':IncModules'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':TestFiles'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':ExecFiles'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':ShareFiles'
+      version: 4.300029
+    -
+      class: Dist::Zilla::Plugin::FinderCode
+      name: ':MainModule'
+      version: 4.300029
+  zilla:
+    class: Dist::Zilla::Dist::Builder
+    config:
+      is_trial: 1
+    version: 4.300029

@@ -2,29 +2,28 @@
 use strict;
 use warnings;
 
-use Test::More tests => 38;
+use Test::More tests => 37;
 use Test::NoWarnings;
 
 # load your module...
 use lib './lib';
 use File::Util;
 
-my $f = File::Util->new();
+my $ftl = File::Util->new();
 
 # check to see if non-autoloaded File::Util methods are can-able ;O)
-map { ok( ref( UNIVERSAL::can( $f, $_ ) ) eq 'CODE', "can $_" ) } qw
+map { ok( ref( UNIVERSAL::can( $ftl, $_ ) ) eq 'CODE', "can $_" ) } qw
    (
       _dropdots
-      _errors
       _release
       _seize
-      _throw
       atomize_path
       bitmask
       can_flock
       can_read
       can_write
       created
+      diagnostic
       ebcdic
       escape_filename
       existent

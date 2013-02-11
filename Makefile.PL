@@ -12,9 +12,19 @@ my %WriteMakefileArgs = (
   "ABSTRACT" => "Easy, versatile, portable file handling",
   "AUTHOR" => "Tommy Butler",
   "BUILD_REQUIRES" => {
+    "AutoLoader" => 0,
+    "Config" => 0,
+    "Exception::Handler" => "1.00_0",
+    "Exporter" => 0,
+    "ExtUtils::MakeMaker" => 0,
+    "Fcntl" => 0,
+    "File::Find" => 0,
     "File::Temp" => 0,
     "Module::Build" => "0.3601",
-    "Test::More" => 0,
+    "Scalar::Util" => 0,
+    "Test" => 0,
+    "Test::Fatal" => 0,
+    "Test::More" => "0.88",
     "Test::NoWarnings" => 0
   },
   "CONFIGURE_REQUIRES" => {
@@ -26,23 +36,19 @@ my %WriteMakefileArgs = (
   "LICENSE" => "perl",
   "NAME" => "File::Util",
   "PREREQ_PM" => {
-    "AutoLoader" => 0,
     "Config" => 0,
-    "Exception::Handler" => "1.00_0",
+    "Exception::Handler" => 0,
     "Exporter" => 0,
-    "ExtUtils::MakeMaker" => 0,
     "Fcntl" => 0,
-    "File::Temp" => 0,
-    "Module::Build" => 0,
-    "Test" => 0,
+    "Scalar::Util" => 0,
     "constant" => 0,
     "strict" => 0,
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "3.39",
+  "VERSION" => "4.130420",
   "test" => {
-    "TESTS" => "t/*.t"
+    "TESTS" => "t/*.t t/extended/*.t"
   }
 );
 

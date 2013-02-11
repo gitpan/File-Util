@@ -7,9 +7,19 @@ use Module::Build 0.3601;
 
 my %module_build_args = (
   "build_requires" => {
+    "AutoLoader" => 0,
+    "Config" => 0,
+    "Exception::Handler" => "1.00_0",
+    "Exporter" => 0,
+    "ExtUtils::MakeMaker" => 0,
+    "Fcntl" => 0,
+    "File::Find" => 0,
     "File::Temp" => 0,
     "Module::Build" => "0.3601",
-    "Test::More" => 0,
+    "Scalar::Util" => 0,
+    "Test" => 0,
+    "Test::Fatal" => 0,
+    "Test::More" => "0.88",
     "Test::NoWarnings" => 0
   },
   "configure_requires" => {
@@ -21,21 +31,17 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "3.39",
+  "dist_version" => "4.130420",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},
   "recursive_test_files" => 1,
   "requires" => {
-    "AutoLoader" => 0,
     "Config" => 0,
-    "Exception::Handler" => "1.00_0",
+    "Exception::Handler" => 0,
     "Exporter" => 0,
-    "ExtUtils::MakeMaker" => 0,
     "Fcntl" => 0,
-    "File::Temp" => 0,
-    "Module::Build" => 0,
-    "Test" => 0,
+    "Scalar::Util" => 0,
     "constant" => 0,
     "perl" => "5.006",
     "strict" => 0,

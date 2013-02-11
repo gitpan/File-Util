@@ -1,5 +1,82 @@
 NEWS for File::Util
 
+Sun Feb 10 21:32:36 CST 2013
+   More added to the TODO list since the last news update.  We have now a
+   4.x build that is CPAN ready (as a TRIAL).  The manual has been combed
+   through and polished off, the test suite has been greatly improved thanks
+   to newer/better "diesnice" tests made possible by Test::Fatal.  Several
+   bugs have been caught and put to rest due to the expanded testing,
+   because the improved tests revealed them where they had been hiding.
+
+Tue Jan 29 18:59:25 CST 2013
+   Most of the goals in the TODO list have been finished, or well on course
+   for completion.  Stability of new features and design are sufficient
+   enough that I feel like we're ready for the first CPAN release of the 4.x
+   series in the next few days probably.
+
+   Remaining tasks will be the ongoing improvement of the test suite and the
+   documentation.  Those are the kind of tasks that are seemingly "never done".
+
+   Everything is testing well, performing well, running well on all platforms
+   I have available for testing (which are many).  Overall the state of
+   the File::Util distribution and code is better than ever.
+
+Tue Jan 22 00:28:30 CST 2013
+   Version 4.000000 has (and never will be) released to the CPAN, as it was
+   still in active development at the time it hit that mark.  Development
+   continues, and the first formal release of the 4.x version distributions
+   is soon approaching.  Documentation seems all that is left.  There's a
+   whole slew of new features to document (higher order functions and the new
+   method invocation syntax are just two examples).
+
+   Much more has been done in the way of improving the test suite, and
+   the dist is being constantly tested on Windows, Solaris, and Unix so
+   future releases to the CPAN will never bring surprises like those that
+   happened when development first shifted to the use of Dist::Zilla.
+
+
+Thu Jan 10 22:44:45 CST 2013
+   The latest release (v 4.0) brings many fixes to the table.  The fixes
+   affect nearly all platforms and architectures.  Users are encouraged to
+   upgrade, as this is not merely a features-added release.
+
+   Fundamental changes in the internal layout of File::Util have been
+   made; it isn't a single module file anymore.  This does NOT affect the
+   end user.  To the user, this change is completely transparent and does
+   not affect their programs or libraries that use File::Util.
+
+   This change is a step forward in the stated goal of File::Util to bring
+   a more "modern" (as in Modern::Perl) interface to the user while
+   preserving compatibility with current syntax.
+
+   Also in this release we move to auto-versioning a la Dist::Zilla plugins
+   PkgVersion and AutoVersion (thank you to the authors of those plugins)
+
+   Further, the test suite has been updated to make use of Test::More and
+   Test::NoWarnings across the board, bringing better "kwalitee" (as in
+   CPANTS) to you and to OS package maintainers for various platforms out
+   there.
+
+   Since the new year and new goals for File::Util, CPANTS metrics for
+   kwalitee of the distribution have climbed from well below 100 to
+   almost 140.  This will continue to improve.  Onward and upward.
+
+   Finally, several code optimizations have been made for faster performance,
+   made possible by the increasingly rigorous test suite.
+
+   Re: flock() on Solaris -
+   Updates have been made to the test suite so flock() problems on
+   Solaris don't incorrectly cause test results to appear to have failed
+   on that single platform.  Solaris users should be aware of the problems
+   with discretionary locks on their platform.  It is not only Perl
+   that experiences issues, but Python, Ruby, and others.  The problem
+   is specifically that Solaris will happily lock a file, but will very
+   often NOT unlock it until the process has exited.  This causes all
+   kinds of problems.  The documentation for File::Util will be updated
+   in order to advise Solaris users of opening the same file more than
+   once during the lifetime of a process.
+
+
 Mon Dec 31 23:25:00 CST 2012
    This latest release (v 3.33) is not a feature release.  It's a
    documentation update, a few bug fixes, several code optimizations, and
@@ -37,4 +114,3 @@ Mon Dec 31 23:25:00 CST 2012
    http://www.perlmonks.org/?node_id=1011110
 
    Happy new year!
-      - Tommy Butler

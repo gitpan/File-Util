@@ -1,159 +1,92 @@
-package File::Util;
-
 use 5.006;
 use strict;
 use warnings;
 
-use vars qw(
-   $VERSION    @ISA        @EXPORT_OK    %EXPORT_TAGS
-   $OS         $MODES      $READLIMIT    $MAXDIVES
-   $USE_FLOCK  @ONLOCKFAIL $ILLEGAL_CHR  $CAN_FLOCK
-   $EBCDIC     $DIRSPLIT   $_LOCKS       $NEEDS_BINMODE
-   $WINROOT    $ATOMIZER   $SL   $NL     $EMPTY_WRITES_OK
-   $FSDOTS     $AUTHORITY
-);
+use lib 'lib';
 
+package File::Util;
+{
+  $File::Util::VERSION = '4.130420'; # TRIAL
+}
+
+use File::Util::Definitions qw( :all );
+use File::Util::Interface::Modern qw( :all );
+
+use Scalar::Util qw( blessed );
 use Exporter;
 
-$VERSION    = 3.39;
-$AUTHORITY  = 'cpan:TOMMY';
-@ISA        = qw( Exporter );
-@EXPORT_OK  = qw(
-   NL     can_flock   ebcdic       existent      needs_binmode
-   SL     strip_path  can_read     can_write     valid_filename
-   OS     bitmask     return_path  file_type     escape_filename
-   isbin  created     last_access  last_changed  last_modified
-   size   atomize_path
+our $AUTHORITY  = 'cpan:TOMMY';
+our @ISA        = qw( Exporter );
+
+# some of the symbols below come from File::Util::Definitions
+our @EXPORT_OK  = qw(
+   NL     can_flock   ebcdic        existent      needs_binmode
+   SL     strip_path  can_read      can_write     valid_filename
+   OS     bitmask     return_path   file_type     escape_filename
+   isbin  created     last_access   last_changed  last_modified
+   size   split_path  atomize_path  diagnostic
 );
 
-%EXPORT_TAGS = ( all  => [ @EXPORT_OK ] );
+our %EXPORT_TAGS = ( all => [ @EXPORT_OK ], diag => [] );
 
-BEGIN {
-
-   # Some OS logic.
-   unless ( $OS = $^O ) {
-      require Config;
-      eval { no warnings 'once'; $OS = $Config::Config{osname} }
-   };
-
-      if ( $OS =~ /^darwin/i ) { $OS = 'UNIX'      }
-   elsif ( $OS =~ /^cygwin/i ) { $OS = 'CYGWIN'    }
-   elsif ( $OS =~ /^MSWin/i  ) { $OS = 'WINDOWS'   }
-   elsif ( $OS =~ /^vms/i    ) { $OS = 'VMS'       }
-   elsif ( $OS =~ /^bsdos/i  ) { $OS = 'UNIX'      }
-   elsif ( $OS =~ /^dos/i    ) { $OS = 'DOS'       }
-   elsif ( $OS =~ /^MacOS/i  ) { $OS = 'MACINTOSH' }
-   elsif ( $OS =~ /^epoc/    ) { $OS = 'EPOC'      }
-   elsif ( $OS =~ /^os2/i    ) { $OS = 'OS2'       }
-                          else { $OS = 'UNIX'      }
-
-$EBCDIC = qq[\t] ne qq[\011] ? 1 : 0;
-$NEEDS_BINMODE = $OS =~ /WINDOWS|DOS|OS2|MSWin/ ? 1 : 0;
-$NL =
-   $NEEDS_BINMODE               ? qq[\015\012]
-      : $EBCDIC || $OS eq 'VMS' ? qq[\n]
-         : $OS eq 'MACINTOSH'   ? qq[\015]
-            : qq[\012];
-$SL =
-   { DOS => '\\', EPOC   => '/', MACINTOSH => ':',
-     OS2 => '\\', UNIX   => '/', WINDOWS   => chr(92),
-     VMS => '/',  CYGWIN => '/', }->{ $OS } || '/';
-
-$_LOCKS = {};
-
-} BEGIN {
-   use constant NL => $NL;
-   use constant SL => $SL;
-   use constant OS => $OS;
-}
-
-$WINROOT     = qr/^(?: [[:alpha:]]{1} ) : (?: \\{1,2} )/x;
-$DIRSPLIT    = qr/$WINROOT | [\\:\/]/x;
-$ATOMIZER    = qr/
-   (^ $DIRSPLIT ){0,1}
-   (?: (.*) $DIRSPLIT ){0,1}
-   (.*) /x;
-$ILLEGAL_CHR = qr/[\/\|\\$NL\r\n\t\013\*\"\?\<\:\>]/;
-$FSDOTS      = qr/^\.{1,2}$/;
-$READLIMIT   = 52428800; # set readlimit to a default of 50 megabytes
-$MAXDIVES    = 1000;     # maximum depth for recursive list_dir calls
-
-use Fcntl qw();
-
-{
-   local $@;
-
-   eval {
-      flock( STDOUT, &Fcntl::LOCK_SH );
-      flock( STDOUT, &Fcntl::LOCK_UN );
-   };
-
-   $CAN_FLOCK = $@ ? 0 : 1;
-}
-
-# try to use file locking, define flock race conditions policy
-$USE_FLOCK = 1; @ONLOCKFAIL = qw( NOBLOCKEX FAIL );
-
-$MODES->{popen} = {
-   write     => '>',  trunc    => '>',  rwupdate  => '+<',
-   append    => '>>', read     => '<',  rwclobber => '+>',
-   rwcreate  => '+>', rwappend => '+>>',
-};
-
-$MODES->{sysopen} = {
-   read      => &Fcntl::O_RDONLY,
-   write     => &Fcntl::O_WRONLY | &Fcntl::O_CREAT,
-   append    => &Fcntl::O_WRONLY | &Fcntl::O_APPEND | &Fcntl::O_CREAT,
-   trunc     => &Fcntl::O_WRONLY | &Fcntl::O_CREAT  | &Fcntl::O_TRUNC,
-   rwcreate  => &Fcntl::O_RDWR   | &Fcntl::O_CREAT,
-   rwclobber => &Fcntl::O_RDWR   | &Fcntl::O_TRUNC  | &Fcntl::O_CREAT,
-   rwappend  => &Fcntl::O_RDWR   | &Fcntl::O_APPEND | &Fcntl::O_CREAT,
-   rwupdate  => &Fcntl::O_RDWR,
-};
-
+our $WANT_DIAGNOSTICS = 0;
 
 # --------------------------------------------------------
 # Constructor
 # --------------------------------------------------------
 sub new {
-   my $this = {};
+   my $this = { };
 
    bless $this, shift @_;
 
-   my $in   = $this->_names_values( @_ );
-   my $opts = $this->_remove_opts( \@_ );
+   my $in = $this->_parse_in( @_ ) || { };
 
-   $this->{opts} = $opts || {};
+   $this->{opts} = $in || { };
+
+   # let constructor argument override globals, but set
+   # constructor opts to global values if they have not
+   # overridden them...
 
    $USE_FLOCK  = $in->{use_flock}
-      if exists $in->{use_flock}
-      && $in->{use_flock};
+      if exists  $in->{use_flock}
+      && defined $in->{use_flock};
+
+      $this->{opts}->{use_flock} = $USE_FLOCK;
+
+   $WANT_DIAGNOSTICS = $in->{diag}
+      if exists  $in->{diag}
+      && defined $in->{diag};
+
+      $this->{opts}->{diag} = $WANT_DIAGNOSTICS;
 
    $READLIMIT  = $in->{readlimit}
-      if defined $in->{readlimit}
-      && $$in{readlimit} !~ /\D/;
+      if exists  $in->{readlimit}
+      && defined $in->{readlimit}
+      && $in->{readlimit} !~ /\D/;
+
+      $this->{opts}->{readlimit} = $READLIMIT;
 
    $MAXDIVES   = $in->{max_dives}
-      if defined $in->{max_dives}
-      && $$in{max_dives} !~ /\D/;
+      if exists  $in->{max_dives}
+      && defined $in->{max_dives}
+      && $in->{max_dives} !~ /\D/;
+
+      $this->{opts}->{max_dives} = $MAXDIVES;
 
    return $this;
 }
 
 
 # --------------------------------------------------------
-# File::Util::atomize_path()
+# File::Util::import()
 # --------------------------------------------------------
-sub atomize_path {
-   my $fqfn = _myargs( @_ );
+sub import {
 
-   $fqfn =~ m/$ATOMIZER/;
+   my ( $class, @wanted_symbols ) = @_;
 
-   my $root = $1 || '';
-   my $path = $2 || '';
-   my $file = $3 || '';
+   ++$WANT_DIAGNOSTICS if grep { /(?<!!):diag/ } @wanted_symbols;
 
-   return( $root, $path, $file );
+   $class->export_to_level( 1, @_ );
 }
 
 
@@ -163,11 +96,15 @@ sub atomize_path {
 sub list_dir {
    my $this = shift @_;
    my $opts = $this->_remove_opts( \@_ );
-   my $dir  = shift @_ || '.';
+   my $dir  = shift @_;
    my $path = $dir;
-   my $maxd = $opts->{'--max-dives'} || $MAXDIVES;
-   my $r    = 0;
    my ( @dirs, @files, @items );
+   my $maxd =
+      defined $opts->{max_dives}
+         ? $opts->{max_dives}
+         : defined $this->{opts}->{max_dives}
+            ? $this->{opts}->{max_dives}
+            : $MAXDIVES;
 
    return $this->_throw(
       'no input' => {
@@ -175,7 +112,18 @@ sub list_dir {
          missing => 'a directory name',
          opts    => $opts,
       }
-   ) unless length $dir;
+   ) unless defined $dir && length $dir;
+
+   # "." and ".." make no sense (and cause infinite loops) when recursing...
+   $opts->{no_fsdots} = 1 if $opts->{recurse}; # ...so skip them
+
+   # break off immediately to helper function if asked to make a ref-tree
+   return $this->_as_tree( $dir => $opts ) if $opts->{ as_tree };
+
+   my $recursing = 0; # flag to dynamicall indicate whether or not this
+                      # method is being used recursively for this call
+
+# INPUT VALIDATION
 
    return $this->_throw( 'no such file' => { filename => $dir } )
       unless -e $dir;
@@ -195,17 +143,19 @@ sub list_dir {
       }
    ) unless -d $dir;
 
+# RUNAWAY RECURSION PREVENTION
+
    # this directory recursion method keeps track of dives based on the parent
    # directory of $dir, rather than on $dir itself so that multiple
    # subdirectories within the same parent directory don't improperly increment
    # the number of dives made
-   if ( $opts->{'--recursing'} ) {
+   if ( $opts->{recursing} ) {
 
       my $pdir = $dir; $pdir =~ s/(^.*)$DIRSPLIT.*/$1/;
 
       $this->{traversed}{ $pdir } = $pdir;
    }
-   else { $this->{traversed} = {} }
+   else { $this->{traversed} = { } }
 
    # enforce maximum subdirectory dives, unless $MAXDIVES is equal to zero
    if ( $MAXDIVES != 0 && ( scalar keys %{ $this->{traversed} } >= $maxd ) ) {
@@ -219,12 +169,11 @@ sub list_dir {
       )
    }
 
-   $r = 1 if $opts->{'--follow'} || $opts->{'--recurse'};
+   $recursing = 1 if $opts->{follow} || $opts->{recurse};
 
-   local *DIR;
-
-   opendir DIR, $dir
-      or return $this->_throw(
+   opendir my $dir_fh, $dir
+      or return $this->_throw
+         (
             'bad opendir' => {
                dirname    => $dir,
                exception  => $!,
@@ -234,17 +183,28 @@ sub list_dir {
 
    # read from beginning of the directory (doesn't seem necessary on any
    # platforms I've run code on, but just in case...)
-   rewinddir DIR;
+   rewinddir $dir_fh;
 
-   @files = exists $opts->{'--pattern'}
-      ? grep /$opts->{'--pattern'}/, readdir DIR
-      : readdir DIR;
+# LEGACY_MATCHING
 
-   @files = exists $opts->{'--rpattern'}
-      ? grep /$opts->{'--rpattern'}/, @files
+   # this form of matching is deprecated and is not robust.  backward compat
+   # is preserved here, but it will soon no longer even be mentioned in the
+   # documentation, becoming useful only to the legacy code that relies on it
+
+   # primitive pattern matching at top level only, applied to both files & dirs
+   @files = defined $opts->{pattern}
+      ? grep /$opts->{pattern}/, readdir $dir_fh
+      : readdir $dir_fh;
+
+   # primitive pattern matching applied recursively to only files; if it were
+   # applied to both files AND dirs, recursion would often break unexpectedly
+   # for users unaware that they couldn't recurse into dirs that didn't match
+   # the pattern they probably intended only for files
+   @files = defined $opts->{rpattern}
+      ? grep { -d $path . SL . $_ || /$opts->{rpattern}/ } @files
       : @files;
 
-   closedir DIR
+   closedir $dir_fh
       or return $this->_throw(
          'close dir'  => {
             dir       => $dir,
@@ -253,83 +213,535 @@ sub list_dir {
          }
       );
 
-   @files = grep { $_ !~ /$FSDOTS/ } @files if $opts->{'--no-fsdots'};
+   # get rid of "." and ".." if they are unwanted
+   @files = grep { !/$FSDOTS/o } @files if $opts->{no_fsdots};
 
-   for ( my $i = 0; $i < @files; ++$i ) {
+# ADVANCED MATCHING
 
-      my $listing = ( $opts->{'--with-paths'} || $r == 1 )
-         ? $path . SL . $files[ $i ]
-         : $files[ $i ];
+   @files = _list_dir_matching( $opts, $path, \@files );
 
-      if ( -d $path . SL . $files[ $i ] ) {
+# SEPARATION OF DIRS FROM FILES
+
+   # prepend full path information to each file name if paths were
+   # requested, or if we are recursing.  Then separate the directories
+   # and files off into @dirs and @itmes, respectively
+   for my $file ( @files ) {
+
+      my $listing = ( $opts->{with_paths} || $recursing )
+         ? $path . SL . $file
+         : $file;
+
+      if ( -d $path . SL . $file ) {
 
          push @dirs, $listing
       }
       else { push @items, $listing }
    }
 
-   if  ( $r && !$opts->{'--override-follow'} ) {
+# CALLBACKS (HIGHER ORDER FUNCTIONS)
 
-      @dirs = grep { $this->strip_path( $_ ) !~ /$FSDOTS/ } @dirs;
+   # here below is where we invoke the callbacks on dirs, files, or both.
 
-      for ( my $i = 0; $i < @dirs; ++$i ) {
+   if ( my $cb = $opts->{callback} ) {
 
-         my @opts = qw(
-         --with-paths   --dirs-as-ref
-         --files-as-ref --recursing --no-fsdots );
+      $this->throw( qq(callback "$cb" not a coderef) )
+         unless ref $cb eq 'CODE';
 
-         # pattern should work when recursing!
-         push @opts, qq(--rpattern=$opts->{'--rpattern'})
-            if $opts->{'--rpattern'};
+      $cb->( $dir, \@dirs, \@items, scalar split_path( $dir ) - 1 );
+   }
 
-         push @opts, qq(--max-dives=$maxd);
+   if ( my $cb = $opts->{d_callback} ) {
 
-         my @lsts = $this->list_dir( $dirs[ $i ], @opts );
+      $this->throw( qq(d_callback "$cb" not a coderef) )
+         unless ref $cb eq 'CODE';
 
-         push @dirs, @{ $lsts[0] }
-            if UNIVERSAL::isa( $lsts[0], 'ARRAY' ) && scalar @{ $lsts[0] };
+      $cb->( $dir, \@dirs, scalar split_path( $dir ) - 1 );
+   }
 
-         push @items, @{ $lsts[1] }
-            if UNIVERSAL::isa( $lsts[1], 'ARRAY' ) && scalar @{ $lsts[1] };
+   if ( my $cb = $opts->{f_callback} ) {
+
+      $this->throw( qq(f_callback "$cb" not a coderef) )
+         unless ref $cb eq 'CODE';
+
+      $cb->( $dir, \@items, scalar split_path( $dir ) - 1 );
+   }
+
+# RECURSION
+
+   if ( $recursing ) {
+
+      @dirs = grep { strip_path( $_ ) !~ /$FSDOTS/ } @dirs;
+
+      # recurse into all subdirs
+      for my $subdir ( @dirs ) {
+
+         # certain opts need to be defined, overridden, added, or removed
+         # completely before recursing.  That's why we redefine everything
+         # here below, eliminating potential user-error where incompatible
+         # options would otherwise break recursion and/or cause confusion
+
+         my $recurse_opts = {
+            as_ref         => 1,
+            with_paths     => 1,
+            recursing      => 1,
+            no_fsdots      => 1,
+            max_dives      => $maxd,
+            rpattern       => $opts->{rpattern},
+            files_match    => $opts->{files_match},
+            dirs_match     => $opts->{dirs_match},
+            parent_matches => $opts->{parent_matches},
+            path_matches   => $opts->{path_matches},
+            callback       => $opts->{callback},
+            d_callback     => $opts->{d_callback},
+            f_callback     => $opts->{f_callback},
+            onfail         => $opts->{onfail},
+         };
+
+         my ( $dirs_ref, $files_ref ) =
+            $this->list_dir( $subdir, $recurse_opts );
+
+         push @dirs,  @$dirs_ref;
+         push @items, @$files_ref;
       }
    }
 
-   if ( $opts->{'--sl-after-dirs'} ) {
+# FINAL PREPARATIONS before returning results
 
-      # append directory separator to everything but the "dots"
-      $_ .= SL for grep { $_ !~ /$FSDOTS/ } @dirs;
+   if (
+        !$opts->{recursing} &&
+      (
+         $opts->{path_matches} ||
+         $opts->{parent_matches}
+      )
+   ) {
+      @dirs = _list_dir_lastround_dirmatch( $opts, \@dirs );
    }
 
-   my $reta = []; my $retb = [];
+   # cosmetic formatting for directories/
+   if ( $opts->{sl_after_dirs} ) {
 
-   if ( $opts->{'--ignore-case'} ) {
+      # append directory separator to everything but the "dots"
+      $_ .= SL for grep { !/$FSDOTS/o } @dirs;
+   }
 
-      $reta = [ sort { uc $a cmp uc $b } @dirs  ];
-      $retb = [ sort { uc $a cmp uc $b } @items ];
+   my $return_dirs = []; my $return_files = [];
+
+   # sorting
+   if ( $opts->{ignore_case} ) {
+
+      $return_dirs  = [ sort { uc $a cmp uc $b } @dirs  ];
+      $return_files = [ sort { uc $a cmp uc $b } @items ];
    }
    else {
 
-      $reta = [ sort { $a cmp $b } @dirs  ];
-      $retb = [ sort { $a cmp $b } @items ];
+      $return_dirs  = [ sort { $a cmp $b } @dirs  ];
+      $return_files = [ sort { $a cmp $b } @items ];
    }
 
-   return scalar @$reta
-      if $opts->{'--dirs-only'} && $opts->{'--count-only'};
+# RETURN based on selected opts
 
-   return scalar @$retb
-      if $opts->{'--files-only'} && $opts->{'--count-only'};
+   return scalar @$return_dirs
+      if $opts->{dirs_only} && $opts->{count_only};
 
-   return scalar @$reta + scalar @$retb if $opts->{'--count-only'};
+   return scalar @$return_files
+      if $opts->{files_only} && $opts->{count_only};
 
-   return $reta, $retb if $opts->{'--as-ref'};
+   return scalar @$return_dirs + scalar @$return_files
+      if $opts->{count_only};
 
-   $reta = [ $reta ] if $opts->{'--dirs-as-ref'};
-   $retb = [ $retb ] if $opts->{'--files-as-ref'};
+   return $return_dirs, $return_files
+      if $opts->{as_ref};
 
-   return @$reta if $opts->{'--dirs-only'};
-   return @$retb if $opts->{'--files-only'};
+   $return_dirs  = [ $return_dirs  ] if $opts->{dirs_as_ref};
+   $return_files = [ $return_files ] if $opts->{files_as_ref};
 
-   return @$reta, @$retb;
+   return @$return_dirs  if $opts->{dirs_only};
+   return @$return_files if $opts->{files_only};
+
+   return @$return_dirs, @$return_files;
+}
+
+
+# --------------------------------------------------------
+# File::Util::_list_dir_matching()
+# --------------------------------------------------------
+sub _list_dir_matching {
+   my ( $opts, $path, $files ) = @_;
+
+   my @qualified_files = map { $path . SL . $_ } splice @$files, 0;
+   # can't keep multiple huge lists of files --- ^^^^^^
+
+   my @qualified_dirs  = grep { -d $_ } @qualified_files;
+
+   my %dirs_only; @dirs_only{ @qualified_dirs } = @qualified_dirs;
+
+   @qualified_files = grep { !exists $dirs_only{ $_ } } @qualified_files;
+
+   my @files_match = map { strip_path( $_ ) } @qualified_files;
+   my @dirs_match  = map { strip_path( $_ ) } @qualified_dirs;
+
+   # memory management
+   undef %dirs_only;
+   undef @qualified_files;
+   undef @qualified_dirs;
+
+# COLLECT PATTERN(S) TO BE APPLIED
+
+   my @files_match_or;
+   my @files_match_and  = _gather_and_patterns( $opts->{files_match} );
+      @files_match_or   = _gather_or_patterns( $opts->{files_match} )
+         unless scalar @files_match_and;
+
+   my @dirs_match_or;
+   my @dirs_match_and   = _gather_and_patterns( $opts->{dirs_match} );
+      @dirs_match_or    = _gather_or_patterns( $opts->{dirs_match} )
+         unless scalar @dirs_match_and;
+
+   my @parent_matches_or;
+   my @parent_matches_and = _gather_and_patterns( $opts->{parent_matches} );
+      @parent_matches_or  = _gather_or_patterns( $opts->{parent_matches} )
+         unless scalar @parent_matches_and;
+
+   my @path_matches_or;
+   my @path_matches_and   = _gather_and_patterns( $opts->{path_matches} );
+      @path_matches_or    = _gather_or_patterns( $opts->{path_matches} )
+         unless scalar @path_matches_and;
+
+# FILE MATCHING
+
+   for my $pattern ( @files_match_and ) {
+
+      @files_match = grep { /$pattern/ } @files_match;
+   }
+
+   @files_match = _match_and( \@files_match_and, \@files_match )
+      if scalar @files_match_and;
+
+   @files_match = _match_or( \@files_match_or, \@files_match )
+      if scalar @files_match_or;
+
+# DIRECTORY MATCHING
+
+   @dirs_match = _match_and( \@dirs_match_and, \@dirs_match )
+      if scalar @dirs_match_and;
+
+   @dirs_match = _match_or( \@dirs_match_or, \@dirs_match )
+      if scalar @dirs_match_or;
+
+# FILE &'ed DIRECTORY MATCHING
+
+   if ( $opts->{files_match} && $opts->{dirs_match} ) {
+
+      @files_match = ( )
+         unless _match_and( \@dirs_match_and, [ strip_path( $path ) ] );
+   }
+
+# MATCHING FILES BY PARENT DIR
+
+   if ( $opts->{parent_matches} ) {
+
+      if ( @parent_matches_and ) {
+
+         @files_match = ( )
+            unless _match_and( \@parent_matches_and, [ strip_path( $path ) ] );
+      }
+      elsif ( @parent_matches_or ) {
+
+         @files_match = ( )
+            unless _match_or( \@parent_matches_or, [ strip_path( $path ) ] );
+      }
+   }
+
+# MATCHING FILES BY PATH
+
+   if ( $opts->{path_matches} ) {
+
+      if ( @path_matches_and ) {
+
+         @files_match = ( )
+            unless _match_and( \@path_matches_and, [ $path ] );
+      }
+      elsif ( @path_matches_or ) {
+
+         @files_match = ( )
+            unless _match_or( \@path_matches_or, [ $path ] );
+      }
+   }
+
+   return ( @dirs_match, @files_match );
+}
+
+
+# --------------------------------------------------------
+# File::Util::_list_dir_lastround_dirmatch()
+# --------------------------------------------------------
+sub _list_dir_lastround_dirmatch {
+   my ( $opts, $dirs ) = @_;
+
+   my @return_dirs;
+
+   my @qualified_dirs = splice @$dirs, 0;
+   # can't keep multiple ^^^^^ potentially huge lists of files in RAM
+
+   my @parent_matches_or;
+   my @parent_matches_and = _gather_and_patterns( $opts->{parent_matches} );
+      @parent_matches_or  = _gather_or_patterns( $opts->{parent_matches} )
+         unless scalar @parent_matches_and;
+
+   my @path_matches_or;
+   my @path_matches_and   = _gather_and_patterns( $opts->{path_matches} );
+      @path_matches_or    = _gather_or_patterns( $opts->{path_matches} )
+         unless scalar @path_matches_and;
+
+# LAST ROUND MATCHING DIRS BY PARENT DIR
+
+   if ( $opts->{parent_matches} ) {
+
+      my %return_dirs;
+
+      if ( @parent_matches_and ) {
+
+         for my $qfd_dir ( @qualified_dirs ) {
+
+            my ( $root, $in_path ) = atomize_path( $qfd_dir );
+
+            $in_path = $root . $in_path if $root;
+
+            $return_dirs{ $in_path } = $in_path
+            if _match_and( \@parent_matches_and, [ strip_path( $in_path ) ] );
+         }
+      }
+      elsif ( @parent_matches_or ) {
+
+         for my $qfd_dir ( @qualified_dirs ) {
+
+            my ( $root, $in_path ) = atomize_path( $qfd_dir );
+
+            $in_path = $root . $in_path if $root;
+
+            $return_dirs{ $in_path } = $in_path
+            if _match_or( \@parent_matches_or, [ strip_path( $in_path ) ] );
+         }
+      }
+
+      push @return_dirs, keys %return_dirs;
+   }
+
+# LAST ROUND MATCHING DIRS BY PATH
+
+   if ( $opts->{path_matches} ) {
+
+      my %return_dirs;
+
+      if ( @path_matches_and ) {
+
+         for my $qfd_dir ( @qualified_dirs ) {
+
+            my ( $root, $in_path ) = atomize_path( $qfd_dir );
+
+            $in_path = $root . $in_path if $root;
+
+            $return_dirs{ $in_path } = $in_path
+               if _match_and( \@path_matches_and, [ $in_path ] );
+
+            $return_dirs{ $qfd_dir } = $qfd_dir
+               if _match_and( \@path_matches_and, [ $qfd_dir ] );
+         }
+      }
+      elsif ( @path_matches_or ) {
+
+         for my $qfd_dir ( @qualified_dirs ) {
+
+            my ( $root, $in_path ) = atomize_path( $qfd_dir );
+
+            $in_path = $root . $in_path if $root;
+
+            $return_dirs{ $in_path } = $in_path
+               if _match_or( \@path_matches_or, [ $in_path ] );
+
+            $return_dirs{ $qfd_dir } = $qfd_dir
+               if _match_or( \@path_matches_or, [ $qfd_dir ] );
+         }
+      }
+
+      push @return_dirs, keys %return_dirs;
+   }
+
+   return @return_dirs;
+}
+
+
+# --------------------------------------------------------
+# File::Util::_gather_and_patterns()
+# --------------------------------------------------------
+sub _gather_and_patterns {
+
+   my $pattern_ref = shift @_;
+
+   return
+      defined $pattern_ref &&
+      ref $pattern_ref eq 'HASH' &&
+      defined $pattern_ref->{and} &&
+      ref $pattern_ref->{and} eq 'ARRAY'
+         ? @{ $pattern_ref->{and} }
+         : defined $pattern_ref &&
+           ref $pattern_ref eq 'Regexp'
+            ? ( $pattern_ref )
+            : ( );
+}
+
+
+# --------------------------------------------------------
+# File::Util::_gather_or_patterns()
+# --------------------------------------------------------
+sub _gather_or_patterns {
+
+   my $pattern_ref = shift @_;
+
+   return
+      defined $pattern_ref &&
+      ref $pattern_ref eq 'HASH' &&
+      defined $pattern_ref->{or} &&
+      ref $pattern_ref->{or} eq 'ARRAY'
+         ? @{ $pattern_ref->{or} }
+         : ( );
+}
+
+
+# --------------------------------------------------------
+# File::Util::_match_and()
+# --------------------------------------------------------
+sub _match_and {
+
+   my ( $patterns, $items ) = @_;
+
+   for my $pattern ( @$patterns ) {
+
+      @$items = grep { /$pattern/ } @$items;
+   }
+
+   return @$items;
+}
+
+
+# --------------------------------------------------------
+# File::Util::_match_or()
+# --------------------------------------------------------
+sub _match_or {
+
+   my ( $patterns, $items ) = @_;
+
+   my $or_pattern;
+
+   for my $pattern ( @$patterns ) {
+
+      $or_pattern = $or_pattern
+         ? qr/$pattern|$or_pattern/
+         : $pattern;
+   }
+
+   @$items = grep { /$or_pattern/ } @$items;
+
+   return @$items;
+}
+
+
+# --------------------------------------------------------
+# File::Util::_as_tree()
+# --------------------------------------------------------
+sub _as_tree {
+   my $this = shift @_;
+   my $opts = $this->_remove_opts( \@_ );
+   my $dir  = shift @_ || '.';
+   my $tree = {};
+
+   my $treeify = sub
+   {
+      my ( $dirname, $subdirs, $files ) = @_;
+
+      # find root of tree (if path was absolute)
+      my ( $root, $branch, $leaf ) = atomize_path( $dirname );
+
+      my @path_dirs = split /$DIRSPLIT/o, $branch;
+
+      # find place in tree
+      my @lineage = ( @path_dirs, $leaf );
+
+      unshift @lineage, $root if $root;
+
+      my $ancestory = $tree;
+
+      # recursively create hashref tree
+
+      for ( my $i = 0; $i < @lineage; $i++ )
+      {
+         my $self = $lineage[ $i ];
+
+         my $parent = $i > 0 ? $i - 1 : undef;
+
+         if ( defined $parent )
+         {
+            my @predecessors = @lineage[ 0 .. $parent ];
+
+            # for abs paths on *nix
+            shift @predecessors if
+               @predecessors > 1 &&
+               $predecessors[0] eq SL;
+
+            $parent = join SL, @predecessors;
+
+            $parent = $root . $parent if $root && $parent ne $root;
+         }
+
+         $ancestory->{ $self } ||= { };
+
+         unless (
+            exists  $opts->{dirmeta} &&
+            defined $opts->{dirmeta} &&
+            $opts->{dirmeta} == 0
+         ) {
+            $ancestory->{ $self }{ _DIR_PARENT_ } = $parent;
+
+            $ancestory->{ $self }{ _DIR_SELF_ }   =
+               !defined $parent
+                  ? $self
+                  : $parent eq $root
+                     ? $parent . $self
+                     : $parent . SL . $self;
+         }
+
+         $ancestory = $ancestory->{ $self };
+      }
+
+      # the next two loops populate the tree
+
+      my $parent = $ancestory;
+
+      for my $subdir ( @$subdirs )
+      {
+         $parent->{ strip_path( $subdir ) } ||= { };
+      }
+
+      for my $file ( @$files )
+      {
+         $parent->{ strip_path( $file ) } = $file;
+      }
+   };
+
+   $this->list_dir(
+      $dir => {
+         callback       => $treeify,
+         recurse        => $opts->{recurse},
+         files_match    => $opts->{files_match},
+         dirs_match     => $opts->{dirs_match},
+         parent_matches => $opts->{parent_matches},
+         path_matches   => $opts->{path_matches},
+         pattern        => $opts->{pattern},
+         rpattern       => $opts->{rpattern},
+      }
+   );
+
+   return $tree;
 }
 
 
@@ -362,7 +774,7 @@ sub _dropdots {
       push @out, $dir_item;
    }
 
-   return( \@dots, @out ) if $opts->{'--save-dots'};
+   return( \@dots, @out ) if $opts->{save_dots};
 
    return @out;
 }
@@ -373,17 +785,40 @@ sub _dropdots {
 # --------------------------------------------------------
 sub load_file {
    my $this       = shift @_;
-   my $opts       = $this->_remove_opts( \@_ );
-   my $in         = $this->_names_values( @_ );
+   my $in         = $this->_parse_in( @_ );
    my @dirs       = ();
    my $blocksize  = 1024; # 1.24 kb
    my $fh_passed  = 0;
    my $fh;
 
-   my ( $file, $root, $path, $clean_name, $content, $fh_stat, $mode  ) =
-      ( '',    '',    '',    '',          '',       '',       'read' );
+   my ( $file, $root, $path, $clean_name, $content, $mode  ) =
+      ( '',    '',    '',    '',          '',       'read' );
 
-   if ( scalar @_ == 1 ) {
+   # all of this logic branching is to cover the possibilities in the way
+   # this method could have been called.  we try to support as many methods
+   # as make at least some amount of sense
+
+   $in->{file_handle} =
+      defined $in->{file_handle}
+         ? $in->{file_handle}
+         : undef;
+
+   my $readlimit =
+      defined $in->{readlimit}
+         ? $in->{readlimit}
+         : defined $this->{opts}->{readlimit}
+            ? $this->{opts}->{readlimit}
+            : defined $READLIMIT
+               ? $READLIMIT
+               : 0;
+
+   return $this->_throw ( 'bad readlimit' => { bad => $readlimit } )
+      if $readlimit =~ /\D/;
+
+   # support old-school "FH" option, *and* the new, more sensible "file_handle"
+   $in->{FH} = $in->{file_handle} if defined $in->{file_handle};
+
+   if ( !defined $in->{FH} ) { # unless we were passed a file handle...
 
       $file = shift @_ || '';
 
@@ -392,7 +827,7 @@ sub load_file {
          {
             meth    => 'load_file',
             missing => 'a file name or file handle reference',
-            opts    => $opts,
+            opts    => $in,
          }
       ) unless length $file;
 
@@ -423,7 +858,7 @@ sub load_file {
       # did we get a filehandle?
       if ( ref $in->{FH} eq 'GLOB' ) {
 
-         $fh_passed = 1;
+         $fh_passed++;
       }
       else {
 
@@ -431,8 +866,8 @@ sub load_file {
             'no input',
             {
                meth    => 'load_file',
-               missing => 'a file name or file handle reference',
-               opts    => $opts,
+               missing => 'a true file handle reference (not a string)',
+               opts    => $in,
             }
          );
       }
@@ -442,13 +877,13 @@ sub load_file {
 
       my $buffer     = 0;
       my $bytes_read = 0;
-      $fh = $opts->{FH};
+      $fh = $in->{FH};
 
       while ( <$fh> ) {
 
-         if ( $buffer < $READLIMIT ) {
+         if ( $buffer < $readlimit ) {
 
-            $bytes_read = read( $opts->{FH}, $content, $blocksize );
+            $bytes_read = read( $fh, $content, $blocksize );
 
             $buffer += $bytes_read;
          }
@@ -457,9 +892,10 @@ sub load_file {
             return $this->_throw(
                'readlimit exceeded',
                {
-                  filename => '<FH>',
-                  size     => qq{[truncated at $bytes_read]},
-                  opts     => $opts,
+                  filename  => '<filehandle>',
+                  size      => qq{[truncated at $bytes_read]},
+                  readlimit => $readlimit,
+                  opts      => $in,
                }
             );
          }
@@ -469,7 +905,7 @@ sub load_file {
       # subroutine asked for an array eg- my @file = load_file('file');
       # otherwise, return a scalar value containing all of the file's content
       return split /$NL|\r|\n/o, $content
-         if $opts->{'--as-list'};
+         if $in->{as_list};
 
       return $content;
    }
@@ -479,7 +915,7 @@ sub load_file {
       'no such file',
       {
          filename => $clean_name,
-         opts     => $opts,
+         opts     => $in,
       }
    ) unless -e $clean_name;
 
@@ -493,7 +929,7 @@ sub load_file {
       {
          filename => $clean_name,
          dirname  => $root . $path,
-         opts     => $opts,
+         opts     => $in,
       }
    ) unless -r $root . $path;
 
@@ -503,7 +939,7 @@ sub load_file {
       {
          filename => $clean_name,
          dirname  => $root . $path,
-         opts     => $opts,
+         opts     => $in,
       }
    ) unless -r $clean_name;
 
@@ -512,7 +948,7 @@ sub load_file {
       'called open on a dir',
       {
          filename => $clean_name,
-         opts     => $opts,
+         opts     => $in,
       }
    ) if -d $clean_name;
 
@@ -521,11 +957,12 @@ sub load_file {
    return $this->_throw(
       'readlimit exceeded',
       {
-         filename => $clean_name,
-         size     => $fsize,
-         opts     => $opts,
+         filename  => $clean_name,
+         size      => $fsize,
+         opts      => $in,
+         readlimit => $readlimit,
       }
-   ) if $fsize > $READLIMIT;
+   ) if $fsize > $readlimit;
 
    # localize the global output record separator so we can slurp it all
    # in one quick read.  We fail if the filesize exceeds our limit.
@@ -533,38 +970,37 @@ sub load_file {
 
    # open the file for reading (note the '<' syntax there) or fail with a
    # error message if our attempt to open the file was unsuccessful
-   my $cmd = '<' . $clean_name;
 
    # lock file before I/O on platforms that support it
    if (
-      $$opts{'--no-lock'}        ||
-      $$this{opts}{'--no-lock'}  ||
+      $in->{no_lock}           ||
+      $this->{opts}->{no_lock} ||
       !$this->use_flock()
    ) {
 
-      # if you use the '--no-lock' option you are probably inefficient
-      open $fh, $cmd  or                           ## no critic
-         return $this->_throw(                     ## use critic
+      # if you use the 'no_lock' option you are probably inefficient
+      open $fh, '<', $clean_name or
+         return $this->_throw(
             'bad open',
             {
                filename  => $clean_name,
                mode      => $mode,
                exception => $!,
-               cmd       => $cmd,
-               opts      => $opts,
+               cmd       => qq(< $clean_name),
+               opts      => $in,
             }
          );
    }
    else {
-      open $fh, $cmd or                            ## no critic
-         return $this->_throw(                     ## use critic
+      open $fh, '<', $clean_name or
+         return $this->_throw(
             'bad open',
             {
                filename  => $clean_name,
                mode      => $mode,
                exception => $!,
-               cmd       => $cmd,
-               opts      => $opts,
+               cmd       => qq(< $clean_name),
+               opts      => $in,
             }
          );
 
@@ -582,9 +1018,9 @@ sub load_file {
 
    $content = <$fh>;
 
-   if ( $$opts{'--no-lock'} || $$this{opts}{'--no-lock'} ) {
+   if ( $in->{no_lock} || $this->{opts}->{no_lock} ) {
 
-      # if execution gets here, you used the '--no-lock' option, and you
+      # if execution gets here, you used the 'no_lock' option, and you
       # are probably inefficient
 
       close $fh or return $this->_throw(
@@ -593,7 +1029,7 @@ sub load_file {
             filename  => $clean_name,
             mode      => $mode,
             exception => $!,
-            opts      => $opts,
+            opts      => $in,
          }
       );
    }
@@ -607,7 +1043,7 @@ sub load_file {
             filename  => $clean_name,
             mode      => $mode,
             exception => $!,
-            opts      => $opts,
+            opts      => $in,
          }
       );
    }
@@ -616,7 +1052,7 @@ sub load_file {
    # subroutine asked for an array eg- my @file = load_file('file');
    # otherwise, return a scalar value containing all of the file's content
    return split /$NL|\r|\n/o, $content
-      if $opts->{'--as-lines'};
+      if $in->{as_lines};
 
    return $content;
 }
@@ -627,29 +1063,55 @@ sub load_file {
 # --------------------------------------------------------
 sub write_file {
    my $this     = shift @_;
-   my $opts     = $this->_remove_opts( \@_ );
-   my $in       = $this->_names_values( @_ );
-   my $file     = $in->{file}    || $in->{filename} || '';
-   my $content  = $in->{content} || '';
-   my $mode     = $in->{mode}    || 'write';
-   my $bitmask  = $in->{bitmask} || oct 777;
-   my $raw_name = $file;
+   my $in       = _parse_in( @_ );
+   my $content  = '';
+   my $raw_name = '';
+   my $file     = '';
+   my $mode     = $in->{mode}     || 'write';
+   my $bitmask  = $in->{bitmask}  || oct 777;
    my $write_fh; # will be the lexical file handle local to this block
    my ( $root, $path, $clean_name, @dirs ) =
       ( '',    '',    '',          ()    );
 
+   # get name of file when passed in as a name/value pair...
+
+   $file =
+      exists  $in->{filename} &&
+      defined $in->{filename} &&
+      length  $in->{filename}
+         ? $in->{filename}
+         : exists  $in->{file} &&
+           defined $in->{file} &&
+           length  $in->{file}
+            ? $in->{file}
+            : '';
+
+   # ...or fall back to support of two-argument form of invocation
+
+   my $maybe_file    = shift @_; $maybe_file    = '' if !defined $maybe_file;
+   my $maybe_content = shift @_; $maybe_content = '' if !defined $maybe_content;
+
+   $file    = $maybe_file if !ref $maybe_file && $file eq '';
+   $content =
+      !ref $maybe_content &&
+      !exists $in->{content}
+         ? $maybe_content
+         : $in->{content};
+
+   $raw_name = $file; # preserve original filename input before line below:
+
    ( $root, $path, $file ) = atomize_path( $file );
 
    $mode = 'trunc' if $mode eq 'truncate';
+   $content = '' if $mode eq 'trunc';
 
    # if the call to this method didn't include a filename to which the caller
    # wants us to write, then complain about it
    return $this->_throw(
-      'no input',
-      {
+      'no input' => {
          meth    => 'write_file',
          missing => 'a file name to create, write, or append',
-         opts    => $opts,
+         opts    => $in,
       }
    ) unless length $file;
 
@@ -661,11 +1123,10 @@ sub write_file {
       $try_filename =~ s/$WINROOT//; # windows abs paths would throw this off
 
       return $this->_throw(
-         'bad chars',
-         {
-            string  => $raw_name,
-            purpose => 'the name of a file or directory',
-            opts    => $opts,
+         'bad chars' => {
+            string   => $raw_name,
+            purpose  => 'the name of a file or directory',
+            opts     => $in,
          }
       ) if $try_filename =~ /(?:$DIRSPLIT){2,}/;
    }
@@ -673,11 +1134,10 @@ sub write_file {
    # if the call to this method didn't include any data which the caller
    # wants us to write or append to the file, then complain about it
    return $this->_throw(
-      'no input',
-      {
+      'no input' => {
          meth    => 'write_file',
          missing => 'the content you want to write or append',
-         opts    => $opts,
+         opts    => $in,
       }
    ) if (
       length $content == 0
@@ -686,15 +1146,16 @@ sub write_file {
          &&
       !$EMPTY_WRITES_OK
          &&
-      !$opts->{'--empty-writes-OK'}
+      !$in->{empty_writes_OK}
+         &&
+      !$in->{empty_writes_ok}
    );
 
    # check if file already exists in the form of a directory
    return $this->_throw(
-      'cant write_file on a dir',
-      {
+      'cant write_file on a dir' => {
          filename => $raw_name,
-         opts     => $opts,
+         opts     => $in,
       }
    ) if -d $raw_name;
 
@@ -706,11 +1167,10 @@ sub write_file {
    foreach ( @dirs ) {
 
       return $this->_throw(
-         'bad chars',
-         {
-            string  => $_,
-            purpose => 'the name of a file or directory',
-            opts    => $opts,
+         'bad chars' => {
+            string   => $_,
+            purpose  => 'the name of a file or directory',
+            opts     => $in,
          }
       ) if !$this->valid_filename( $_ );
    }
@@ -722,12 +1182,11 @@ sub write_file {
    unless ( $mode eq 'write' || $mode eq 'append' || $mode eq 'trunc' ) {
 
       return $this->_throw(
-         'bad openmode popen',
-         {
+         'bad openmode popen' => {
             meth     => 'write_file',
             filename => $raw_name,
             badmode  => $mode,
-            opts     => $opts,
+            opts     => $in,
          }
       )
    }
@@ -749,23 +1208,43 @@ sub write_file {
    $clean_name = $root . $path . $file;
 
    # create path preceding file if path doesn't exist
+   if ( !-e $root . $path ) {
 
-   $this->make_dir(
-      $root . $path,
-      exists $in->{dbitmask} && defined $in->{dbitmask}
-         ? $in->{dbitmask}
-         : oct 777
-   ) unless -e $root . $path;
+      my $make_dir_ok = 1;
+
+      my $make_dir_return = $this->make_dir(
+         $root . $path,
+         exists $in->{dbitmask} &&
+         defined $in->{dbitmask}
+            ? $in->{dbitmask}
+            : oct 777,
+            {
+               diag   => $in->{diag},
+               onfail => sub {
+                  my ( $err, $trace ) = @_;
+
+                  return $in->{onfail}
+                     if ref $in->{onfail} &&
+                        ref $in->{onfail} eq 'CODE';
+
+                  $make_dir_ok = 0;
+
+                  return $err . $trace;
+               }
+            }
+      );
+
+      die $make_dir_return unless $make_dir_ok;
+   }
 
    # if file already exists, check if we can write to it
    if ( -e $clean_name ) {
 
       return $this->_throw(
-         'cant fwrite',
-         {
-            filename => $clean_name,
-            dirname  => $root . $path,
-            opts     => $opts,
+         'cant fwrite' => {
+            filename   => $clean_name,
+            dirname    => $root . $path,
+            opts       => $in,
          }
       ) unless -w $clean_name;
    }
@@ -773,18 +1252,17 @@ sub write_file {
 
       # if file doesn't exist, see if we can create it
       return $this->_throw(
-         'cant fcreate',
-         {
-            filename => $clean_name,
-            dirname  => $root . $path,
-            opts     => $opts,
+         'cant fcreate' => {
+            filename    => $clean_name,
+            dirname     => $root . $path,
+            opts        => $in,
          }
       ) unless -w $root . $path;
    }
 
-   # if you use the --no-lock option, please consider the risks
+   # if you use the no_lock option, please consider the risks
 
-   if ( $$opts{'--no-lock'} || !$USE_FLOCK ) {
+   if ( $in->{no_lock} || !$USE_FLOCK ) {
 
       # only non-existent files get bitmask arguments
       if ( -e $clean_name ) {
@@ -794,13 +1272,12 @@ sub write_file {
             $clean_name,
             $$MODES{sysopen}{ $mode }
          or return $this->_throw(
-               'bad open',
-               {
+               'bad open'   => {
                   filename  => $clean_name,
                   mode      => $mode,
                   exception => $!,
                   cmd       => qq($clean_name, $$MODES{sysopen}{ $mode }),
-                  opts      => $opts,
+                  opts      => $in,
                }
             );
       }
@@ -812,13 +1289,12 @@ sub write_file {
             $$MODES{sysopen}{ $mode },
             $bitmask
          or return $this->_throw(
-            'bad open',
-            {
+            'bad open'   => {
                filename  => $clean_name,
                mode      => $mode,
                exception => $!,
                cmd       => qq($clean_name, $$MODES{sysopen}{$mode}, $bitmask),
-               opts      => $opts,
+               opts      => $in,
             }
          );
       }
@@ -829,13 +1305,12 @@ sub write_file {
 
          open $write_fh, '<', $clean_name or
             return $this->_throw(
-               'bad open',
-               {
+               'bad open'   => {
                   filename  => $clean_name,
                   mode      => 'read',
                   exception => $!,
                   cmd       => $mode . $clean_name,
-                  opts      => $opts,
+                  opts      => $in,
                }
             );
 
@@ -849,11 +1324,10 @@ sub write_file {
             $clean_name,
             $$MODES{sysopen}{ $mode }
          or return $this->_throw(
-            'bad open',
-            {
+            'bad open'   => {
                filename  => $clean_name,
                mode      => $mode,
-               opts      => $opts,
+               opts      => $in,
                exception => $!,
                cmd       => qq($clean_name, $$MODES{sysopen}{ $mode }),
             }
@@ -867,11 +1341,10 @@ sub write_file {
             $$MODES{sysopen}{ $mode },
             $bitmask
          or return $this->_throw(
-            'bad open',
-            {
+            'bad open'   => {
                filename  => $clean_name,
                mode      => $mode,
-               opts      => $opts,
+               opts      => $in,
                exception => $!,
                cmd       => qq($clean_name, $$MODES{sysopen}{$mode}, $bitmask),
             }
@@ -887,77 +1360,35 @@ sub write_file {
       if ( $mode ne 'append' ) {
 
          truncate( $write_fh, 0 ) or return $this->_throw(
-            'bad systrunc',
-            {
-               filename  => $clean_name,
-               exception => $!,
-               opts      => $opts,
+            'bad systrunc' => {
+               filename    => $clean_name,
+               exception   => $!,
+               opts        => $in,
             }
          );
-
       }
    }
 
-   CORE::binmode( $write_fh ) if $in->{binmode} || $opts->{'--binmode'};
+   CORE::binmode( $write_fh ) if $in->{binmode};
 
-   $in->{content} ||= ''; syswrite( $write_fh, $in->{content} );
+   syswrite( $write_fh, $content );
 
    # release lock on the file
 
-   $this->_release( $write_fh ) unless $$opts{'--no-lock'} || !$USE_FLOCK;
+   $this->_release( $write_fh ) unless $$in{no_lock} || !$USE_FLOCK;
 
    close $write_fh or
       return $this->_throw(
-         'bad close',
-         {
+         'bad close'  => {
             filename  => $clean_name,
             mode      => $mode,
             exception => $!,
-            opts      => $opts,
+            opts      => $in,
          }
       );
 
    return 1;
 }
-
-
-# --------------------------------------------------------
-# %$File::Util::LOCKS
-# --------------------------------------------------------
-$_LOCKS->{IGNORE}    = sub { $_[2] };
-$_LOCKS->{ZERO}      = sub { 0 };
-$_LOCKS->{UNDEF}     = sub { };
-$_LOCKS->{NOBLOCKEX} = sub {
-   return $_[2] if flock( $_[2], &Fcntl::LOCK_EX | &Fcntl::LOCK_NB ); return
-};
-$_LOCKS->{NOBLOCKSH} = sub {
-   return $_[2] if flock( $_[2], &Fcntl::LOCK_SH | &Fcntl::LOCK_NB ); return
-};
-$_LOCKS->{BLOCKEX}   = sub {
-   return $_[2] if flock( $_[2], &Fcntl::LOCK_EX ); return
-};
-$_LOCKS->{BLOCKSH}   = sub {
-   return $_[2] if flock( $_[2], &Fcntl::LOCK_SH ); return
-};
-$_LOCKS->{WARN} = sub {
-   $_[0]->_throw(
-      'bad flock',
-      {
-         filename  => $_[1],
-         exception => $!,
-      },
-      '--as-warning',
-   ); return
-};
-$_LOCKS->{FAIL} = sub {
-   $_[0]->_throw(
-      'bad flock',
-      {
-         filename  => $_[1],
-         exception => $!,
-      },
-   ); return 0
-};
 
 
 # --------------------------------------------------------
@@ -976,7 +1407,6 @@ sub _seize {
    return $fh if !$CAN_FLOCK;
 
    my @policy = @ONLOCKFAIL;
-   my $policy = {};
 
    # seize filehandle, return it if lock is successful
 
@@ -1022,6 +1452,40 @@ sub valid_filename {
 # File::Util::strip_path()
 # --------------------------------------------------------
 sub strip_path { pop @{[ '', split /$DIRSPLIT/, _myargs( @_ ) ]} || '' }
+
+
+# --------------------------------------------------------
+# File::Util::atomize_path()
+# --------------------------------------------------------
+sub atomize_path {
+   my $fqfn = _myargs( @_ );
+
+   $fqfn =~ m/$ATOMIZER/;
+
+   my $root = $1 || '';
+   my $path = $2 || '';
+   my $file = $3 || '';
+
+   return( $root, $path, $file );
+}
+
+
+# --------------------------------------------------------
+# File::Util::atomize_path()
+# --------------------------------------------------------
+sub split_path {
+   my $path = _myargs( @_ );
+
+   # find root of tree (if path was absolute)
+   my ( $root, $branch, $leaf ) = atomize_path( $path );
+
+   my @path_dirs = split /$DIRSPLIT/o, $branch;
+
+   unshift @path_dirs, $root if $root;
+   push    @path_dirs, $leaf if $leaf;
+
+   return @path_dirs;
+}
 
 
 # --------------------------------------------------------
@@ -1107,7 +1571,7 @@ sub escape_filename {
 
    $escape = '_' if !defined($escape);
 
-   $file = strip_path($file) if $opts->{'--strip-path'};
+   $file = strip_path($file) if $opts->{strip_path};
 
    if ( $also ) { $file =~ s/\Q$also\E/$escape/g }
 
@@ -1128,28 +1592,28 @@ sub existent { my $f = _myargs( @_ ); defined $f ? -e $f : undef }
 # File::Util::touch()
 # --------------------------------------------------------
 sub touch {
-   my $this  = shift @_;
-   my $opts  = $this->_remove_opts( \@_ );
-   my $in    = $this->_names_values( @_ );
-   my @dirs  = ();
-   my $file  = shift @_ ||'';
+   my $this = shift @_;
+   my $file = shift( @_ ) || '';
+   my $path;
 
    return $this->_throw(
       'no input',
       {
          meth    => 'touch',
          missing => 'a file name or file handle reference',
-         opts    => $opts,
+         opts    => { },
       }
    ) unless defined $file && length $file;
+
+   $path = $this->return_path( $file );
 
    # see if the file exists already and is a directory
    return $this->_throw(
       'cant touch on a dir',
       {
          filename => $file,
-         dirname  => $this->return_path( $file ) || '',
-         opts     => $opts,
+         dirname  => $path || '',
+         opts     => { },
       }
    ) if -e $file && -d $file;
 
@@ -1162,16 +1626,18 @@ sub touch {
       'cant dread',
       {
          filename => $file,
-         dirname  => $this->return_path( $file ),
-         opts     => $opts,
+         dirname  => $path,
+         opts     => { },
       }
-   ) unless -r $this->return_path( $file );
+   ) if ( -e $path && !-r $path );
+
+   $this->make_dir( $path ) unless -e $path;
 
    # create the file if it doesn't exist (like the *nix touch command does)
    $this->write_file(
       filename => $file,
       content  => '',
-      '--empty-writes-OK'
+      { empty_writes_OK => 1 }
    ) unless -e $file;
 
    my $now = time();
@@ -1191,14 +1657,14 @@ sub file_type {
 
    my @ret;
 
-   push @ret, 'PLAIN'     if (-f $f);   push @ret, 'TEXT'      if (-T $f);
-   push @ret, 'BINARY'    if (-B $f);   push @ret, 'DIRECTORY' if (-d $f);
-   push @ret, 'SYMLINK'   if (-l $f);   push @ret, 'PIPE'      if (-p $f);
-   push @ret, 'SOCKET'    if (-S $f);   push @ret, 'BLOCK'     if (-b $f);
-   push @ret, 'CHARACTER' if (-c $f);
+   push @ret, 'PLAIN'     if -f $f;   push @ret, 'TEXT'      if -T $f;
+   push @ret, 'BINARY'    if -B $f;   push @ret, 'DIRECTORY' if -d $f;
+   push @ret, 'SYMLINK'   if -l $f;   push @ret, 'PIPE'      if -p $f;
+   push @ret, 'SOCKET'    if -S $f;   push @ret, 'BLOCK'     if -b $f;
+   push @ret, 'CHARACTER' if -c $f;
 
    ## no critic
-   push @ret, 'TTY'       if (-t $f);
+   push @ret, 'TTY'       if -t $f;
    ## use critic
 
    push @ret, 'ERROR: Cannot determine file type' unless scalar @ret;
@@ -1287,45 +1753,50 @@ sub last_changed {
 # File::Util::load_dir()
 # --------------------------------------------------------
 sub load_dir {
-   my $this = shift @_; my $opts = $this->_remove_opts( \@_ );
-   my $dir  = shift @_ ||''; my @files = ();
-   my $dir_hash = {}; my $dir_list = [];
+   my $this = shift @_;
+   my $opts = $this->_remove_opts( \@_ );
+   my $dir  = shift @_;
 
-   return $this->_throw
-      (
-         'no input',
-         {
-            'meth'      => 'load_dir',
-            'missing'   => 'a directory name',
-            'opts'      => $opts,
-         }
-      )
-   unless length $dir;
+   my @files    = ( );
+   my $dir_hash = { };
+   my $dir_list = [ ];
 
-   @files = $this->list_dir($dir,'--files-only');
+   $dir ||= '';
+
+   return $this->_throw(
+      'no input' => {
+         meth    => 'load_dir',
+         missing => 'a directory name',
+         opts    => $opts,
+      }
+   ) unless length $dir;
+
+   @files = $this->list_dir( $dir => { files_only => 1 } );
 
    # map the content of each file into a hash key-value element where the
    # key name for each file is the name of the file
-   if (!$opts->{'--as-list'} and !$opts->{'--as-listref'}) {
+   if ( !$opts->{as_list} && !$opts->{as_listref} ) {
 
-      foreach (@files) {
+      foreach ( @files ) {
 
          $dir_hash->{ $_ } = $this->load_file( $dir . SL . $_ );
       }
 
-      return($dir_hash);
+      return $dir_hash;
    }
    else {
 
-      foreach (@files) {
+      foreach ( @files ) {
 
-         push(@{$dir_list},$this->load_file( $dir . SL . $_ ));
+         push @$dir_list, $this->load_file( $dir . SL . $_ );
       }
 
-      return($dir_list) if ($opts->{'--as-listref'}); return(@{$dir_list});
+      return $dir_list if $opts->{as_listref};
+
+      return @$dir_list;
    }
 
-   $dir_hash;
+   return $dir_hash;
 }
 
 
@@ -1337,9 +1808,21 @@ sub make_dir {
    my $opts = $this->_remove_opts( \@_ );
    my( $dir, $bitmask ) = @_;
 
+   $bitmask = defined $bitmask ? $bitmask : $opts->{bitmask};
    $bitmask ||= oct 777;
 
-   if ( $$opts{'--if-not-exists'} ) {
+   # if the call to this method didn't include a directory name to create,
+   # then complain about it
+   return $this->_throw(
+      'no input',
+      {
+         meth    => 'make_dir',
+         missing => 'a directory name',
+         opts    => $opts,
+      }
+   ) unless defined $dir && length $dir;
+
+   if ( $opts->{if_not_exists} ) {
 
       if ( -e $dir ) {
 
@@ -1349,7 +1832,8 @@ sub make_dir {
             'called mkdir on a file',
             {
                filename => $dir,
-               dirname  => join( SL, split /$DIRSPLIT/, $dir ) . SL
+               dirname  => join( SL, split /$DIRSPLIT/, $dir ) . SL,
+               opts     => $opts,
             }
          );
       }
@@ -1362,7 +1846,8 @@ sub make_dir {
             'called mkdir on a file',
             {
                filename => $dir,
-               dirname  => join( SL, split /$DIRSPLIT/, $dir ) . SL
+               dirname  => join( SL, split /$DIRSPLIT/, $dir ) . SL,
+               opts     => $opts,
             }
          ) unless -d $dir;
 
@@ -1371,20 +1856,11 @@ sub make_dir {
             {
                dirname  => $dir,
                filetype => [ $this->file_type( $dir ) ],
+               opts     => $opts,
             }
          );
       }
    }
-
-   # if the call to this method didn't include a directory name to create,
-   # then complain about it
-   return $this->_throw(
-      'no input',
-      {
-         meth    => 'make_dir',
-         missing => 'a directory name',
-      }
-   ) unless defined $dir && length $dir;
 
    # if prospective directory name contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
@@ -1398,6 +1874,7 @@ sub make_dir {
          {
             string  => $dir,
             purpose => 'the name of a directory',
+            opts    => $opts,
          }
       ) if $try_dir =~ /(?:$DIRSPLIT){2,}/;
    }
@@ -1456,8 +1933,9 @@ sub make_dir {
          return $this->_throw(
             'called mkdir on a file',
             {
-               'filename'  => $dir,
-               'dirname'   => $up . SL,
+               filename => $dir,
+               dirname  => $up . SL,
+               opts     => $opts,
             }
          );
       }
@@ -1472,6 +1950,7 @@ sub make_dir {
          {
             dirname  => $dir,
             parentd  => $up,
+            opts     => $opts,
          }
       ) unless -w $up;
 
@@ -1482,6 +1961,7 @@ sub make_dir {
                exception => $!,
                dirname   => $dir,
                bitmask   => $bitmask,
+               opts     => $opts,
             }
          );
    }
@@ -1494,13 +1974,17 @@ sub make_dir {
 # File::Util::max_dives()
 # --------------------------------------------------------
 sub max_dives {
-   my $arg = _myargs( @_ );
+   my $arg  = _myargs( @_ );
+   my $this = shift @_;
 
    if ( defined $arg ) {
 
-      return File::Util->new()->_throw('bad maxdives') if $arg !~ /\D/o;
+      return File::Util->new->_throw('bad maxdives') if $arg =~ /\D/;
 
       $MAXDIVES = $arg;
+
+      $this->{opts}->{max_dives} = $arg
+         if blessed $this && $this->{opts};
    }
 
    return $MAXDIVES;
@@ -1511,19 +1995,40 @@ sub max_dives {
 # File::Util::readlimt()
 # --------------------------------------------------------
 sub readlimit {
-   my $arg = _myargs( @_ );
+   my $arg  = _myargs( @_ );
+   my $this = shift @_;
 
    if ( defined $arg ) {
 
-      return File::Util->new()->_throw
-         (
-            'bad readlimit' => { bad => $arg }
-         ) if $arg !~ /\D/o;
+      return File::Util->new->_throw ( 'bad readlimit' => { bad => $arg } )
+         if $arg =~ /\D/;
 
       $READLIMIT = $arg;
+
+      $this->{opts}->{readlimit} = $arg
+         if blessed $this && $this->{opts};
    }
 
    return $READLIMIT;
+}
+
+
+# --------------------------------------------------------
+# File::Util::diagnostic()
+# --------------------------------------------------------
+sub diagnostic {
+   my $arg  = _myargs( @_ );
+   my $this = shift @_;
+
+   if ( defined $arg ) {
+
+      $WANT_DIAGNOSTICS = !!$arg;
+
+      $this->{opts}->{diag} = !!$arg
+         if blessed $this && $this->{opts};
+   }
+
+   return $WANT_DIAGNOSTICS;
 }
 
 
@@ -1538,15 +2043,43 @@ sub needs_binmode { $NEEDS_BINMODE }
 # --------------------------------------------------------
 sub open_handle {
    my $this     = shift @_;
-   my $opts     = $this->_remove_opts( \@_ );
-   my $in       = $this->_names_values( @_ );
-   my $file     = $in->{file} || $in->{filename} || '';
-   my $mode     = $in->{mode} || 'write';
+   my $in       = $this->_parse_in( @_ );
+   my $file     = '';
+   my $mode     = '';
    my $bitmask  = $in->{bitmask} || oct 777;
    my $raw_name = $file;
    my $fh; # will be the lexical file handle scoped to this method
    my ( $root, $path, $clean_name, @dirs ) =
       ( '',    '',    '',          ()    );
+
+   # get name of file when passed in as a name/value pair...
+
+   $file =
+      exists  $in->{filename} &&
+      defined $in->{filename} &&
+      length  $in->{filename}
+         ? $in->{filename}
+         : exists  $in->{file} &&
+           defined $in->{file} &&
+           length  $in->{file}
+            ? $in->{file}
+            : '';
+
+   # ...or fall back to support of two-argument form of invocation
+
+   my $maybe_file = shift @_; $maybe_file = '' if !defined $maybe_file;
+   my $maybe_mode = shift @_; $maybe_mode = '' if !defined $maybe_mode;
+
+   $file = $maybe_file if !ref $maybe_file && $file eq '';
+   $mode =
+      !ref $maybe_mode &&
+      !exists $in->{mode}
+         ? $maybe_mode
+         : $in->{mode};
+
+   $mode ||= 'read';
+
+   $raw_name = $file; # preserve original filename input before line below:
 
    ( $root, $path, $file ) = atomize_path( $file );
 
@@ -1559,9 +2092,21 @@ sub open_handle {
       {
          meth    => 'open_handle',
          missing => 'a file name to create, write, read/write, or append',
-         opts    => $opts,
+         opts    => $in,
       }
    ) unless length $file;
+
+   if ( $mode eq 'read' && !-e $raw_name ) {
+
+      # if the file doesn't exist, send back an error
+      return $this->_throw(
+         'no such file',
+         {
+            filename => $raw_name,
+            opts     => $in,
+         }
+      ) unless -e $clean_name;
+   }
 
    # if prospective filename contains 2+ dir separators in sequence then
    # this is a syntax error we need to whine about
@@ -1575,7 +2120,7 @@ sub open_handle {
          {
             string  => $raw_name,
             purpose => 'the name of a file or directory',
-            opts    => $opts,
+            opts    => $in,
          }
       ) if $try_filename =~ /(?:$DIRSPLIT){2,}/;
    }
@@ -1592,7 +2137,7 @@ sub open_handle {
          {
             string  => $_,
             purpose => 'the name of a file or directory',
-            opts    => $opts,
+            opts    => $in,
          }
       ) if !$this->valid_filename( $_ );
    }
@@ -1602,8 +2147,8 @@ sub open_handle {
 
    # make sure that open mode is a valid mode
    if (
-      !exists $opts->{'--use-sysopen'} &&
-      !defined $opts->{'--use-sysopen'}
+      !exists $in->{use_sysopen} &&
+      !defined $in->{use_sysopen}
    ) {
       # native Perl open modes
       unless (
@@ -1616,7 +2161,7 @@ sub open_handle {
                meth     => 'open_handle',
                filename => $raw_name,
                badmode  => $mode,
-               opts     => $opts,
+               opts     => $in,
             }
          )
       }
@@ -1633,7 +2178,7 @@ sub open_handle {
                meth     => 'open_handle',
                filename => $raw_name,
                badmode  => $mode,
-               opts     => $opts,
+               opts     => $in,
             }
          )
       }
@@ -1655,13 +2200,35 @@ sub open_handle {
    # final clean filename assembled
    $clean_name = $root . $path . $file;
 
-   # create path preceding file if path doesn't exist
-   $this->make_dir(
-      $root . $path,
-      exists $in->{dbitmask} && defined $in->{dbitmask}
-         ? $in->{dbitmask}
-         : oct 777
-   ) unless -e $root . $path;
+   # create path preceding file if path doesn't exist and not in read mode
+   if ( $mode ne 'read' && !-e $root . $path ) {
+
+      my $make_dir_ok = 1;
+
+      my $make_dir_return = $this->make_dir(
+         $root . $path,
+         exists $in->{dbitmask} &&
+         defined $in->{dbitmask}
+            ? $in->{dbitmask}
+            : oct 777,
+            {
+               diag   => $in->{diag},
+               onfail => sub {
+                  my ( $err, $trace ) = @_;
+
+                  return $in->{onfail}
+                     if ref $in->{onfail} &&
+                        ref $in->{onfail} eq 'CODE';
+
+                  $make_dir_ok = 0;
+
+                  return $err . $trace;
+               }
+            }
+      );
+
+      die $make_dir_return unless $make_dir_ok;
+   }
 
    # sanity checks based on requested mode
    if (
@@ -1681,7 +2248,7 @@ sub open_handle {
             {
                filename => $clean_name,
                dirname  => $root . $path,
-               opts     => $opts,
+               opts     => $in,
             }
          ) unless -w $clean_name;
       }
@@ -1693,7 +2260,7 @@ sub open_handle {
             {
                filename => $clean_name,
                dirname  => $root . $path,
-               opts     => $opts,
+               opts     => $in,
             }
          ) unless -w $root . $path;
       }
@@ -1706,7 +2273,7 @@ sub open_handle {
          {
             filename => $clean_name,
             dirname  => $root . $path,
-            opts     => $opts,
+            opts     => $in,
          }
       ) unless -r $root . $path;
 
@@ -1716,7 +2283,7 @@ sub open_handle {
          {
             filename => $clean_name,
             dirname  => $root . $path,
-            opts     => $opts,
+            opts     => $in,
          }
       ) unless -e $clean_name;
 
@@ -1726,7 +2293,7 @@ sub open_handle {
          {
             filename => $clean_name,
             dirname  => $root . $path,
-            opts     => $opts,
+            opts     => $in,
          }
       ) unless -r $clean_name;
    }
@@ -1736,16 +2303,16 @@ sub open_handle {
          {
             meth    => 'open_handle',
             missing => q{a valid IO mode. (eg- 'read', 'write'...)},
-            opts    => $opts,
+            opts    => $in,
          }
       );
    }
    # input validation sequence finished
 
-   if ( $$opts{'--no-lock'} || !$USE_FLOCK ) {
+   if ( $$in{no_lock} || !$USE_FLOCK ) {
       if (
-         !exists $opts->{'--use-sysopen'} &&
-         !defined $opts->{'--use-sysopen'}
+         !exists $in->{use_sysopen} &&
+         !defined $in->{use_sysopen}
       ) { # perl open
          # get open mode
          $mode = $$MODES{popen}{ $mode };
@@ -1758,7 +2325,7 @@ sub open_handle {
                   mode      => $mode,
                   exception => $!,
                   cmd       => $mode . $clean_name,
-                  opts      => $opts,
+                  opts      => $in,
                }
             );
       }
@@ -1774,15 +2341,15 @@ sub open_handle {
                   mode      => $mode,
                   exception => $!,
                   cmd       => qq($clean_name, $$MODES{sysopen}{ $mode }),
-                  opts      => $opts,
+                  opts      => $in,
                }
             );
       }
    }
    else {
       if (
-         !exists $opts->{'--use-sysopen'} &&
-         !defined $opts->{'--use-sysopen'}
+         !exists $in->{use_sysopen} &&
+         !defined $in->{use_sysopen}
       ) { # perl open
          # open read-only first to safely check if we can get a lock.
          if ( -e $clean_name ) {
@@ -1795,7 +2362,7 @@ sub open_handle {
                      mode      => 'read',
                      exception => $!,
                      cmd       => $mode . $clean_name,
-                     opts      => $opts,
+                     opts      => $in,
                   }
                );
 
@@ -1813,7 +2380,7 @@ sub open_handle {
                         exception => $!,
                         filename  => $clean_name,
                         mode      => $mode,
-                        opts      => $opts,
+                        opts      => $in,
                         cmd       => $$MODES{popen}{ $mode } . $clean_name,
                      }
                   );
@@ -1827,7 +2394,7 @@ sub open_handle {
                      exception => $!,
                      filename  => $clean_name,
                      mode      => $mode,
-                     opts      => $opts,
+                     opts      => $in,
                      cmd       => $$MODES{popen}{ $mode } . $clean_name,
                   }
                );
@@ -1850,7 +2417,7 @@ sub open_handle {
                      mode      => 'read',
                      exception => $!,
                      cmd       => $mode . $clean_name,
-                     opts      => $opts,
+                     opts      => $in,
                   }
                );
 
@@ -1865,7 +2432,7 @@ sub open_handle {
                   {
                      filename  => $clean_name,
                      mode      => $mode,
-                     opts      => $opts,
+                     opts      => $in,
                      exception => $!,
                      cmd       => qq($clean_name, $$MODES{sysopen}{ $mode }),
                   }
@@ -1882,7 +2449,7 @@ sub open_handle {
                {
                   filename  => $clean_name,
                   mode      => $mode,
-                  opts      => $opts,
+                  opts      => $in,
                   exception => $!,
                   cmd       => qq($clean_name, $$MODES{sysopen}{$mode}, $bitmask),
                }
@@ -1897,7 +2464,7 @@ sub open_handle {
    }
 
    # call binmode on the filehandle if it was requested
-   CORE::binmode( $fh ) if $in->{binmode} || $opts->{'--binmode'};
+   CORE::binmode( $fh ) if $in->{binmode};
 
    # return file handle reference to the caller
    return $fh;
@@ -1938,7 +2505,7 @@ sub size { my $f = _myargs( @_ ); $f ||= ''; return unless -e $f; -s $f }
 # --------------------------------------------------------
 # File::Util::trunc()
 # --------------------------------------------------------
-sub trunc { $_[0]->write_file( mode => 'trunc', file => $_[1]) }
+sub trunc { $_[0]->write_file( { mode => trunc => file => $_[1] } ) }
 
 
 # --------------------------------------------------------
@@ -1947,769 +2514,87 @@ sub trunc { $_[0]->write_file( mode => 'trunc', file => $_[1]) }
 sub use_flock {
    my $arg = _myargs( @_ );
 
-   if (defined($arg)) { $USE_FLOCK = $arg }
+   $USE_FLOCK = !!$arg if defined $arg;
 
-   $USE_FLOCK
+   return $USE_FLOCK;
 }
 
 
 # --------------------------------------------------------
-# File::Util::_myargs()
+# File::Util::AUTOLOAD()
 # --------------------------------------------------------
-sub _myargs {
+sub AUTOLOAD {
 
-   shift @_ if UNIVERSAL::isa( $_[0], ( caller(0) )[0] );
+   # the sole purpose of using autoload here is to avoid compiling in
+   # copious amounts of error handling code at compile time, when in
+   # the majority of cases and in production code-- such errors should
+   # have already been debugged and the error handling mechanism will
+   # end up getting invoked seldom if ever.
 
-   return wantarray ? @_ : $_[0]
-}
+   ( my $name = our $AUTOLOAD ) =~ s/.*:://;
 
+   if ( $name eq '_throw' )
+   {
+      *_throw = sub
+      {
+         my $this = shift @_;
+         my $in   = $this->_parse_in( @_ ) || { };
+         my $error_class;
 
-# --------------------------------------------------------
-# File::Util::_remove_opts()
-# --------------------------------------------------------
-sub _remove_opts {
+         # direct input can override object-global diag default, otherwise
+         # the object's "want diagnostics" setting is inherited
 
-   my $args = _myargs( @_ );
+         $in->{diag} = defined $in->{diag} && !$in->{diag}
+            ? 0
+            : $in->{diag}
+               ? $in->{diag}
+               : $this->{opts}->{diag};
 
-   return unless UNIVERSAL::isa( $args, 'ARRAY' );
-
-   my @triage = @$args; @$args = ();
-   my $opts   = {};
-
-   while ( @triage ) {
-
-      my $arg = shift @triage;
-
-      # if an argument is '', 0, or undef, it's obviously not an --option ...
-      push @$args, $arg and next unless $arg; # ...so give it back to the @$args
-
-      # hmmm.  looks like an "--option" argument, if:
-      if ( substr( $arg, 0, 2) eq '--' ) {
-
-         # it's either a bare "--option", or it's an "--option=value" pair
-         my ( $opt, $value ) = split /=/o, $arg;
-
-         $opts->{ $opt } = defined $value ? $value : $arg
-      }
-      else {
-
-         # but if it's not an "--option" type arg, give it back to the @$args
-         push @$args, $arg;
-      }
-   }
-
-   return $opts;
-}
-
-
-# --------------------------------------------------------
-# File::Util::_names_values()
-# --------------------------------------------------------
-sub _names_values {
-
-   my @copy    = _myargs( @_ );
-   my $nvpairs = {};
-   my $i       = 0;
-
-   while ( @copy ) {
-
-      my ( $name, $val ) = splice @copy, 0, 2;
-
-      if ( defined $name ) {
-
-         $nvpairs->{ $name } = defined $val ? $val : '';
-      }
-      else {
-
-         ++$i;
-
-         $nvpairs->{
-            qq[un-named key no. $i]
-         } = defined $val ? $val : '';
-      }
-   }
-
-   return $nvpairs;
-}
-
-
-# --------------------------------------------------------
-# File::Util::_throw
-# --------------------------------------------------------
-sub _throw {
-   my $this = shift @_; my $opts = $this->_remove_opts( \@_ );
-   my %fatal_rules = ();
-
-   # fatalality-handling rules passed to the failing caller trump the
-   # rules set up in the attributes of the object; the mechanism below
-   # also allows for the implicit handling of '--fatals-are-fatal'
-   map { $fatal_rules{ $_ } = $_ }
-   grep(/^--fatals/o, values %$opts);
-
-   unless (scalar keys %fatal_rules) {
-      map { $fatal_rules{ $_ } = $_ }
-      grep(/^--fatals/o, keys %{ $this->{opts} })
-   }
-
-   return(0) if $fatal_rules{'--fatals-as-status'};
-
-   $this->{expt}||={};
-
-   unless (UNIVERSAL::isa($this->{expt},'Exception::Handler')) {
-
-      require Exception::Handler;
-
-      $this->{expt} = Exception::Handler->new();
-   }
-
-   my $error = ''; my $in = {};
-
-   $in->{_pak} = __PACKAGE__;
-
-   if ( scalar @_ == 1 ) {
-
-      $error = $_[0] ? 'plain error' : 'empty error';
-
-      $in->{error} = $_[0] || 'error undefined';
-
-      goto PLAIN_ERRORS;
-   }
-   else {
-
-      $error = shift @_ || 'empty error';
-
-      if ( $error eq 'plain error' ) {
-
-         $in->{error} = shift @_;
-
-         $in->{error} = 'error undefined'
-            unless defined $in->{error} && length $in->{error};
-
-         goto PLAIN_ERRORS;
-      }
-   }
-
-   $in = shift @_ || {};
-
-   $in->{_pak} = __PACKAGE__;
-
-   ## no critic
-   map { $_ = defined $_ ? $_ : 'undefined value' } keys %$in;
-   ## use critic
-
-   PLAIN_ERRORS:
-
-   my $bad_news =
-      CORE::eval
+         if
          (
-            q{<<__ERRORBLOCK__}
-            . &NL . &_errors($error)
-            . &NL . q{__ERRORBLOCK__}
-         );
+            $in->{diag} ||
+            (      $in->{opts}           &&
+               ref $in->{opts}           &&
+               ref $in->{opts} eq 'HASH' &&
+               $in->{opts}->{diag}
+            )
+         )
+         {
+            require File::Util::Exception::Diagnostic;
 
-## for debugging only
-#   if ($@) { return $this->{expt}->trace($@) }
+            $error_class = 'File::Util::Exception::Diagnostic';
 
-   if ($fatal_rules{'--fatals-as-warning'}) {
+            unshift @_, $this, $error_class;
 
-      warn($this->{expt}->trace(($@ || $bad_news))) and return
+            goto \&File::Util::Exception::Diagnostic::_throw;
+         }
+         else
+         {
+            require File::Util::Exception::Standard;
+
+            $error_class = 'File::Util::Exception::Standard';
+
+            unshift @_, $this, $error_class;
+
+            goto \&File::Util::Exception::Standard::_throw;
+
+         }
+      };
+
+      goto \&_throw;
    }
-   elsif ( $fatal_rules{'--fatals-as-errmsg'} || $opts->{'--return'}) {
-
-      return($this->{expt}->trace(($@ || $bad_news)))
-   }
-
-   foreach (keys(%{$in})) {
-
-      next if ($_ eq 'opts');
-
-      $bad_news .= qq[ARG   $_ = $in->{$_}] . $NL;
-   }
-
-   if ($in->{opts}) {
-
-      foreach (keys(%{$$in{opts}})) {
-
-         $_ = (defined($_)) ? $_  : 'empty value';
-
-         $bad_news .= qq[OPT   $_] . $NL;
-      }
-   }
-
-   warn($this->{expt}->trace(($@ || $bad_news))) if ($opts->{'--warn-also'});
-
-   $this->{expt}->fail(($@ || $bad_news));
-
-   '';
 }
 
 
-#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#
-# ERROR MESSAGES
-#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#
-sub _errors {
-   use vars qw($EBL $EBR);
-   ($EBL,$EBR) = ('<<', '>>');
-   my $error_thrown = shift @_;
+# --------------------------------------------------------
+# File::Util::DESTROY()
+# --------------------------------------------------------
+sub DESTROY { }
 
-   # begin long table of helpful diag error messages
-   my %error_msg_table = (
-# NO SUCH FILE
-'no such file' => <<'__bad_open__',
-$in->{_pak} can't open
-   $EBL$in->{filename}$EBR
-because it is inaccessible or does not exist.
+1;
 
-Origin:     This is *most likely* due to human error.
-Solution:   Cannot diagnose.  A human must investigate the problem.
-__bad_open__
 
-
-# BAD FLOCK RULE POLICY
-'bad flock rules' => <<'__bad_lockrules__',
-Invalid file locking policy can not be implemented.  $in->{_pak}::flock_rules
-does not accept one or more of the policy keywords passed to this method.
-
-   Invalid Policy specified: $EBL@{[
-   join ' ', map { '[undef]' unless defined $_ } @{ $in->{all} } ]}$EBR
-
-   flock_rules policy in effect before invalid policy failed:
-      $EBL@ONLOCKFAIL$EBR
-
-   Proper flock_rules policy includes one or more of the following recognized
-   keywords specified in order of precedence:
-      BLOCK         waits to try getting an exclusive lock
-      FAIL          dies with stack trace
-      WARN          warn()s about the error with a stack trace
-      IGNORE        ignores the failure to get an exclusive lock
-      UNDEF         returns undef
-      ZERO          returns 0
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__bad_lockrules__
-
-
-# CAN'T READ FILE - PERMISSIONS
-'cant fread' => <<'__cant_read__',
-Permissions conflict.  $in->{_pak} can't read the contents of this file:
-   $EBL$in->{filename}$EBR
-
-Due to insufficient permissions, the system has denied Perl the right to
-view the contents of this file.  It has a bitmask of: (octal number)
-   $EBL@{[ sprintf('%04o',(stat($in->{filename}))[2] & 0777) ]}$EBR
-
-   The directory housing it has a bitmask of: (octal number)
-      $EBL@{[ sprintf('%04o',(stat($in->{dirname}))[2] & 0777) ]}$EBR
-
-   Current flock_rules policy:
-      $EBL@ONLOCKFAIL$EBR
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks $in->{_pak} to perform I/O.
-            Try using Perl's chmod command, or the native system chmod()
-            command from a shell.
-__cant_read__
-
-
-# CAN'T READ FILE - NOT EXISTENT
-'cant fread not found' => <<'__cant_read__',
-File not found.  $in->{_pak} can't read the contents of this file:
-   $EBL$in->{filename}$EBR
-
-The file specified does not exist.  It can not be opened or read from.
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must investigate why the application tried to open a
-            non-existent file, and/or why the file is expected to exist and
-            is not found.
-__cant_read__
-
-
-# CAN'T CREATE FILE - PERMISSIONS
-'cant fcreate' => <<'__cant_write__',
-Permissions conflict.  $in->{_pak} can't create this file:
-   $EBL$in->{filename}$EBR
-
-$in->{_pak} can't create this file because the system has denied Perl
-the right to create files in the parent directory.
-
-   The -e test returns $EBL@{[-e $in->{dirname} ]}$EBR for the directory.
-   The -r test returns $EBL@{[-r $in->{dirname} ]}$EBR for the directory.
-   The -R test returns $EBL@{[-R $in->{dirname} ]}$EBR for the directory.
-   The -w test returns $EBL@{[-w $in->{dirname} ]}$EBR for the directory
-   The -W test returns $EBL@{[-w $in->{dirname} ]}$EBR for the directory
-
-   Parent directory: (path may be relative and/or redundant)
-      $EBL$in->{dirname}$EBR
-
-   Parent directory has a bitmask of: (octal number)
-      $EBL@{[ sprintf('%04o',(stat($in->{dirname}))[2] & 0777) ]}$EBR
-
-   Current flock_rules policy:
-      $EBL@ONLOCKFAIL$EBR
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks $in->{_pak} to perform I/O.
-            Try using Perl's chmod command, or the native system chmod()
-            command from a shell.
-__cant_write__
-
-
-# CAN'T WRITE TO FILE - EXISTS AS DIRECTORY
-'cant write_file on a dir' => <<'__bad_writefile__',
-$in->{_pak} can't write to the specified file because it already exists
-as a directory.
-   $EBL$in->{filename}$EBR
-
-Origin:     This is a human error.
-Solution:   Resolve naming issue between the existent directory and the file
-            you wish to create/write/append.
-__bad_writefile__
-
-
-# CAN'T TOUCH A FILE - EXISTS AS DIRECTORY
-'cant touch on a dir' => <<'__bad_touchfile__',
-$in->{_pak} can't touch the specified file because it already exists
-as a directory.
-   $EBL$in->{filename}$EBR
-
-Origin:     This is a human error.
-Solution:   Resolve naming issue between the existent directory and the file
-            you wish to touch.
-__bad_touchfile__
-
-
-# CAN'T WRITE TO FILE
-'cant fwrite' => <<'__cant_write__',
-Permissions conflict.  $in->{_pak} can't write to this file:
-   $EBL$in->{filename}$EBR
-
-Due to insufficient permissions, the system has denied Perl the right
-to modify the contents of this file.  It has a bitmask of: (octal number)
-   $EBL@{[ sprintf('%04o',(stat($in->{filename}))[2] & 0777) ]}$EBR
-
-   Parent directory has a bitmask of: (octal number)
-      $EBL@{[ sprintf('%04o',(stat($in->{dirname}))[2] & 0777) ]}$EBR
-
-   Current flock_rules policy:
-      $EBL@ONLOCKFAIL$EBR
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks $in->{_pak} to perform I/O.
-            Try using Perl's chmod command, or the native system chmod()
-            command from a shell.
-__cant_write__
-
-
-# BAD OPEN MODE - PERL
-'bad openmode popen' => <<'__bad_openmode__',
-Illegal mode specified for file open.  $in->{_pak} can't open this file:
-   $EBL$in->{filename}$EBR
-
-When calling $in->{_pak}::$in->{meth}() you specified that the file
-opened in this I/O operation should be opened in $EBL$in->{badmode}$EBR
-but that is not a recognized open mode.
-
-Supported open modes for $in->{_pak}::write_file() are:
-   write       - open the file in write mode, creating it if necessary, and
-                 overwriting any existing contents of the file.
-   append      - open the file in append mode
-
-Supported open modes for $in->{_pak}::open_handle() are the same as above, but
-also include the following:
-   read        - open the file in read-only mode
-
-   (and if the --use-sysopen flag is used):
-   rwcreate    - open the file for update (read+write), creating it if necessary
-   rwupdate    - open the file for update (read+write). Causes fatal error if
-                 the file doesn't yet exist
-   rwappend    - open the file for update in append mode
-   rwclobber   - open the file for update, erasing all contents (truncating,
-                 i.e- "clobbering" the file first)
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw by specifying the desired
-            open mode from the list above.
-__bad_openmode__
-
-
-# BAD OPEN MODE - SYSOPEN
-'bad openmode sysopen' => <<'__bad_openmode__',
-Illegal mode specified for file sysopen.  $in->{_pak} can't sysopen this file:
-   $EBL$in->{filename}$EBR
-
-When calling $in->{_pak}::$in->{meth}() you specified that the file
-opened in this I/O operation should be sysopen()'d in $EBL$in->{badmode}$EBR
-but that is not a recognized open mode.
-
-Supported open modes for $in->{_pak}::write_file() are:
-   write       - open the file in write mode, creating it if necessary, and
-                 overwriting any existing contents of the file.
-   append      - open the file in append mode
-
-Supported open modes for $in->{_pak}::open_handle() are the same as above, but
-also include the following:
-   read        - open the file in read-only mode
-
-   (and if the --use-sysopen flag is used, as the application JUST did):
-   rwcreate    - open the file for update (read+write), creating it if necessary
-   rwupdate    - open the file for update (read+write). Causes fatal error if
-                 the file doesn't yet exist
-   rwappend    - open the file for update in append mode
-   rwclobber   - open the file for update, erasing all contents (truncating,
-                 i.e- "clobbering" the file first)
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw by specifying the desired
-            sysopen mode from the list above.
-__bad_openmode__
-
-
-# CAN'T LIST DIRECTORY
-'cant dread' => <<'__cant_read__',
-Permissions conflict.  $in->{_pak} can't list the contents of this directory:
-   $EBL$in->{dirname}$EBR
-
-Due to insufficient permissions, the system has denied Perl the right to
-view the contents of this directory.  It has a bitmask of: (octal number)
-   $EBL@{[ sprintf('%04o',(stat($in->{dirname}))[2] & 0777) ]}$EBR
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks $in->{_pak} to perform I/O.
-            Try using Perl's chmod command, or the native system chmod()
-            command from a shell.
-__cant_read__
-
-
-# CAN'T CREATE DIRECTORY - PERMISSIONS
-'cant dcreate' => <<'__cant_dcreate__',
-Permissions conflict.  $in->{_pak} can't create:
-   $EBL$in->{dirname}$EBR
-
-   $in->{_pak} can't create this directory because the system has denied
-   Perl the right to create files in the parent directory.
-
-   Parent directory: (path may be relative and/or redundant)
-      $EBL$in->{parentd}$EBR
-
-   Parent directory has a bitmask of: (octal number)
-      $EBL@{[ sprintf('%04o',(stat($in->{parentd}))[2] & 0777) ]}$EBR
-
-Origin:     This is *most likely* due to human error.  External system errors
-            can occur however, but this doesn't have to do with $in->{_pak}.
-Solution:   A human must fix the conflict by adjusting the file permissions
-            of directories where a program asks $in->{_pak} to perform I/O.
-            Try using Perl's chmod command, or the native system chmod()
-            command from a shell.
-__cant_dcreate__
-
-
-# CAN'T CREATE DIRECTORY - TARGET EXISTS
-'make_dir target exists' => <<'__cant_dcreate__',
-make_dir target already exists.
-   $EBL$in->{dirname}$EBR
-
-$in->{_pak} can't create the directory you specified because that
-directory already exists, with filetype attributes of
-@{[join(', ', @{ $in->{filetype} })]} and permissions
-set to $EBL@{[ sprintf('%04o',(stat($in->{dirname}))[2] & 0777) ]}$EBR
-
-Origin:     This is *most likely* due to human error.  The program has tried
-            to make a directory where a directory already exists.
-Solution:   Weaken the requirement somewhat by using the "--if-not-exists"
-            flag when calling the make_dir object method.  This option
-            will cause $in->{_pak} to ignore attempts to create directories
-            that already exist, while still creating the ones that don't.
-__cant_dcreate__
-
-
-# CAN'T OPEN
-'bad open' => <<'__bad_open__',
-$in->{_pak} can't open this file for $EBL$in->{mode}$EBR:
-   $EBL$in->{filename}$EBR
-
-   The system returned this error:
-      $EBL$in->{exception}$EBR
-
-   $in->{_pak} used this directive in its attempt to open the file
-      $EBL$in->{cmd}$EBR
-
-   Current flock_rules policy:
-      $EBL@ONLOCKFAIL$EBR
-
-Origin:     This is *most likely* due to human error.
-Solution:   Cannot diagnose.  A Human must investigate the problem.
-__bad_open__
-
-
-# BAD CLOSE
-'bad close' => <<'__bad_close__',
-$in->{_pak} couldn't close this file after $EBL$in->{mode}$EBR
-   $EBL$in->{filename}$EBR
-
-   The system returned this error:
-      $EBL$in->{exception}$EBR
-
-   Current flock_rules policy:
-      $EBL@ONLOCKFAIL$EBR
-
-Origin:     Could be either human _or_ system error.
-Solution:   Cannot diagnose.  A Human must investigate the problem.
-__bad_close__
-
-
-# CAN'T TRUNCATE
-'bad systrunc' => <<'__bad_systrunc__',
-$in->{_pak} couldn't truncate() on $EBL$in->{filename}$EBR after having
-successfully opened the file in write mode.
-
-The system returned this error:
-   $EBL$in->{exception}$EBR
-
-Current flock_rules policy:
-   $EBL@ONLOCKFAIL$EBR
-
-This is most likely _not_ a human error, but has to do with your system's
-support for the C truncate() function.
-__bad_systrunc__
-
-
-# CAN'T GET FLOCK AFTER BLOCKING
-'bad flock' => <<'__bad_lock__',
-$in->{_pak} can't get a lock on the file
-   $EBL$in->{filename}$EBR
-
-The system returned this error:
-   $EBL$in->{exception}$EBR
-
-Current flock_rules policy:
-   $EBL@ONLOCKFAIL$EBR
-
-Origin:     Could be either human _or_ system error.
-Solution:   Investigate the reason why you can't get a lock on the file,
-            it is usually because of improper programming which causes
-            race conditions on one or more files.
-__bad_lock__
-
-
-# CAN'T OPEN ON A DIRECTORY
-'called open on a dir' => <<'__bad_open__',
-$in->{_pak} can't call open() on this file because it is a directory
-   $EBL$in->{filename}$EBR
-
-Origin:     This is a human error.
-Solution:   Use $in->{_pak}::load_file() to load the contents of a file
-            Use $in->{_pak}::list_dir() to list the contents of a directory
-__bad_open__
-
-
-# CAN'T OPENDIR ON A FILE
-'called opendir on a file' => <<'__bad_open__',
-$in->{_pak} can't opendir() on this file because it is not a directory.
-   $EBL$in->{filename}$EBR
-
-Use $in->{_pak}::load_file() to load the contents of a file
-Use $in->{_pak}::list_dir() to list the contents of a directory
-
-Origin:     This is a human error.
-Solution:   Use $in->{_pak}::load_file() to load the contents of a file
-            Use $in->{_pak}::list_dir() to list the contents of a directory
-__bad_open__
-
-
-# CAN'T MKDIR ON A FILE
-'called mkdir on a file' => <<'__bad_open__',
-$in->{_pak} can't auto-create a directory for this path name because it
-already exists as a file.
-   $EBL$in->{filename}$EBR
-
-Origin:     This is a human error.
-Solution:   Resolve naming issue between the existent file and the directory
-            you wish to create.
-__bad_open__
-
-
-# BAD CALL TO File::Util::readlimit
-'bad readlimit' => <<'__maxdives__',
-Bad call to $in->{_pak}::readlimit().  This method can only be called with
-a numeric value (bytes).  Non-integer numbers will be converted to integer
-format if specified (numbers like 5.2), but don't do that, it's inefficient.
-
-This operation aborted.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__maxdives__
-
-
-# EXCEEDED READLIMIT
-'readlimit exceeded' => <<'__readlimit__',
-$in->{_pak} can't load file: $EBL$in->{filename}$EBR
-into memory because its size exceeds the maximum file size allowed
-for a read.
-
-The size of this file is $EBL$in->{size}$EBR bytes.
-
-Currently the read limit is set at $EBL$READLIMIT$EBR bytes.
-
-Origin:     This is a human error.
-Solution:   Consider setting the limit to a higher number of bytes.
-__readlimit__
-
-
-# BAD CALL TO File::Util::max_dives
-'bad maxdives' => <<'__maxdives__',
-Bad call to $in->{_pak}::max_dives().  This method can only be called with
-a numeric value (bytes).  Non-integer numbers will be converted to integer
-format if specified (numbers like 5.2), but don't do that, it's inefficient.
-
-This operation aborted.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__maxdives__
-
-
-# EXCEEDED MAXDIVES
-'maxdives exceeded' => <<'__maxdives__',
-Recursion limit reached at $EBL${\ scalar(
-   (exists $in->{maxdives} && defined $in->{maxdives}) ?
-   $in->{maxdives} : $MAXDIVES) }$EBR dives.  Maximum number of subdirectory dives is set to the value returned by
-$in->{_pak}::max_dives().  Try manually setting the value to a higher number
-before calling list_dir() with option --follow or --recurse (synonymous).  Do
-so by calling $in->{_pak}::max_dives() with the numeric argument corresponding
-to the maximum number of subdirectory dives you want to allow when traversing
-directories recursively.
-
-This operation aborted.
-
-Origin:     This is a human error.
-Solution:   Consider setting the limit to a higher number.
-__maxdives__
-
-
-# BAD OPENDIR
-'bad opendir' => <<'__bad_opendir__',
-$in->{_pak} can't opendir on directory:
-   $EBL$in->{dirname}$EBR
-
-The system returned this error:
-   $EBL$in->{exception}$EBR
-
-Origin:     Could be either human _or_ system error.
-Solution:   Cannot diagnose.  A Human must investigate the problem.
-__bad_opendir__
-
-
-# BAD MAKEDIR
-'bad make_dir' => <<'__bad_make_dir__',
-$in->{_pak} had a problem with the system while attempting to create the
-directory you specified with a bitmask of $EBL$in->{bitmask}$EBR
-
-directory: $EBL$in->{dirname}$EBR
-
-The system returned this error:
-   $EBL$in->{exception}$EBR
-
-Origin:     Could be either human _or_ system error.
-Solution:   Cannot diagnose.  A Human must investigate the problem.
-__bad_make_dir__
-
-
-# BAD CHARS
-'bad chars' => <<'__bad_chars__',
-$in->{_pak} can't use this string for $EBL$in->{purpose}$EBR.
-   $EBL$in->{string}$EBR
-It contains illegal characters.
-
-Illegal characters are:
-   \\   (backslash)
-   /   (forward slash)
-   :   (colon)
-   |   (pipe)
-   *   (asterisk)
-   ?   (question mark)
-   "   (double quote)
-   <   (less than)
-   >   (greater than)
-   \\t  (tab)
-   \\ck (vertical tabulator)
-   \\r  (newline CR)
-   \\n  (newline LF)
-
-Origin:     This is a human error.
-Solution:   A human must remove the illegal characters from this string.
-__bad_chars__
-
-
-# NOT A VALID FILEHANDLE
-'not a filehandle' => <<'__bad_handle__',
-$in->{_pak} can't unlock file with an invalid file handle reference:
-   $EBL$in->{argtype}$EBR is not a valid filehandle
-
-Origin:     This is most likely a human error, although it is remotely possible
-            that this message is the result of an internal error in the
-            $in->{_pak} module, but this is not likely if you called
-            $in->{_pak}'s internal ::_release() method directly on your own.
-Solution:   A human must fix the programming flaw.  Alternatively, in the
-            second listed scenario, the package maintainer must investigate the
-            problem.  Please send a usenet post with this error message in its
-            entirety to Tommy Butler <tommy\@atrixnet.com>, or to usenet group:
-            $EBL news://comp.lang.perl.modules $EBR
-__bad_handle__
-
-
-# BAD CALL TO METHOD FOO
-'no input' => <<'__no_input__',
-$in->{_pak} can't honor your call to $EBL$in->{_pak}::$in->{meth}()$EBR
-because you didn't provide $EBL@{[$in->{missing}||'the required input']}$EBR
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__no_input__
-
-
-# PLAIN ERROR TYPE
-'plain error' => <<'__plain_error__',
-$in->{_pak} failed with the following message:
-${\ scalar ($_[0] || ((exists $in->{error} && defined $in->{error}) ?
-   $in->{error} : '[error unspecified]')) }
-__plain_error__
-
-
-# INVALID ERROR TYPE
-'unknown error message' => <<'__foobar_input__',
-$in->{_pak} failed with an invalid error-type designation.
-
-Origin:     This is a bug!  Please inform Tommy Butler <tommy\@atrixnet.com>
-Solution:   A human must fix the programming flaw.
-__foobar_input__
-
-
-# EMPTY ERROR TYPE
-'empty error' => <<'__no_input__',
-$in->{_pak} failed with an empty error-type designation.
-
-Origin:     This is a human error.
-Solution:   A human must fix the programming flaw.
-__no_input__
-
-   ); # end of error message table
-
-   exists $error_msg_table{ $error_thrown }
-   ? $error_msg_table{ $error_thrown }
-   : $error_msg_table{'unknown error message'}
-}
+__END__
 
 =pod
 
@@ -2717,65 +2602,160 @@ __no_input__
 
 File::Util - Easy, versatile, portable file handling
 
+=head1 VERSION
+
+version 4.130420
+
 =head1 DESCRIPTION
 
 File::Util provides a comprehensive toolbox of utilities to automate all
-kinds of common tasks on file / directories.  Its purpose is to do so
-in the most portable manner possible so that users of this module won't
-have to worry about whether their programs will work on other OSes
-and machines.
+kinds of common tasks on files and directories.  Its purpose is to do so
+in the most B<portable> manner possible so that users of this module won't
+have to worry about whether their programs will work on other operating systems
+and/or architectures.  It works on Linux, Windows, Mac, BSD, Unix and others.
+
+File::Util is written B<purely in Perl>, and requires no compiler or make
+utility on your system in order to install and run it.
+
+File::Util also aims to be as backward compatible as possible, running without
+problems on Perl installations as old as 5.006.  You are encouraged to run
+File::Util on Perl version 5.8 and above.
 
 =head1 SYNOPSIS
 
+   # use File::Util in your program
    use File::Util;
+
+   # ...you can optionally enable File::Util's diagnostic error messages:
+   use File::Util qw( :diag );
+
+   # create a new File::Util object
    my $f = File::Util->new();
 
-   my $content = $f->load_file('foo.txt');
+   # ...or if you want to enable diagnostics on a per-object basis instead:
+   $f = File::Util->new( diag => 1 );
 
+   # load content into a variable, be it text, or binary, either works
+   my $content = $f->load_file( 'Meeting Notes.txt' );
+
+   # ...or if you only want diagnostic error messages on a per-call basis:
+   $content = $f->load_file( 'Meeting Notes.txt' => { diag => 1 } );
+
+   # wrangle text
    $content =~ s/this/that/g;
 
+   # re-write the file with your changes
    $f->write_file(
-      file => 'bar.txt',
+      file => 'Meeting Notes.txt',
       content => $content,
-      bitmask => 0644
    );
 
+   # try binary this time
+   my $binary_content = $f->load_file( 'cat-movie.avi' );
+
+   # get some image data from somewhere...
+   my $picture_data = get_image_upload();
+
+   # ...and write a binary image file, using some other options as well
    $f->write_file(
-      file => 'file.bin', content => $binary_content, '--binmode'
+      file => 'llama.jpg',
+      content => $picture_data,
+      { binmode => 1, bitmask => oct 644 }
    );
 
-   my @lines = $f->load_file('randomquote.txt', '--as-lines');
-   my $line  = int rand scalar @lines;
+   # load a file into an array, line by line
+   my @lines = $f->load_file( 'file.txt' => { as_lines => 1 } );
 
-   print $lines[ $line ];
+   # get an open file handle for reading
+   my $fh = $f->open_handle( file => 'Ian likes cats.txt', mode => 'read' );
 
-   my @files = $f->list_dir('/var/tmp', qw/ --files-only --recurse /);
-   my @textfiles = $f->list_dir('/var/tmp', '--pattern=\.txt$');
+   while ( my $line = <$fh> ) { # read the file, line by line
 
-   if ( $f->can_write('wibble.log') ) {
+      # ... do stuff
+   }
 
-      my $HANDLE = $f->open_handle(
-         file => 'wibble.log',
+   close $fh or die $!; # don't forget to close ;-)
+
+   # get an open file handle for writing
+   $fh = $f->open_handle(
+      file => 'John prefers dachshunds.txt',
+      mode => 'write'
+   );
+
+   print $fh 'Shout out to Bob!';
+
+   close $fh or die $!; # _never_ forget to close ;-)
+
+   # get a listing of files, recursively, skipping directories
+   my @files = $f->list_dir( '/var/tmp' => { files_only => 1, recurse => 1 } );
+
+   # get a listing of text files, recursively
+   my @textfiles = $f->list_dir(
+      '/var/tmp' => {
+         files_match => qr/\.txt$/,
+         files_only  => 1,
+         recurse     => 1,
+      }
+   );
+
+   # walk a directory, using an anonymous function or function ref as a
+   # callback (higher order Perl)
+   $f->list_dir( '/home/larry' => {
+      recurse  => 1,
+      callback => sub {
+         my ( $selfdir, $subdirs, $files ) = @_;
+
+         print "In $selfdir there are...\n";
+
+         print scalar @$subdirs . " subdirectories, and ";
+         print scalar @$files   . " files\n";
+
+         for my $file ( @$files ) {
+
+            # ... do something with $file
+         }
+      },
+   } );
+
+   # get an entire directory tree as a hierarchal datastructure reference
+   my $tree = $f->list_dir( '/my/podcasts' => { as_tree => 1 } );
+
+   # see if you have permission to write to a file, then append to it
+   # using an auto-flock'd filehandle (for operating systems that support flock)
+   # ...you can also use the write_file() method in append mode as well...
+
+   if ( $f->can_write( 'captains.log' ) ) {
+
+      my $fh = $f->open_handle(
+         file => 'captains.log',
          mode => 'append'
       );
 
-      print $HANDLE "Hello World! It's ", scalar localtime;
+      print $fh "Captain's log, stardate 41153.7.  Our destination is...";
 
-      close $HANDLE
+      close $fh or die $!;
+   }
+   else { # ...or warn the crew
+
+      warn "Trouble on the bridge, the Captain can't access his log!";
    }
 
-   my $log_line_count = $f->line_count('/var/log/httpd/access_log');
+   # get the number of lines in a file
+   my $log_line_count = $f->line_count( '/var/log/messages' );
 
-   print "My file has a bitmask of " . $f->bitmask('my.file');
+   # the next several examples show how to get different information about files
 
-   print "My file is a " . join(', ', $f->file_type('my.file')) . " file."
+   print "My file has a bitmask of " . $f->bitmask( 'my.file' );
 
-   warn 'This file is binary!' if $f->isbin('my.file');
+   print "My file is a " . join(', ', $f->file_type( 'my.file' )) . " file.";
 
-   print "My file was last modified on " .
-      scalar localtime $f->last_modified('my.file');
+   warn 'This file is binary!' if $f->isbin( 'my.file' );
 
-   # ...and _lots_ more
+   print 'My file was last modified on ' .
+      scalar localtime $f->last_modified( 'my.file' );
+
+...and B<_lots_> more, See the L<File::Util::Manual> for more details and
+more features
 
 =head1 INSTALLATION
 
@@ -2789,1935 +2769,208 @@ To install this module type the following at the command prompt:
 On Windows systems, the "sudo" part of the command may be omitted, but you
 will need to run the rest of the install command with Administrative privileges
 
-=head1 ISA
+=head1 DOCUMENTATION
+
+There's more than just this document!  Take a look at the L<File::Util::Manual>,
+the L<File::Util::Manual::Examples>, and the L<File::Util::Cookbook>.
+
+=head1 METHODS
+
+File::Util exposes the following public methods.
+
+B<Each of which are covered in the L<File::Util::Manual>>, which has more room for
+the detailed explanation that is provided there.
+
+This is just an itemized table of contents.
 
 =over
 
-=item L<Exporter>
+=item atomize_path         I<(see L<atomize_path|File::Util::Manual/atomize_path>)>
+
+=item bitmask              I<(see L<bitmask|File::Util::Manual/bitmask>)>
+
+=item can_flock            I<(see L<can_flock|File::Util::Manual/can_flock>)>
+
+=item can_read             I<(see L<can_read|File::Util::Manual/can_read>)>
+
+=item can_write            I<(see L<can_write|File::Util::Manual/can_write>)>
+
+=item created              I<(see L<created|File::Util::Manual/created>)>
+
+=item diagnostic           I<(see L<diagnostic|File::Util::Manual/diagnostic>)>
+
+=item ebcdic               I<(see L<ebcdic|File::Util::Manual/ebcdic>)>
+
+=item escape_filename      I<(see L<escape_filename|File::Util::Manual/escape_filename>)>
+
+=item existent             I<(see L<existent|File::Util::Manual/existent>)>
+
+=item file_type            I<(see L<file_type|File::Util::Manual/file_type>)>
+
+=item flock_rules          I<(see L<flock_rules|File::Util::Manual/flock_rules>)>
+
+=item isbin                I<(see L<isbin|File::Util::Manual/isbin>)>
+
+=item last_access          I<(see L<last_access|File::Util::Manual/last_access>)>
+
+=item last_changed         I<(see L<last_changed|File::Util::Manual/last_changed>)>
+
+=item last_modified        I<(see L<last_modified|File::Util::Manual/last_modified>)>
+
+=item line_count           I<(see L<line_count|File::Util::Manual/line_count>)>
+
+=item list_dir             I<(see L<list_dir|File::Util::Manual/list_dir>)>
+
+=item load_dir             I<(see L<load_dir|File::Util::Manual/load_dir>)>
+
+=item load_file            I<(see L<load_file|File::Util::Manual/load_file>)>
+
+=item make_dir             I<(see L<make_dir|File::Util::Manual/make_dir>)>
+
+=item max_dives            I<(see L<max_dives|File::Util::Manual/max_dives>)>
+
+=item needs_binmode        I<(see L<needs_binmode|File::Util::Manual/needs_binmode>)>
+
+=item new                  I<(see L<new|File::Util::Manual/new>)>
+
+=item open_handle          I<(see L<open_handle|File::Util::Manual/open_handle>)>
+
+=item readlimit            I<(see L<readlimit|File::Util::Manual/readlimit>)>
+
+=item return_path          I<(see L<return_path|File::Util::Manual/return_path>)>
+
+=item size                 I<(see L<size|File::Util::Manual/size>)>
+
+=item split_path           I<(see L<split_path|File::Util::Manual/split_path>)>
+
+=item strip_path           I<(see L<strip_path|File::Util::Manual/strip_path>)>
+
+=item touch                I<(see L<touch|File::Util::Manual/touch>)>
+
+=item trunc                I<(see L<trunc|File::Util::Manual/trunc>)>
+
+=item unlock_open_handle   I<(see L<unlock_open_handle|File::Util::Manual/unlock_open_handle>)>
+
+=item use_flock            I<(see L<use_flock|File::Util::Manual/use_flock>)>
+
+=item valid_filename       I<(see L<valid_filename|File::Util::Manual/valid_filename>)>
+
+=item write_file           I<(see L<write_file|File::Util::Manual/write_file>)>
 
 =back
 
 =head1 EXPORTED SYMBOLS
 
-Exports nothing by default.  File::Util respects your namespace.
+Exports nothing by default.  File::Util fully respects your namespace.
+You can, however, ask it for certain things (below).
 
-=head2 EXPORT_OK
+=head2 @EXPORT_OK
 
 The following symbols comprise C<@File::Util::EXPORT_OK>), and as such are
-available for import to your namespace only upon request.
+available for import to your namespace only upon request.  They can be
+used either as object methods or like regular subroutines in your program.
 
-C<atomize_path>       I<(see L<atomize_path|/atomize_path>)>
+To get any of these functions/symbols into your namespace without having
+to use them as an object method, use this kind of syntax:
 
-C<bitmask>            I<(see L<bitmask|/bitmask>)>
+C<use File::Util qw( strip_path NL );>
 
-C<can_flock>          I<(see L<can_flock|/can_flock>)>
+atomize_path
 
-C<can_read>           I<(see L<can_read|/can_read>)>
+can_flock
 
-C<can_write>          I<(see L<can_write|/can_write>)>
+can_read
 
-C<created>            I<(see L<created|/created>)>
+can_write
 
-C<ebcdic>             I<(see L<ebcdic|/ebcdic>)>
+created
 
-C<escape_filename>    I<(see L<escape_filename|/escape_filename>)>
+diagnostic
 
-C<existent>           I<(see L<existent|/existent>)>
+ebcdic
 
-C<file_type>          I<(see L<file_type|/file_type>)>
+escape_filename
 
-C<isbin>              I<(see L<isbin|/isbin>)>
+existent
 
-C<last_access>        I<(see L<last_access|/last_access>)>
+file_type
 
-C<last_changed>       I<(see L<last_changed|/last_changed>)>
+isbin
 
-C<last_modified>      I<(see L<last_modified|/last_modified>)>
+last_access
 
-C<NL>                 I<(see L<NL|/NL>)>
+last_changed
 
-C<needs_binmode>      I<(see L<needs_binmode|/needs_binmode>)>
+last_modified
 
-C<return_path>        I<(see L<return_path|/return_path>)>
+NL
 
-C<size>               I<(see L<size|/size>)>
+needs_binmode
 
-C<SL>                 I<(see L<SL|/SL>)>
+return_path
 
-C<strip_path>         I<(see L<strip_path|/strip_path>)>
+size
 
-C<valid_filename>     I<(see L<valid_filename|/valid_filename>)>
+SL
 
-B<Note:> Symbols in C<@L<Class::OOorNO|Class::OOorNO>::EXPORT_OK> are also
-available for import.
+split_path
+
+strip_path
+
+valid_filename
 
 =head2 EXPORT_TAGS
 
-   :all (exports all of @File::Util::EXPORT_OK)
+   :all (imports all of @File::Util::EXPORT_OK to your namespace)
 
-=head1 METHODS
-
-B<Note:> In the past, some of the methods listed would state that they were
-autoloaded methods.  This mechanism has been changed.  Only the error handling
-and help messages are AutoLoad'ed now.  I<(see L<AutoLoader>.)> if you want
-to know more about AutoLoading in Perl.  See the CHANGES file distributed
-with File::Util for an explanation of why this change was made.
-
-Methods listed in alphabetical order.
-
-=head2 C<atomize_path>
-
-=over
-
-=item I<Syntax:> C<atomize_path( [file/path or file_name] )>
-
-This method is used internally by File::Util to portably handle absolute
-filenames on different platforms, but it can be a useful tool for you as well.
-
-This method takes a single string as its argument.  The string is expected
-to be a fully-qualified (absolute) or relative path to a file or directory.
-It carefully splits the string into three parts: The root of the path, the
-rest of the path, and the final file/directory named in the string.
-
-Depending on the input, the root and/or path may be empty strings.  The
-following table can serve as a guide in what to expect from C<atomize_path()>
-
-   +-------------------------+----------+--------------------+----------------+
-   |  INPUT                  |   ROOT   |   PATH-COMPONENT   |   FILE/DIR     |
-   +-------------------------+----------+--------------------+----------------+
-   |  C:\foo\bar\baz.txt     |   C:\    |   foo\bar          |   baz.txt      |
-   |  /foo/bar/baz.txt       |   /      |   foo/bar          |   baz.txt      |
-   |  ./a/b/c/d/e/f/g.txt    |          |   ./a/b/c/d/e/f    |   g.txt        |
-   |  :a:b:c:d:e:f:g.txt     |   :      |   a:b:c:d:e:f      |   g.txt        |
-   |  ../wibble/wombat.ini   |          |   ../wibble        |   wombat.ini   |
-   |  ..\woot\noot.doc       |          |   ..\woot          |   noot.doc     |
-   |  ../../zoot.conf        |          |   ../..            |   zoot.conf    |
-   |  /root                  |   /      |                    |   root         |
-   |  /etc/sudoers           |   /      |   etc              |   sudoers      |
-   |  /                      |   /      |                    |                |
-   |  D:\                    |   D:\    |                    |                |
-   |  D:\autorun.inf         |   D:\    |                    |   autorun.inf  |
-   +-------------------------+----------+--------------------+----------------+
-
-=back
-
-=head2 C<bitmask>
-
-=over
-
-=item I<Syntax:> C<bitmask( [file name] )>
-
-Gets the bitmask of the named file, provided the file exists. If the file
-exists, the bitmask of the named file is returned in four digit octal
-notation e.g.- C<0644>.  Otherwise, returns C<undef> if the file does I<not>
-exist.
-
-=back
-
-=head2 C<can_flock>
-
-=over
-
-=item I<Syntax:> C<can_flock>
-
-Returns 1 if the current system claims to support C<flock()> I<and> if the
-Perl process can successfully call it.  I<(see L<perlfunc/flock>.)>  Unless
-both of these conditions are true a zero value (0) is returned.  This is a
-constant method.  It accepts no arguments and will always return the same
-value for the system on which it is executed.
-
-B<Note:> Perl will try to support or emulate flock whenever it can via
-available system calls, namely C<flock>; C<lockf>; or with C<fcntl>.
-
-=back
-
-=head2 C<can_read>
-
-=over
-
-=item I<Syntax:> C<can_read( [file name] )>
-
-Returns 1 if the named file (or directory) is B<readable> by your program
-according to the applied permissions of the file system on which the file
-resides.  Otherwise a value of undef is returned.
-
-This works the same as Perl's built-in C<-r> file test operator,
-I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.
-
-=back
-
-=head2 C<can_write>
-
-=over
-
-=item I<Syntax:> C<can_write( [file name] )>
-
-Returns 1 if the named file (or directory) is B<writable> by your program
-according to the applied permissions of the file system on which the file
-resides.  Otherwise a value of undef is returned.
-
-This works the same as Perl's built-in C<-w> file test operator,
-I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.
-
-=back
-
-=head2 C<created>
-
-=over
-
-=item I<Syntax:> C<created( [file name] )>
-
-Returns the time of creation for the named file in non-leap seconds since
-whatever your system considers to be the epoch.  Suitable for feeding to
-Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
-
-=back
-
-=head2 C<ebcdic>
-
-=over
-
-=item I<Syntax:> C<ebcdic>
-
-Returns 1 if the machine on which the code is running uses EBCDIC, or returns
-0 if not.  I<(see L<perlebcdic>.)>  This is a constant method.  It accepts
-no arguments and will always return the same value for the system on which it
-is executed.
-
-=back
-
-=head2 C<escape_filename>
-
-=over
-
-=item I<Syntax:> C<escape_filename( [string], [escape char] )>
-
-Returns it's argument in an escaped form that is suitable for use as a filename.
-Illegal characters (i.e.- any type of newline character, tab, vtab, and the
-following C<< / | * " ? < : > \ >>), are replaced with [escape char] or
-"B<_>" if no [escape char] is specified.  Returns an empty string if no
-arguments are provided.
-
-=back
-
-=head2 C<existent>
-
-=over
-
-=item I<Syntax:> C<existent( [file name] )>
-
-Returns 1 if the named file (or directory) exists.  Otherwise a value of
-undef is returned.
-
-This works the same as Perl's built-in C<-e> file test operator,
-I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.
-
-=back
-
-=head2 C<file_type>
-
-=over
-
-=item I<Syntax:> C<file_type( [file name] )>
-
-Returns a list of keywords corresponding to each of Perl's built in file tests
-(those specific to file types) for which the named file returns true.
-I<(see L<perlfunc/-X>.)>
-
-The keywords and their definitions appear below; the order of keywords returned
-is the same as the order in which the are listed here:
-
-=over
-
-=item C<PLAIN             File is a plain file.>
-
-=item C<TEXT              File is a text file.>
-
-=item C<BINARY            File is a binary file.>
-
-=item C<DIRECTORY         File is a directory.>
-
-=item C<SYMLINK           File is a symbolic link.>
-
-=item C<PIPE              File is a named pipe (FIFO).>
-
-=item C<SOCKET            File is a socket.>
-
-=item C<BLOCK             File is a block special file.>
-
-=item C<CHARACTER         File is a character special file.>
-
-=back
-
-=back
-
-=head2 C<flock_rules>
-
-=over
-
-=item I<Syntax:> C<flock_rules( [keyword list] )>
-
-Sets I/O race condition policy, or tells File::Util how it should handle race
-conditions created when a file can't be locked because it is already locked
-somewhere else (usually by another process).
-
-An empty call to this method returns a list of keywords representing the rules
-that are currently in effect for the object.
-
-Otherwise, a call should include a list with array containing your chosen
-directive keywords in order of precedence.  The rules will be applied in
-cascading order when a File::Util object attempts to lock a file, so if the
-actions specified by the first rule don't result in success, the second rule
-is applied, and so on.
-
-Recognized keywords:
-
-=over
-
-=item C<NOBLOCKEX>
-
-tries to get an exclusive lock on the file without blocking (waiting)
-
-=item C<NOBLOCKSH>
-
-tries to get a shared lock on the file without blocking
-
-=item C<BLOCKEX>
-
-waits to try getting an exclusive lock
-
-=item C<BLOCKSH>
-
-waits to try getting a shared lock
-
-=item C<FAIL>
-
-dies with stack trace
-
-=item C<WARN>
-
-warn()s about the error with a stack trace and returns undef
-
-=item C<IGNORE>
-
-ignores the failure to get an exclusive lock
-
-=item C<UNDEF>
-
-returns undef
-
-=item C<ZERO>
-
-returns 0
-
-=back
-
-Examples:
-
-=over
-
-=item ex- C<flock_rules( qw/ NOBLOCKEX FAIL / );>
-
-This is the default policy.  When in effect, the File::Util object will first
-attempt to get a non-blocking exclusive lock on the file.  If that attempt
-fails the File::Util object will call die() with a detailed error message and
-a stack trace.
-
-=item ex- C<flock_rules( qw/ NOBLOCKEX BLOCKEX FAIL / );>
-
-The File::Util object will first attempt to get a non-blocking exclusive lock
-on the file.  If that attempt fails it falls back to the second policy rule
-"BLOCKEX" and tries again to get an exclusive lock on the file, but this time
-by blocking (waiting for its turn).  If that second attempt fails, the
-File::Util object will fail with a detailed error message and a stack trace.
-
-=item ex- C<flock_rules( qw/ BLOCKEX IGNORE / );>
-
-The File::Util object will first attempt to get a file non-blocking lock on
-the file.  If that attempt fails it will ignore the error, and go on to open
-the file anyway and no failures will occur or warings be issued.
-
-=back
-
-=back
-
-=head2 C<isbin>
-
-=over
-
-=item I<Syntax:> C<isbin( [file name] )>
-
-Returns 1 if the named file (or directory) exists.  Otherwise a value of undef
-is returned, indicating that the named file either does not exist or is of
-another file type.
-
-This works the same as Perl's built-in C<-B> file test operator,
-I<(see L<perlfunc/-X>)>, it's just easier for some people to remember.
-
-=back
-
-=head2 C<last_access>
-
-=over
-
-=item I<Syntax:> C<last_access( [file name] )>
-
-Returns the last accessed time for the named file in non-leap seconds since
-whatever your system considers to be the epoch.  Suitable for feeding to
-Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
-
-=back
-
-=head2 C<last_changed>
-
-=over
-
-=item I<Syntax:> C<last_changed( [file name] )>
-
-Returns the inode change time for the named file in non-leap seconds since
-whatever your system considers to be the epoch.  Suitable for feeding to
-Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
-
-=back
-
-=head2 C<last_modified>
-
-=over
-
-=item I<Syntax:> C<last_modified( [file name] )>
-
-Returns the last modified time for the named file in non-leap seconds since
-whatever your system considers to be the epoch.  Suitable for feeding to
-Perl's built-in functions "gmtime" and "localtime".  I<(see L<perlfunc/time>.)>
-
-=back
-
-=head2 C<line_count>
-
-=over
-
-=item I<Syntax:> C<line_count( [file name] )>
-
-Returns the number of lines in the named file.  Fails with an error if the
-named file does not exist.
-
-=back
-
-=head2 C<list_dir>
-
-=over
-
-=item I<Syntax:> C<list_dir( [directory name] , [--opts] )>
-
-Returns alphabetically sorted all file names in the directory specified if it
-exists.  Fails with an error message if no such directory is found, or the
-directory is inaccessible.
-
-The behavior of this method has changed slightly after version 3.29.  If running
-with the C<--fatals-as-warning> flag, the previous behavior was to abort
-immediately.  This is not the case anymore.  If running with the
-C<--fatals-as-warning> flag, C<list_dir()> will still emit a warning when it
-encounters an otherwise fatal error, but it will also return whatever directory
-contents it is able to successfully access.
-
-=over
-
-=item B<Flags accepted by C<list_dir()>>
-
-=over
-
-=item C<--dirs-only>
-
-return only directory contents which are directories
-
-=item C<--files-only>
-
-return only directory contents which are files
-
-=item C<--no-fsdots>
-
-do not include "." and ".." in the list of directory contents
-
-=item C<--pattern>
-
-return only files/directories matching pattern provided. argument
-should be plain text string.  It will be converted to a perl regex and passed
-to CORE::grep as the method scans through directory listings for a match.
-
-(ex- C<'--pattern=\.txt$'> returns all file/directory names ending in ".txt".
-It will match "foo.txt", but not "foo.txt.gz" because of the "$" anchor in the
-regular expression passed in.)
-
-or for the opposite effect, C<< '--pattern=.*(?<!\.txt)$' >> returns all
-file/directory names that don't end in ".txt"
-
-=item C<--with-paths>
-
-Include file paths with the contents of the directory list, relative
-to the directory named in the call.
-
-=item C<--recurse>
-
-Recurse subdirectories
-
-=item C<--follow>
-
-Recurse subdirectories, same as C<--recurse>
-
-=item C<--dirs-as-ref>
-
-When returning directory listing, include first a reference to the list
-of subdirectories found, followed by anything else returned by the call.
-
-=item C<--files-as-ref>
-
-When returning directory listing, include last a reference to the list
-of files found, preceded by a list of subdirectories found (or preceded
-by a list reference to subdirectories found if C<--dirs-as-ref> was also used).
-
-=item C<--as-ref>
-
-Return a pair list references: the first is a reference to any subdirectories
-found by the call, the second is a reference to any files found by the call.
-
-=item C<--sl-after-dirs>
-
-Append a directory separator ("/, "\", or ":" depending on your system)
-to all directories found by the call.  Useful in visual displays for quick
-differentiation between subdirectories and files.
-
-=item C<--ignore-case>
-
-Items returned by the call to this method are sorted alphabetically by
-default, so "Zoo.txt" comes before "alligator.txt" because the alphabetical
-sort is case-sensitive.  This is also the way directories are listed at the
-system level on most operating systems.
-
-If you'd like the directory contents returned by this method to be
-sorted without regard to case , use this flag.
-
-=item C<--count-only>
-
-Returns a single value: an integer reflecting the number of items
-found in the directory after applying the filter criteria specified by any
-other flags (ie- "--dirs-only", "--recurse", etc.) that may have been passed
-in as well.
-
-=back
-
-=back
-
-=back
-
-=head2 C<load_dir>
-
-=over
-
-=item I<Syntax:> C<load_dir( [directory name] , [--ds-type] )>
-
-Returns a data structure containing the contents of each file present in the
-named directory.
-
-The type of data structure returned is determined by the optional data-type
-switch.  Only one option may be used for a given call to this method.
-Recognized options are listed below.
-
-=over
-
-=item B<Flags accepted by C<load_dir()>>
-
-=over
-
-=item C<--as-list>
-
-Causes the method to return a list comprised of the contents loaded from
-each file (in case-sensitive order) located in the named directory.
-
-=item C<--as-listref>
-
-Same as above, except an array reference to the list of items is returned
-rather than the list itself.
-
-=item C<--as-hashref> *(default)
-
-Implicit.  If no option is passed in, the default behavior is to return a
-reference to an anonymous hash whose keys are the names of each file in the
-specified directory; the hash values for contain the contents of the file
-represented by its corresponding key.
-
-=back
-
-=back
-
-B<Note:> This method does not distinguish between plain files and other file
-types such as binaries, FIFOs, sockets, etc.
-
-Restrictions imposed by the current "read limit"
-I<(see the L<readlimit()|/readlimit>) entry below> will be applied to the
-files opened by this method as well.  Adjust the readlimit as necessary.
-
-   my $files = $fu->load_dir('directory/to/load/');
-
-The above code creates an anonymous hash reference that is stored in the
-variable named "C<$files>".  The keys and values of the hash referenced by
-"C<$files>" would resemble those of the following code snippet (given that
-the files in the named directory were the files 'a.txt', 'b.html', 'c.dat',
-and 'd.conf')
-
-   my($files) =
-      {
-         'a.txt'  => "the contents of file a.txt",
-         'b.html' => "the contents of file b.html",
-         'c.dat'  => "the contents of file c.dat",
-         'd.conf' => "the contents of file d.conf",
-      };
-
-=back
-
-=head2 C<load_file>
-
-=over
-
-=item I<Syntax:> C<load_file( [file name] , [--opts] )>
-
-=item I<OR:> C<< load_file( 'FH' => [file handle reference] , [--opts] ) >>
-
-If [file name] is passed, returns the contents of [file name] in a string.
-If a [file handle reference] is passed instead, the filehandle will be
-C<CORE::read()> and the data obtained by the read will be returned in a string.
-
-If you desire the contents of the file (or file handle data) in a list of
-lines instead of a single string, this can be accomplished through the use
-of the C<--as-lines> flag (see below).
-
-=over
-
-=item B<Flags accepted by C<load_file()>>
-
-=over
-
-=item C<--as-lines>
-
-If this flag is passed then your call to C<load_file> will return an ordered
-list of strings, each of which is a line from the file [file name].  The lines
-are returned in the order they are read, from the beginning of the file to the
-end.
-
-This is not the default behavior.  The default behavior is for C<load_file> to
-return a single string containing the entire contents of the file, including
-line break characters.
-
-=item C<--no-lock>
-
-By default this method will attempt to get a lock on the file while it is
-being read, following whatever rules are in place for the flock policy
-established either by default (implicitly) or changed by you in a call to
-File::Util::flock_rules()
-I<(see the L<flock_rules()|/flock_rules>) entry below>.
-
-This method will not try to get a lock on the file if the File::Util object was
-created with the option C<--no-lock> or if the method was called with the
-option C<--no-lock>.
-
-This method will automatically call binmode() on binary files for you.  If you
-pass in a filehandle instead of a file name you do not get this automatic
-check performed for you.  In such a case, you'll have to call binmode() on
-the filehandle yourself.  Once you pass a filehandle to this method it has no
-way of telling if the file opened to that filehandle is binary or not.
-
-B<Notes:> This method does not distinguish between plain files and other file
-types such as binaries, FIFOs, sockets, etc.
-
-Restrictions imposed by the current "read limit"
-I<(see the L<readlimit()|/readlimit>) entry below> will be applied to the
-files opened by this method as well.  Adjust the readlimit as necessary.
-
-=back
-
-=back
-
-=back
-
-=head2 C<make_dir>
-
-=over
-
-=item I<Syntax:> C<make_dir( [new directory name] , [bitmask], [--opts] )>
-
-Attempts to create (recursively) a directory as [new directory name] with
-the [bitmask] provided.  The bitmask is an optional argument and defaults to
-0777.  If specified, the bitmask must be supplied in the form required by the
-native perl umask function.  I<see L<perlfunc/"umask">> for more information
-about the format of the bitmask argument.
-
-As mentioned above, the recursive creation of directories is transparently
-handled for you.  This means that if the name of the directory you pass in
-contains a parent directory that does not exist, the parent directory(ies) will
-be created for you automatically and silently in order to create the final
-directory in the [new directory name].
-
-Simply put, if [new directory] is "/path/to/directory" and the directory
-"/path/to" does not exist, the directory "/path/to" will be created and the
-"/path/to/directory" directory will be created thereafter.  All directories
-created will be created with the [bitmask] you specify, or with the default
-of 0777.
-
-Upon successful creation of the [new directory name], the [new directory name]
-is returned to the caller.
-
-=over
-
-=item B<Flags accepted by C<make_dir()>>
-
-=over
-
-=item C<--if-not-exists>
-
-If this flag is passed in then make_dir will not attempt to create the directory
-if it already exists.  Rather it will return the name of the directory as it
-normally would if the directory did not exist previous to calling this method.
-
-If a call to this method is made without the C<--if-not-exists> flag and the
-directory specified as [new directory name] does in fact exist, an error will
-result as it is impossible to create a directory that already exists.
-
-=back
-
-=back
-
-=back
-
-=head2 C<max_dives>
-
-=over
-
-=item I<Syntax:> C<max_dives( [integer] )>
-
-When called without any arguments, this method returns an integer reflecting
-the current number of times the File::Util object will dive into the
-subdirectories it discovers when recursively listing directory contents from
-a call to C<File::Util::list_dir()>.  The default is 1000.  If the number is
-exceeded, the File::Util object will fail with a diagnostic error message.
-
-When called with an argument, it sets the maximum number of times a File::Util
-object will recurse into subdirectories before failing with an error message.
-
-This method can only be called with a numeric integer value.  Passing a bad
-argument to this method will cause it to fail with an error message.
-
-I<(see L<list_dir|/list_dir>)>
-
-=back
-
-=head2 C<needs_binmode>
-
-=over
-
-=item I<Syntax:> C<needs_binmode>
-
-Returns 1 if the machine on which the code is running requires that C<binmode()>
-I<(a built-in function)> be called on open file handles, or returns 0 if not.
-I<(see L<perlfunc/binmode>.)>  This is a constant method.  It accepts no
-arguments and will always return the same value for the system on which it
-is executed.
-
-=back
-
-=head2 C<new>
-
-=over
-
-=item I<Syntax:> C<< new( ['parameters' => 'values', etc], [--flags] ) >>
-
-This is the File::Util constructor method.  eg- It returns a new File::Util
-object reference when you call it.  It recognizes various parameters and flags
-that govern the behavior of the new File::Util object.
-
-=over
-
-=item B<Parameters accepted by C<new()>>
-
-=over
-
-=item use_flock   => true/false value
-
-Optionally specify this option to the C<File::Util::new> method instruct the
-new object that it should never attempt to use C<flock()> in it's I/O
-operations.  The default is to use C<flock()> when available on your system.
-Specify this option with a true or false value, true to use C<flock()>, false
-to not use it.
-
-=item readlimit   => positive integer
-
-Optionally specify this option to the File::Util::new method to instruct the
-new object that it should never attempt to open and read in a file greater
-than the number of bytes you specify.  Obviously this argument can only be
-a numeric integer value, otherwise it will be silently ignored.  The default
-readlimit for File::Util objects is 52428800 bytes (50 megabytes).
-
-=item max_dives   => positive integer
-
-Optionally specify this option to the File::Util::new method to instruct the
-new object to set the maximum number of times it will recurse into
-subdirectories while performing directory listing operations before failing
-with an error message.  This argument can only be a numeric integer value,
-otherwise it will be silently ignored.
-
-=back
-
-=item B<Flags accepted by C<new()>>
-
-=over
-
-=item C<--fatals-as-warning>
-
-Directive to instruct the new File::Util object that when any call to one of
-its methods results in a fatal error that it should return B<C<undef>>
-instead of the value(s) that would normally be returned by the call, and to
-send an error message to STDERR as well.
-
-=item C<--fatals-as-status>
-
-Directive to instruct the new File::Util object that when any call to one of
-its methods results in a fatal error that it should return B<C<undef>>
-instead of the value(s) that would normally be returned by the call.
-
-=item C<--fatals-as-errmsg>
-
-Directive to instruct the new File::Util object that when any call to one of
-its methods results in a fatal error that it should return B<an error message>
-instead of the value(s) that would normally be returned by the call.
-
-=back
-
-=back
-
-=back
-
-=head2 C<open_handle>
-
-=over
-
-=item I<Syntax:> C<< open_handle( file => [file name], [--opts] ) >>
-
-=item I<OR:> C<< open_handle( file => [file name], mode => [mode], [--opts] ) >>
-
-=item I<OR:> C<< open_handle( file => [file name], mode => [mode], bitmask => [bitmask], [--opts] ) >>
-
-=item I<OR:> C<< open_handle( file => [file name], mode => [mode], bitmask => [bitmask], dbitmask => [bitmask], [--opts] ) >>
-
-Attempts to get a unique open file handle on [file name] in [mode] mode.
-Returns the file handle if successful or generates a fatal error with a
-diagnostic message if the operation fails.
-
-You will need to remember to call C<close()> on the filehandle yourself, at
-your own discretion.  Leaving filehandles open is not a good practice, and
-is not recommended.  I<see L<perlfunc/close>>).
-
-Once you have the file handle you would use it as you would use any file handle.
-Remember that unless you specifically turn file locking off when the
-C<File::Util> object is created (see I<(see L<new|/new>)> or by using the
-C<--no-lock> flag when calling C<open_handle>, that file locking is going to
-automagically be handled for you behind the scenes, so long as your OS supports
-file locking of any kind at all.  Great!  It's very convenient for you to not
-have to worry about portably taking care of file locking between one
-application and the next; by using C<File::Util> in all of them, you know
-that you're covered.
-
-A slight inconvenience for the price of a larger set of features (compare
-L<write_file|/write_file> to this method)
-I<B<you will have to release the file lock on the open handle yourself.>>
-C<File::Util> can't manage it for you anymore once it hands the handle over
-to you.  At that point, it's all yours.  In order to release the file lock
-on your file handle, call L<unlock_open_handle()|/unlock_open_handle> on it.
-Otherwise the lock will remain for the life of your process.  If you don't
-want to use the free portable file locking, remember the C<--no-lock> flag,
-which will turn off file locking for your open handle.  Seldom, however, should
-you ever opt to not use file locking unless you really know what you are doing.
-
-If the file does not yet exist it will be created, and it will be created
-with a bitmask of [bitmask] if you specify a file creation bitmask using
-the C<'bitmask'> option, otherwise the file will be created with the default
-bitmask of 0777.
-
-If specified, the bitmask must be supplied in the form required by the
-native perl umask function.  I<see L<perlfunc/"umask">> for more information
-about the format of the bitmask argument.  If the file [file name] already
-exists then the bitmask argument has no effect and is silently ignored.
-
-Any non-existent directories in the path preceding the actual file name will
-be automatically (and silently - no warnings) created for you and any new
-directories will be created with a bitmask of [dbitmask], provided you specify
-a directory creation bitmask with the C<'dbitmask'> option.
-
-If specified, the directory creation bitmask [dbitmask] must be supplied in
-the form required by the native perl umask function.
-
-If there is an error while trying to create any preceding directories, the
-failure results in a fatal error with a diagnostic error message.  If all
-directories preceding the name of the file already exist, the dbitmask
-argument has no effect and is silently ignored.
-
-=back
-
-=over
-
-=item B<Native Perl open modes>
-
-The default behavior of C<open_handle()> is to open file handles using Perl's
-native C<open()> I<(see L<perlfunc/open>)>.  Unless you use the
-C<--use-sysopen> flag, the following modes and only these modes are valid.
-
-=over
-
-=item C<< 'mode' => 'read' >>
-
-[file name] is opened in read-only mode.  If the file does not yet exist then
-a fatal error will occur with a diagnostic help message to help you troubleshoot
-the problem.
-
-=item C<< 'mode' => 'write' >> (this is the default mode)
-
-[file name] is created if it does not yet exist.  If [file name] already exists
-then its contents are overwritten with the new content provided.
-
-=item C<< 'mode' => 'append' >>
-
-[file name] is created if it does not yet exist.  If [file name] already exists
-its contents will be preserved and the new content you provide will be appended
-to the end of the file.
-
-=back
-
-=back
-
-=over
-
-=item B<System level open modes ("open a la C")>
-
-Optionally you can ask C<File::Util> to open your handle using C<CORE::sysopen>
-instead of using the native Perl C<CORE::open()>.  This is accomplished by
-passing in the C<--use-sysopen> flag.  Using this feature opens up more
-possibilities as far as the open modes you can choose from, but also carries
-with it a few caveats so you have to be careful, just as you'd have to be a
-little more careful when using C<sysopen()> anyway.
-
-Specifically you need to remember that when using this feature you must NOT
-mix different types of I/O when working with the file handle.  You can't go
-opening file handles with C<sysopen()> and print to them as you normally
-would print to a file handle.  You have to use C<syswrite()> instead.  The
-same applies here.  If you get a C<sysopen()>'d filehandle from C<open_handle()>
-it is imperative that you use C<syswrite()> on it.  You'll also need to use
-C<sysseek()> and other type of C<sys>* commands on the filehandle instead of
-their native Perl equivalents.
-
-(see L<perlfunc/sysopen>, L<perlfunc/syswrite>, L<perlfunc/sysseek>,
-L<perlfunc/sysread>)
-
-That said, here are the different modes you can choose from to get a file handle
-when using the C<--use-sysopen> flag.  Remember that these won't work unless
-you use the flag, and will generate an error if you try using them without it.
-The standard C<'read'>, C<'write'>, and C<'append'> modes are already available
-to you by default.  These are the extended modes:
-
-=over
-
-=item C<< 'mode' => 'rwcreate' >>
-
-[file name] is opened in read-write mode, and will be created for you if it
-does not already exist.
-
-=item C<< 'mode' => 'rwupdate' >>
-
-[file name] is opened for you in read-write mode, but must already exist.  If
-it does not exist, a fatal error will result and a diagnostic help message will
-be printed out to help you troubleshoot the problem.
-
-=item C<< 'mode' => 'rwclobber' >>
-
-[file name] is opened for you in read-write mode.  If the file already exists
-it's contents will be "clobbered" or wiped out.  The file will then be empty
-and you will be working with the then-truncated file.  This can not be undone.
-Once you call C<open_handle()> using this option, your file WILL be wiped out.
-If the file does not exist yet, it will be created for you.
-
-=item C<< 'mode' => 'rwappend' >>
-
-[file name] will be opened for you in read-write mode ready for appending.  The
-file's contents will not be wiped out; they will be preserved and you will be
-working in append fashion.  You will only be able to write starting at the end
-of the file.  If the file does not exist, it will be created for you.
-
-=back
-
-Remember to use C<sysread()> and not plain C<read()> when reading those
-C<sysopen()>'d filehandles!
-
-=back
-
-=over
-
-=item B<Flags accepted by C<open_handle()>>
-
-=over
-
-=item C<--binmode>
-
-Makes sure that CORE::binmode() is called on the filehandle when your content
-is written.  This is useful for times when the content you are writing to file
-is a binary stream. I<(see L<perlfunc/binmode>)>.
-
-=item C<--no-lock>
-
-By default this method will attempt to get a lock on the file while it is
-being read, following whatever rules are in place for the flock policy
-established either by default (implicitly) or changed by you in a call to
-File::Util::flock_rules()
-I<(see the L<flock_rules()|/flock_rules>) entry below>.
-
-This method will not try to get a lock on the file if the File::Util object was
-created with the option C<--no-lock> or if this method is called with the
-option C<--no-lock>.
-
-=item C<--use-sysopen>
-
-Instead of opening the file using Perl's native C<open()> command, C<File::Util>
-will open the file with the C<sysopen()> command.  You will have to remember
-that your filehandle is a C<sysopen()>'d one, and that you will not be able to
-use native Perl I/O functions on it.  You will have to use the C<sys>*
-equivalents.  See L<perlopentut> for a more in-depth explanation of why you
-can't mix native Perl I/O with system I/O.
-
-=back
-
-=back
-
-=head2 C<readlimit>
-
-=over
-
-=item I<Syntax:> C<readlimit( [integer] )>
-
-By default, the largest size file that File::Util will read into memory and
-return via the L<load_file|/load_file> is 52428800 byptes (50 megabytes).
-
-This value can be modified by calling this method with an integer value
-reflecting the new limit you want to impose, in bytes.  For example, if you want
-to set the limit to 10 megabytes, call the method with an argument of 10485760.
-
-If this method is called without an argument, the read limit currently in force
-for the File::Util object will be returned.
-
-=back
-
-=head2 C<return_path>
-
-=over
-
-=item I<Syntax:> C<return_path( [string] )>
-
-Takes the file path from the file name provided and returns it such that
-"/foo/bar/baz.txt" is returned "/foo/bar".
-
-=back
-
-=head2 C<size>
-
-=over
-
-=item I<Syntax:> C<size( [file name] )>
-
-Returns the file size of [file name] in bytes.  Returns C<0> if the file is
-empty, returns C<undef> if the file does not exist.
-
-=back
-
-=head2 C<strip_path>
-
-=over
-
-=item I<Syntax:> C<strip_path( [string] )>
-
-Strips the file path from the file name provided and returns the file name only.
-
-=back
-
-=head2 C<touch>
-
-=over
-
-=item I<Syntax:> C<touch( [file name] )>
-
-Behaves like the *nix C<touch> command; Updates the access and modification
-times of the specified file to the current time.  If the file does not exist,
-C<File::Util> tries to create it empty.  This method will fail with a fatal
-error if system permissions deny alterations to or creation of the file.
-
-Returns C<1> if successful.  If unsuccessful, fails with a descriptive error
-message about what went wrong.
-
-=back
-
-=head2 C<trunc>
-
-=over
-
-=item I<Syntax:> C<trunc( [file name] )>
-
-Truncates [file name] (i.e.- wipes out, or "clobbers" the contents of the
-specified file.  Returns C<1> if successful.  If unsuccessful, fails with a
-descriptive error message about what went wrong.
-
-=back
-
-=head2 C<unlock_open_handle>
-
-=over
-
-=item I<Syntax:> C<unlock_open_handle([file handle])>
-
-Release the flock on a file handle you opened with L<open_handle|/open_handle>.
-
-Returns true on success, false on failure.  Will not raise a fatal error if
-the unlock operation fails.  You can capture the return value from your call
-to this method and C<die()> if you so desire.  Failure is not ever very likely,
-or C<File::Util> wouldn't have been able to get a portable lock on the file
-in the first place.
-
-If C<File::Util> wasn't able to ever lock the file due to limitations of your
-operating system, a call to this method will return a true value.
-
-If file locking has been disabled on the file handle via the C<--no-lock> flag
-at the time L<open_handle|/open_handle> was called, or if file locking was
-disabled using the L<use_flock|/use_flock> method, or if file locking was
-disabled on the entire C<File::Util> object at the time of its creation
-I<(see L<new()|/new>)>, calling this method will have no effect and a true value
-will be returned.
-
-=back
-
-=head2 C<use_flock>
-
-=over
-
-=item I<Syntax:> C<use_flock( [true / false value] )>
-
-When called without any arguments, this method returns a true or false value
-to reflect the current use of C<flock()> within the File::Util object.
-
-When called with a true or false value as its single argument, this method
-will tell the File::Util object whether or not it should attempt to use
-C<flock()> in its I/O operations.  A true value indicates that the File::Util
-object will use C<flock()> if available, a false value indicates that it will
-not.  The default is to use C<flock()> when available on your system.
-
-=back
-
-=head2 C<write_file>
-
-=over
-
-=item I<Syntax:> C<< write_file( file' => [file name], 'content' => [string], [--opts] ) >>
-
-=item I<OR:> C<< write_file( file => [file name], content => [string], mode => [mode], [--opts] ) >>
-
-=item I<OR:> C<< write_file( file => [file name], content => [string], mode => [mode], bitmask => [bitmask], [--opts] ) >>
-
-=item I<OR:> C<< write_file( file => [file name], content => [string], mode => [mode], bitmask => [bitmask], dbitmask => [bitmask], [--opts] ) >>
-
-Attempts to write [string] to [file name] in mode [mode].  If the file does
-not yet exist it will be created, and it will be created with a bitmask of
-[bitmask] if you specify a file creation bitmask using the C<'bitmask'> option,
-otherwise the file will be created with the default bitmask of 0777.
-
-[string] should be a string or a scalar variable containing a string.  The
-string can be any type of data, such as a binary stream, or ascii text with
-line breaks, etc.  Be sure to pass in the C<--binmode> flag for binary streams.
-
-If specified, the bitmask must be supplied in the form required by the
-native perl umask function.  I<see L<perlfunc/"umask">> for more information
-about the format of the bitmask argument.  If the file [file name] already
-exists then the bitmask argument has no effect and is silently ignored.
-
-Returns 1 if successful or fails (fatal) with an error message if not
-successful.
-
-Any non-existent directories in the path preceding the actual file name will
-be automatically (and silently - no warnings) created for you and any new
-directories will be created with a bitmask of [dbitmask], provided you specify
-a directory creation bitmask with the C<'dbitmask'> option.
-
-If specified, the directory creation bitmask [dbitmask] must be supplied in
-the form required by the native perl umask function.
-
-If there is an error while trying to create any preceding directories, the
-failure results in a fatal error with a diagnostic error message.  If all
-directories preceding the name of the file already exist, the dbitmask
-argument has no effect and is silently ignored.
-
-=over
-
-=item C<< 'mode' => 'write' >> (this is the default mode)
-
-[file name] is created if it does not yet exist.  If [file name] already exists
-then its contents are overwritten with the new content provided.
-
-=item C<< 'mode' => 'append' >>
-
-[file name] is created if it does not yet exist.  If [file name] already exists
-its contents will be preserved and the new content you provide will be appended
-to the end of the file.
-
-=back
-
-=over
-
-=item B<Flags accepted by C<write_file()>>
-
-=over
-
-=item C<--binmode>
-
-Makes sure that CORE::binmode() is called on the filehandle when your content
-is written.  This is useful for times when the content you are writing to file
-is a binary stream.
-
-=item C<--empty-writes-OK>
-
-Allows you to call this method without providing a content argument (it lets
-you create an empty file without warning you or failing.  Be advised that
-if you use this flag, it will have the same effect as truncating a file
-that already has content in it (i.e.- it will "clobber" non-empty files)
-
-=item C<--no-lock>
-
-By default this method will attempt to get a lock on the file while it is
-being read, following whatever rules are in place for the flock policy
-established either by default (implicitly) or changed by you in a call to
-File::Util::flock_rules()
-I<(see the L<flock_rules()|/flock_rules>) entry below>.
-
-This method will not try to get a lock on the file if the File::Util object was
-created with the option C<--no-lock> or if this method is called with the
-option C<--no-lock>.
-
-=back
-
-=back
-
-=back
-
-=head2 C<valid_filename>
-
-=over
-
-=item I<Syntax:> C<valid_filename( [string] )>
-
-For the given string, returns 1 if the string is a legal file name for the
-system on which the program is running, or returns undef if it is not.  This
-method does not test for the validity of file paths!  It tests for the validity
-of file names only.  (It is used internally to check beforehand if a file name
-is useable when creating new files, but is also a public method available for
-external use.)
-
-=back
-
-=head1 CONSTANTS
-
-=head2 C<NL>
-
-=over
-
-=item I<Syntax:> C<NL>
-
-Returns the correct new line character (or character sequence) for the system
-on which your program runs.
-
-=back
-
-=head2 C<SL>
-
-=over
-
-=item I<Syntax:> C<SL>
-
-Returns the correct directory path separator for the system on which your
-program runs.
-
-=back
-
-=head2 C<OS>
-
-=over
-
-=item I<Syntax:> C<OS>
-
-Returns the File::Util keyword for the operating system FAMILY it detected.  The
-keyword for the detected operating system will be one of the following, derived
-from the conents of C<$^O>, or if C<$^O> can not be found, from the contents of
-C<$Config::Config{osname}> (see native L<Config> library), or if that
-doesn't contain a recognizable value, finally falls back to C<UNIX>.
-
-Generally speaking, Linux operating systems are going to be detected as C<UNIX>.
-This isn't a bug.  The OS FAMILY to which it belongs uses C<UNIX> style
-filesystem conventions and line endings, which are the relevant things to
-file handling operations.
-
-=over
-
-=item UNIX
-
-Specifics: OS name =~ /^(?:darwin|bsdos)/i
-
-=item CYGWIN
-
-Specifics: OS name =~ /^cygwin/i
-
-=item WINDOWS
-
-Specifics: OS name =~ /^MSWin/i
-
-=item VMS
-
-Specifics: OS name =~ /^vms/i
-
-=item DOS
-
-Specifics: OS name =~ /^dos/i
-
-=item MACINTOSH
-
-Specifics: OS name =~ /^MacOS/i
-
-=item EPOC
-
-Specifics: OS name =~ /^epoc/i
-
-=item OS2
-
-Specifics: OS name =~ /^os2/i
-
-=back
-
-=back
+   use File::Util qw( :all ); # seldom if ever necessary, but it's an option
 
 =head1 PREREQUISITES
 
 =over
 
-=item L<Perl|perl> 5.006 or better
+=item L<Exception::Handler>
 
-=item L<Exception::Handler>   v1.00_0 or better
+For graceful and helpful error handling
+
+=item L<Scalar::Util>
+
+For tools that support the better call interface in C<File::Util> versions
+4.x and higher
+
+=item L<Perl|perl> 5.006 or better ...
+
+This requirement will increase soon with the advent of unicode support
 
 =back
 
 =head1 EXAMPLES
 
-=head2 Get the names of all files and subdirectories in a directory
-
-   use File::Util;
-   my $f = File::Util->new();
-   # option --no-fsdots excludes "." and ".." from the list
-   my @dirs_and_files = $f->list_dir('/foo', '--no-fsdots');
-
-=head2 Get the names of all files and subdirectories in a directory, recursively
-
-   use File::Util;
-   my $f = File::Util->new();
-   my @dirs_and_files = $f->list_dir('/foo', '--recurse');
-
-=head2 Get the names of all files (no subdirectories) in a directory
-
-   use File::Util;
-   my $f = File::Util->new();
-   my @dirs_and_files = $f->list_dir('/foo', '--files-only');
-
-=head2 Get the names of all subdirectories (no files) in a directory
-
-   use File::Util;
-   my $f = File::Util->new();
-   my @dirs_and_files = $f->list_dir('/foo', '--dirs-only');
-
-=head2 Get the number of files and subdirectories in a directory
-
-   use File::Util;
-   my $f = File::Util->new();
-   my @dirs_and_files  = $f->list_dir('/foo', qw/--no-fsdots --count-only/);
-
-=head2 Get the names of files and subdirs in a directory as separate array refs
-
-   use File::Util;
-   my $f = File::Util->new();
-   my( $dirs, $files ) = $f->list_dir('/foo', '--as-ref');
-
-      -OR-
-   my( $dirs, $files ) = $f->list_dir('.', qw/--dirs-as-ref --files-as-ref/);
-
-=head2 Get the contents of a file in a string
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $contents = $f->load_file('filename');
-
-=head2 Get the contents of a file in an array of lines in the file
-
-   use File::Util;
-   my $f = File::Util->new();
-   my @contents = $f->load_file('filename','--as-lines');
-
-=head2 Get an open file handle for reading
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $fh = $f->open_handle(
-      file => 'new_filename',
-      mode => 'read'
-   );
-
-=head2 Get an open file handle for writing
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $fh = $f->open_handle(
-      file => 'new_filename',
-      mode => 'write'
-   );
-
-=head2 Write to a new or existing file
-
-   use File::Util;
-   my $content = 'Pathelogically Eclectic Rubbish Lister';
-   my $f = File::Util->new();
-   $f->write_file( file => 'a new file.txt', content => $content );
-
-   # optionally specify a creation bitmask when writing to a new file
-   $f->write_file(
-      file    => 'a new file.txt',
-      bitmask => oct 777,
-      content => $content
-   );
-
-=head2 Append to a new or existing file
-
-   use File::Util;
-   my $content = 'Pathelogically Eclectic Rubbish Lister';
-   my $f = File::Util->new();
-   $f->write_file(
-      file => 'a new file.txt',
-      mode => 'append',
-      content => $content
-   );
-
-=head2 Determine if something is a valid file name
-
-   use File::Util qw( valid_filename );
-
-   if (valid_filename("foo?+/bar~@/#baz.txt")) {
-      print "file name is valid"
-   else {
-      print "file name contains illegal characters"
-   }
-
-      -OR-
-   use File::Util;
-   print File::Util->valid_filename("foo?+/bar~@/#baz.txt") ? 'ok' : 'bad';
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->valid_filename("foo?+/bar~@/#baz.txt") ? 'ok' : 'bad';
-
-=head2 Get the number of lines in a file
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $linecount = $f->line_count('foo.txt');
-
-=head2 Strip the path from a file name
-
-   use File::Util;
-   my $f = File::Util->new();
-
-   # On Windows
-   #  (prints "hosts")
-   my $path = $f->strip_path('C:\WINDOWS\system32\drivers\etc\hosts');
-
-   # On Linux/Unix
-   #  (prints "perl")
-   print $f->strip_path('/usr/bin/perl');
-
-   # On a Mac
-   #  (prints "baz")
-   print $f->strip_path('foo:bar:baz');
-
-=head2 Get the path preceding a file name
-
-   use File::Util;
-   my $f = File::Util->new();
-
-   # On Windows
-   #  (prints "C:\WINDOWS\system32\drivers\etc")
-   my $path = $f->return_path('C:\WINDOWS\system32\drivers\etc\hosts');
-
-   # On Linux/Unix
-   #  (prints "/usr/bin")
-   print $f->return_path('/usr/bin/perl');
-
-   # On a Mac
-   #  (prints "foo:bar")
-   print $f->return_path('foo:bar:baz');
-
-=head2 Find out if the host system can use flock
-
-   use File::Util qw( can_flock );
-   print can_flock;
-
-      -OR-
-   print File::Util->can_flock;
-
-      -OR-
-   my $f = File::Util->new();
-   print $f->can_flock;
-
-=head2 Find out if the host system needs to call binmode on binary files
-
-   use File::Util qw( needs_binmode );
-   print needs_binmode;
-
-      -OR-
-   use File::Util;
-   print File::Util->needs_binmode;
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->needs_binmode;
-
-=head2 Find out if a file can be opened for read (based on file permissions)
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $is_readable = $f->can_read('foo.txt');
-
-=head2 Find out if a file can be opened for write (based on file permissions)
-
-   use File::Util;
-   my $f = File::Util->new();
-   my $is_writable = $f->can_write('foo.txt');
-
-=head2 Escape illegal characters in a potential file name (and its path)
-
-   use File::Util;
-   my $f = File::Util->new();
-
-   # prints "C__WINDOWS_system32_drivers_etc_hosts"
-   print $f->escape_filename('C:\WINDOWS\system32\drivers\etc\hosts');
-
-   # prints "baz)__@^"
-   # (strips the file path from the file name, then escapes it
-   print $f->escape_filename(
-      '/foo/bar/baz)?*@^',
-      '--strip-path'
-   );
-
-   # prints "_foo_!_@so~me#illegal$_file&(name"
-   # (yes, that is a legal filename)
-   print $f->escape_filename(q[\foo*!_@so~me#illegal$*file&(name]);
-
-=head2 Find out if the host system uses EBCDIC
-
-   use File::Util qw( ebcdic );
-   print ebcdic;
-
-      -OR-
-   use File::Util;
-   print File::Util->ebcdic;
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->ebcdic;
-
-=head2 Get the type(s) of an existent file
-
-   use File::Util qw( file_type );
-   print file_type('foo.exe');
-
-      -OR-
-   use File::Util;
-   print File::Util->file_type('bar.txt');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->file_type('/dev/null');
-
-=head2 Get the bitmask of an existent file
-
-   use File::Util qw( bitmask );
-   print bitmask('/usr/sbin/sendmail');
-
-      -OR-
-   use File::Util;
-   print File::Util->bitmask('C:\COMMAND.COM');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->bitmask('/dev/null');
-
-=head2 Get time of creation for a file
-
-   use File::Util qw( created );
-   print scalar localtime created('/usr/bin/exim');
-
-      -OR-
-   use File::Util;
-   print scalar localtime File::Util->created('C:\COMMAND.COM');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print scalar localtime $f->created('/bin/less');
-
-=head2 Get the last access time for a file
-
-   use File::Util qw( last_access );
-   print scalar localtime last_access('/usr/bin/exim');
-
-      -OR-
-   use File::Util;
-   print scalar localtime File::Util->last_access('C:\COMMAND.COM');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print scalar localtime $f->last_access('/bin/less');
-
-=head2 Get the inode change time for a file
-
-   use File::Util qw( last_changed );
-   print scalar localtime last_changed('/usr/bin/vim');
-
-      -OR-
-   use File::Util;
-   print scalar localtime File::Util->last_changed('C:\COMMAND.COM');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print scalar localtime $f->last_changed('/bin/cpio');
-
-=head2 Get the last modified time for a file
-
-   use File::Util qw( last_modified );
-   print scalar localtime last_modified('/usr/bin/exim');
-
-      -OR-
-   use File::Util;
-   print scalar localtime File::Util->last_modified('C:\COMMAND.COM');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print scalar localtime $f->last_modified('/bin/less');
-
-=head2 Make a new directory, recursively if neccessary
-
-   use File::Util;
-   my $f = File::Util->new();
-   $f->make_dir('/var/tmp/tempfiles/foo/bar/');
-
-   # optionally specify a creation bitmask to be used in directory creations
-   $f->make_dir('/var/tmp/tempfiles/foo/bar/',0755);
-
-=head2 Touch a file
-
-   use File::Util qw( touch );
-   touch('somefile.txt');
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   $f->touch('/foo/bar/baz.tmp');
-
-=head2 Truncate a file
-
-   use File::Util;
-   my $f = File::Util->new();
-   $f->trunc('/wibble/wombat/noot.tmp');
-
-=head2 Get the correct path separator for the host system
-
-   use File::Util qw( SL );
-   print SL;
-
-      -OR-
-   use File::Util;
-   print File::Util->SL;
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->SL;
-
-=head2 Get the correct newline character for the host system
-
-   use File::Util qw( NL );
-   print NL;
-
-      -OR-
-   use File::Util;
-   print File::Util->NL;
-
-      -OR-
-   use File::Util;
-   my $f = File::Util->new();
-   print $f->NL;
+See L<File::Util::Manual>
 
 =head1 EXAMPLES (Full Programs)
 
-=head2 Batch File Rename
-
-   # Code changes the file suffix of all files in a directory ending in
-   # *.foo so that they afterward end in *.bar
-
-   use strict;
-   use vars qw( $dir );
-   use File::Util qw( NL SL );
-
-   my $f      = File::Util->new();
-   my $dir    = '../wibble';
-   my $old    = 'foo';
-   my $new    = 'bar';
-   my @files  = $f->list_dir($dir, '--files-only');
-
-   foreach ( @files ) {
-
-      # don't change the file suffix unless it is *.foo
-      if ($_ =~ /\.$old$/o) {
-
-         my $newname = $_; $newname =~ s/\.$old/\.$new/;
-
-         if (rename($dir . SL . $_, $dir . SL . $newname)) {
-
-            print qq($_ -> $newname), NL
-         }
-         else { warn <<__ERR__ }
-   Couldn't rename "$_" to "$newname"!
-   __ERR__
-      }
-      else { print <<__NOCHANGE__ }
-   File retained as "$_"
-   __NOCHANGE__
-   }
-
-=head2 Recursively remove a directory and all its contents
-
-   # This code removes a directory and everything in it
-
-   use strict; # always
-
-   use File::Util qw( NL );
-
-   my $f = File::Util->new();
-   my $removedir = '/path/to/directory/youwanttodelete';
-
-   my @gonners = $f->list_dir($removedir, '--follow');
-
-   # remove directory and everything in it
-   my( $a, $b );
-   @gonners = reverse sort { length $a <=> length $b } @gonners;
-
-   foreach ( @gonners, $removedir ) {
-      print "Removing $_ ..." . NL;
-      -d $_ ? rmdir($_) || die $! : unlink($_) || die $!;
-    }
-
-   print 'Done.  w00T!', NL x 2;
-
-
-=head2 Wrap the lines in a file at 72 columns, then save it
-
-   # This code opens a file, wraps its lines, and saves the file with
-   # the newly formatted content
-
-   use strict; # always
-
-   use File::Util qw( NL );
-   use Text::Wrap qw( wrap );
-
-   $Text::Wrap::columns = 72; # wrap text at this many columns
-
-   my $f = File::Util->new();
-   my $textfile = 'myreport.txt'; # file to wrap and save
-
-   $f->write_file(
-     filename => $textfile,
-     content => wrap('', '', $f->load_file($textfile))
-   );
-
-   print 'Done.', NL x 2;
-
-=head2 Read and increment a counter file, then save it
-
-   # This code opens a file, reads a number value, increments it,
-   # then saves the newly incremented value back to the file
-
-   use strict; # always
-
-   use File::Util;
-
-   my $f = File::Util->new();
-   my $counterfile = 'counter.txt';
-
-   # if the counter file doesn't exist, let's make one
-   if ( !$f->existent( $counterfile ) ) {
-      $f->touch($counterfile);
-   }
-
-   my $count = $f->load_file( $counterfile );
-
-   # convert textual number to in-memory int type, -this will default
-   # to a zero if it encounters non-numerical or empty content
-   chomp $count; # strip off any trailing lines
-   $count =~ s/[^[:digit:]]//g; # remove non-numeric data
-   $count = 0 if "$count" eq '';   # set count to 0 if empty string
-   $count = int $count; # numberify $count
-
-   print 'Count value from file: ' . $f->load_file($counterfile), $f->NL;
-
-   $count++; # increment the counter value by 1
-
-   # save the incremented count back to the counter file
-   $f->write_file( filename => $counterfile, content => $count);
-
-   # verify that "it worked"
-   print 'Count is now: ' . $f->load_file($counterfile), $f->NL;
-   print 'Done.', $f->NL x 2;
-
-=head2 Batch Search & Replace
-
-   # Code does a batch find or search and replace for all files in a given
-   # directory, recursively or non-recursively based on choices set forth
-   # in the code.
-
-   use strict;
-   use File::Util qw( NL SL );
-
-   # will get search pattern from file named below
-   use constant SFILE => './sr/searchfor';
-
-   # will get replace pattern from file named below
-   use constant RFILE => './sr/replacewith';
-
-   # will perform batch operation in directory named below
-   use constant INDIR => '/foo/bar/baz';
-
-   # specify whether the operation will do a find or a search and replace
-   use constant RMODE => [qw| read-only  write |]->[1];
-
-   # set the options for the search (will or will not recurse, etc)
-   my @opts = [qw/ --files-only --with-paths --recurse /]->[0,1];
-
-   # create new File::Util object, set File::Util to send a warning for
-   # fatal errors instead of dieing
-   my $f         = File::Util->new('--fatals-as-warning');
-   my $rstr      = $f->load_file(RFILE);
-   my $spat      = quotemeta $f->load_file(SFILE); $spat = qr/$spat/;
-   my $gsbt      = 0;
-   my $action    = RMODE eq 'read-only' ? 'detections' : 'substitutions';
-   my @files     = $f->list_dir(INDIR, @opts);
-
-   for (my $i = 0; $i < @files; ++$i) {
-
-      next if $f->isbin( $files[$i] );
-
-      my $sbt = 0; my $file = $f->load_file( $files[$i] );
-
-      $file =~ s/$spat/++$sbt;++$gsbt;$rstr/ge;
-
-      $f->write_file( file => $files[$i], content => $file)
-         if RMODE eq 'write';
-
-      print $sbt ? qq($sbt $action in $files[$i]) . NL : '';
-   }
-
-   print( NL . <<__DONE__ . NL x 2 ) and exit;
-   $gsbt $action in ${\scalar(@files)} files.
-   __DONE__
-
-=head2 Pretty-Print A Directory Recursively
-
-   use strict;
-   use vars qw( $a $b );
-
-   use File::Util qw( NL );
-   my $ind = '';
-   my $f   = File::Util->new();
-   my @o   = qw(
-      --with-paths
-      --sl-after-dirs
-      --no-fsdots
-      --files-as-ref
-      --dirs-as-ref
-   );
-
-   my $filetree  = {};
-   my $treetrunk = '/var/';
-   my( $subdirs, $sfiles ) = $f->list_dir($treetrunk, @o);
-
-   $filetree = [{
-      $treetrunk => [ sort({ uc $a cmp uc $b } @$subdirs, @$sfiles) ]
-   }];
-
-   descend( $filetree->[0]{ $treetrunk }, scalar(@$subdirs) );
-   walk( @$filetree );
-
-   sub descend {
-      my( $parent, $dirnum ) = @_;
-      for (my $i = 0; $i < $dirnum; ++$i) {
-         my $current = $parent->[$i]; next unless -d $current;
-         my( $subdirs, $sfiles ) = $f->list_dir($current, @o);
-         map { $_ = $f->strip_path($_) } @$sfiles;
-         splice(@$parent,$i,1,{
-            $current => [ sort({ uc $a cmp uc $b } @$subdirs, @$sfiles) ]
-         });
-         descend( $parent->[$i]{ $current }, scalar @$subdirs );
-      }
-
-      return $parent;
-   }
-
-   sub walk {
-      my $dir = shift(@_);
-      foreach (@{ [ %$dir ]->[1] }) {
-         my $mem = $_;
-         if (ref $mem eq 'HASH') {
-            print $ind . $f->strip_path([ %$mem ]->[0]) . '/', NL;
-            $ind .= ' ' x 3;
-            walk( $mem );
-            $ind = substr( $ind, 3 );
-         } else { print $ind . $mem, NL }
-      }
-   }
+See L<File::Util::Cookbook>
 
 =head1 BUGS
 
 Send bug reports and patches to the CPAN Bug Tracker for File::Util at
 L<https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil>
 
-=head1 RESOURCES
+=head1 SUPPORT
 
-If you want to get help, contact the authors (links below in the AUTHORS section)
+If you want to get help, contact the authors (links below in AUTHORS section)
 
-I fully endorse L<http://www.perlmonks.org> as an excellent source of help with Perl in general.
+I fully endorse L<http://www.perlmonks.org> as an excellent source of help
+with Perl in general.
 
 =head1 CONTRIBUTING
 
-The project website for File::Util is at L<https://github.com/tommybutler/file-util/wiki>
+The project website for File::Util is at
+L<https://github.com/tommybutler/file-util/wiki>
 
-The git repository for File::Util is on Github at L<https://github.com/tommybutler/file-util>
+The git repository for File::Util is on Github at
+L<https://github.com/tommybutler/file-util>
 
 Clone it at L<git://github.com/tommybutler/file-util.git>
 
@@ -4728,6 +2981,8 @@ and all those who contribute their time and talents as CPAN testers.
 =head1 AUTHORS
 
 Tommy Butler L<http://www.atrixnet.com/contact>
+
+Others Welcome!
 
 =head1 COPYRIGHT
 
@@ -4747,13 +3002,10 @@ for a particular purpose.
 
 =head1 SEE ALSO
 
-L<File::Slurp>, L<Path::Class>, L<Exception::Handler>
+The rest of the documentation:
+L<File::Util::Manual>, L<File::Util::Manual::Examples>, L<File::Util::Cookbook>,
+
+Other Useful Modules that do similar things:
+L<File::Slurp>, L<File::Spec>, L<Path::Class>
 
 =cut
-
-# --------------------------------------------------------
-# File::Util::DESTROY()
-# --------------------------------------------------------
-sub DESTROY {}
-
-1;
