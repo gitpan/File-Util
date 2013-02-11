@@ -68,6 +68,7 @@ eval { $v .= pmver('Test::Pod','1.41') };
 eval { $v .= pmver('Test::Pod::Coverage','1.08') };
 eval { $v .= pmver('constant','any version') };
 eval { $v .= pmver('strict','any version') };
+eval { $v .= pmver('subs','any version') };
 eval { $v .= pmver('vars','any version') };
 eval { $v .= pmver('version','0.9901') };
 eval { $v .= pmver('warnings','any version') };

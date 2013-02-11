@@ -5,8 +5,10 @@ use lib 'lib';
 
 package File::Util::Exception;
 {
-  $File::Util::Exception::VERSION = '4.130420'; # TRIAL
+  $File::Util::Exception::VERSION = '4.130425'; # TRIAL
 }
+
+# ABSTRACT: Base exception class for File::Util
 
 use File::Util::Definitions qw( :all );
 
@@ -151,11 +153,11 @@ __END__
 
 =head1 NAME
 
-File::Util::Exception
+File::Util::Exception - Base exception class for File::Util
 
 =head1 VERSION
 
-version 4.130420
+version 4.130425
 
 =head1 DESCRIPTION
 

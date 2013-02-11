@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130420'; # TRIAL
+  $File::Util::VERSION = '4.130425'; # TRIAL
 }
 
 use File::Util::Definitions qw( :all );
@@ -20,16 +20,22 @@ our @ISA        = qw( Exporter );
 
 # some of the symbols below come from File::Util::Definitions
 our @EXPORT_OK  = qw(
-   NL     can_flock   ebcdic        existent      needs_binmode
-   SL     strip_path  can_read      can_write     valid_filename
-   OS     bitmask     return_path   file_type     escape_filename
-   isbin  created     last_access   last_changed  last_modified
-   size   split_path  atomize_path  diagnostic
+   NL      can_flock   ebcdic        existent      needs_binmode
+   SL      strip_path  is_readable   is_writable   valid_filename
+   OS      bitmask     return_path   file_type     escape_filename
+   is_bin  created     last_access   last_changed  last_modified
+   isbin   split_path  atomize_path  diagnostic
+   size    can_read    can_write     read_limit
 );
 
-our %EXPORT_TAGS = ( all => [ @EXPORT_OK ], diag => [] );
+our %EXPORT_TAGS = ( all => [ @EXPORT_OK ], diag => [ ] );
 
 our $WANT_DIAGNOSTICS = 0;
+
+# --------------------------------------------------------
+# LEGACY methods (which get replaced in AUTOLOAD)
+# --------------------------------------------------------
+use subs qw( can_read  can_write  isbin  readlimit );
 
 # --------------------------------------------------------
 # Constructor
@@ -59,19 +65,28 @@ sub new {
 
       $this->{opts}->{diag} = $WANT_DIAGNOSTICS;
 
-   $READLIMIT  = $in->{readlimit}
-      if exists  $in->{readlimit}
-      && defined $in->{readlimit}
-      && $in->{readlimit} !~ /\D/;
+   $in->{read_limit} = defined $in->{read_limit}
+      ? $in->{read_limit}
+      : defined $in->{readlimit}
+         ? $in->{readlimit}
+         : undef;
 
-      $this->{opts}->{readlimit} = $READLIMIT;
+   delete $in->{readlimit};
+   delete $in->{read_limit} if !defined $in->{read_limit};
 
-   $MAXDIVES   = $in->{max_dives}
+   $READ_LIMIT = $in->{read_limit}
+      if exists  $in->{read_limit}
+      && defined $in->{read_limit}
+      && $in->{read_limit} !~ /\D/;
+
+      $this->{opts}->{read_limit} = $READ_LIMIT;
+
+   $MAX_DIVES  = $in->{max_dives}
       if exists  $in->{max_dives}
       && defined $in->{max_dives}
       && $in->{max_dives} !~ /\D/;
 
-      $this->{opts}->{max_dives} = $MAXDIVES;
+      $this->{opts}->{max_dives} = $MAX_DIVES;
 
    return $this;
 }
@@ -104,7 +119,7 @@ sub list_dir {
          ? $opts->{max_dives}
          : defined $this->{opts}->{max_dives}
             ? $this->{opts}->{max_dives}
-            : $MAXDIVES;
+            : $MAX_DIVES;
 
    return $this->_throw(
       'no input' => {
@@ -157,14 +172,14 @@ sub list_dir {
    }
    else { $this->{traversed} = { } }
 
-   # enforce maximum subdirectory dives, unless $MAXDIVES is equal to zero
-   if ( $MAXDIVES != 0 && ( scalar keys %{ $this->{traversed} } >= $maxd ) ) {
+   # enforce maximum subdirectory dives, unless $MAX_DIVES is equal to zero
+   if ( $MAX_DIVES != 0 && ( scalar keys %{ $this->{traversed} } >= $maxd ) ) {
 
       return $this->_throw(
-         'maxdives exceeded' => {
-            meth     => 'list_dir',
-            maxdives => $maxd,
-            opts     => $opts,
+         'max_dives exceeded' => {
+            meth      => 'list_dir',
+            max_dives => $maxd,
+            opts      => $opts,
          }
       )
    }
@@ -798,29 +813,37 @@ sub load_file {
    # this method could have been called.  we try to support as many methods
    # as make at least some amount of sense
 
-   $in->{file_handle} =
-      defined $in->{file_handle}
-         ? $in->{file_handle}
+   $in->{read_limit} = defined $in->{read_limit}
+      ? $in->{read_limit}
+      : defined $in->{readlimit}
+         ? $in->{readlimit}
          : undef;
 
-   my $readlimit =
-      defined $in->{readlimit}
-         ? $in->{readlimit}
-         : defined $this->{opts}->{readlimit}
-            ? $this->{opts}->{readlimit}
-            : defined $READLIMIT
-               ? $READLIMIT
+   delete $in->{readlimit};
+   delete $in->{read_limit} if !defined $in->{read_limit};
+
+   my $read_limit =
+      defined $in->{read_limit}
+         ? $in->{read_limit}
+         : defined $this->{opts}->{read_limit}
+            ? $this->{opts}->{read_limit}
+            : defined $READ_LIMIT
+               ? $READ_LIMIT
                : 0;
 
-   return $this->_throw ( 'bad readlimit' => { bad => $readlimit } )
-      if $readlimit =~ /\D/;
+   return $this->_throw ( 'bad read_limit' => { bad => $read_limit } )
+      if $read_limit =~ /\D/;
 
    # support old-school "FH" option, *and* the new, more sensible "file_handle"
    $in->{FH} = $in->{file_handle} if defined $in->{file_handle};
 
    if ( !defined $in->{FH} ) { # unless we were passed a file handle...
 
-      $file = shift @_ || '';
+      $file = defined $in->{file}
+         ? $in->{file}
+         : defined $in->{filename}
+            ? $in->{filename}
+            : shift @_ || '';
 
       return $this->_throw(
          'no input',
@@ -881,7 +904,7 @@ sub load_file {
 
       while ( <$fh> ) {
 
-         if ( $buffer < $readlimit ) {
+         if ( $buffer < $read_limit ) {
 
             $bytes_read = read( $fh, $content, $blocksize );
 
@@ -890,12 +913,12 @@ sub load_file {
          else {
 
             return $this->_throw(
-               'readlimit exceeded',
+               'read_limit exceeded',
                {
-                  filename  => '<filehandle>',
-                  size      => qq{[truncated at $bytes_read]},
-                  readlimit => $readlimit,
-                  opts      => $in,
+                  filename   => '<filehandle>',
+                  size       => qq{[truncated at $bytes_read]},
+                  read_limit => $read_limit,
+                  opts       => $in,
                }
             );
          }
@@ -955,14 +978,14 @@ sub load_file {
    my $fsize = -s $clean_name;
 
    return $this->_throw(
-      'readlimit exceeded',
+      'read_limit exceeded',
       {
-         filename  => $clean_name,
-         size      => $fsize,
-         opts      => $in,
-         readlimit => $readlimit,
+         filename   => $clean_name,
+         size       => $fsize,
+         opts       => $in,
+         read_limit => $read_limit,
       }
-   ) if $fsize > $readlimit;
+   ) if $fsize > $read_limit;
 
    # localize the global output record separator so we can slurp it all
    # in one quick read.  We fail if the filesize exceeds our limit.
@@ -1538,10 +1561,10 @@ sub can_flock { $CAN_FLOCK }
 
 
 # File::Util::--------------------------------------------
-#   can_read(),   can_write()
+# is_readable(), is_writable() -- was: can_read(), can_write()
 # --------------------------------------------------------
-sub can_read  { my $f = _myargs( @_ ); defined $f ? -r $f : undef }
-sub can_write { my $f = _myargs( @_ ); defined $f ? -w $f : undef }
+sub is_readable { my $f = _myargs( @_ ); defined $f ? -r $f : undef }
+sub is_writable { my $f = _myargs( @_ ); defined $f ? -w $f : undef }
 
 
 # --------------------------------------------------------
@@ -1705,9 +1728,9 @@ sub flock_rules {
 
 
 # --------------------------------------------------------
-# File::Util::isbin()
+# File::Util::is_bin()
 # --------------------------------------------------------
-sub isbin { my $f = _myargs( @_ ); defined $f ? -B $f : undef }
+sub is_bin { my $f = _myargs( @_ ); defined $f ? -B $f : undef }
 
 
 # --------------------------------------------------------
@@ -1979,37 +2002,37 @@ sub max_dives {
 
    if ( defined $arg ) {
 
-      return File::Util->new->_throw('bad maxdives') if $arg =~ /\D/;
+      return File::Util->new->_throw('bad max_dives') if $arg =~ /\D/;
 
-      $MAXDIVES = $arg;
+      $MAX_DIVES = $arg;
 
       $this->{opts}->{max_dives} = $arg
          if blessed $this && $this->{opts};
    }
 
-   return $MAXDIVES;
+   return $MAX_DIVES;
 }
 
 
 # --------------------------------------------------------
-# File::Util::readlimt()
+# File::Util::read_limit()
 # --------------------------------------------------------
-sub readlimit {
+sub read_limit {
    my $arg  = _myargs( @_ );
    my $this = shift @_;
 
    if ( defined $arg ) {
 
-      return File::Util->new->_throw ( 'bad readlimit' => { bad => $arg } )
+      return File::Util->new->_throw ( 'bad read_limit' => { bad => $arg } )
          if $arg =~ /\D/;
 
-      $READLIMIT = $arg;
+      $READ_LIMIT = $arg;
 
-      $this->{opts}->{readlimit} = $arg
+      $this->{opts}->{read_limit} = $arg
          if blessed $this && $this->{opts};
    }
 
-   return $READLIMIT;
+   return $READ_LIMIT;
 }
 
 
@@ -2519,19 +2542,32 @@ sub use_flock {
    return $USE_FLOCK;
 }
 
-
 # --------------------------------------------------------
 # File::Util::AUTOLOAD()
 # --------------------------------------------------------
 sub AUTOLOAD {
 
-   # the sole purpose of using autoload here is to avoid compiling in
+   # The main purpose of using autoload here is to avoid compiling in
    # copious amounts of error handling code at compile time, when in
    # the majority of cases and in production code-- such errors should
    # have already been debugged and the error handling mechanism will
-   # end up getting invoked seldom if ever.
+   # end up getting invoked seldom if ever.  There's no reason to pay
+   # the performance penalty when it's not necessary.
+   # The other purpose is to support legacy method names.
 
    ( my $name = our $AUTOLOAD ) =~ s/.*:://;
+
+   # These are legacy method names, and their current replacements.  In order
+   # to future-proof things, this hashref is used as a dispatch table further
+   # down in the code in lieu of potentially-growing if/else block, which
+   # would ugly to maintain
+
+   my $legacy_methods = {
+      can_write => \&is_writable,
+      can_read  => \&is_readable,
+      isbin     => \&is_bin,
+      readlimit => \&read_limit,
+   };
 
    if ( $name eq '_throw' )
    {
@@ -2583,6 +2619,18 @@ sub AUTOLOAD {
 
       goto \&_throw;
    }
+   elsif ( exists $legacy_methods->{ $name } ) {
+
+      ## no critic
+
+      no strict 'refs';
+
+      *{ $name } = $legacy_methods->{ $name };
+
+      ## use critic
+
+      goto \&$name;
+   }
 }
 
 
@@ -2604,7 +2652,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130420
+version 4.130425
 
 =head1 DESCRIPTION
 
@@ -2621,27 +2669,35 @@ File::Util also aims to be as backward compatible as possible, running without
 problems on Perl installations as old as 5.006.  You are encouraged to run
 File::Util on Perl version 5.8 and above.
 
+After browsing this document, please have a look at the other documentation.
+I<(See L<DOCUMENTATION|/DOCUMENTATION> section below.)>
+
 =head1 SYNOPSIS
+
+   # .......... GETTING STARTED ...........................................
 
    # use File::Util in your program
    use File::Util;
 
    # ...you can optionally enable File::Util's diagnostic error messages:
+   # (see File::Util::Manual section regarding diagnostics)
    use File::Util qw( :diag );
 
    # create a new File::Util object
    my $f = File::Util->new();
 
-   # ...or if you want to enable diagnostics on a per-object basis instead:
+   # ...you can enable diagnostics for individual objects:
    $f = File::Util->new( diag => 1 );
+
+   # .......... FILE OPERATIONS ...........................................
 
    # load content into a variable, be it text, or binary, either works
    my $content = $f->load_file( 'Meeting Notes.txt' );
 
-   # ...or if you only want diagnostic error messages on a per-call basis:
+   # ...or do it with diagnostics, for just for this call
    $content = $f->load_file( 'Meeting Notes.txt' => { diag => 1 } );
 
-   # wrangle text
+   # wrangle some text
    $content =~ s/this/that/g;
 
    # re-write the file with your changes
@@ -2666,6 +2722,28 @@ File::Util on Perl version 5.8 and above.
    # load a file into an array, line by line
    my @lines = $f->load_file( 'file.txt' => { as_lines => 1 } );
 
+   # see if you have permission to write to a file, then append to it
+   if ( $f->is_writable( 'captains.log' ) ) {
+
+      my $fh = $f->open_handle(
+         file => 'captains.log',
+         mode => 'append'
+      );
+
+      print $fh "Captain's log, stardate 41153.7.  Our destination is...";
+
+      close $fh or die $!;
+   }
+   else { # ...or warn the crew
+
+      warn "Trouble on the bridge, the Captain can't access his log!";
+   }
+
+   # get the number of lines in a file
+   my $log_line_count = $f->line_count( '/var/log/messages' );
+
+   # .......... FILE HANDLES ..............................................
+
    # get an open file handle for reading
    my $fh = $f->open_handle( file => 'Ian likes cats.txt', mode => 'read' );
 
@@ -2685,6 +2763,8 @@ File::Util on Perl version 5.8 and above.
    print $fh 'Shout out to Bob!';
 
    close $fh or die $!; # _never_ forget to close ;-)
+
+   # .......... DIRECTORIES ...............................................
 
    # get a listing of files, recursively, skipping directories
    my @files = $f->list_dir( '/var/tmp' => { files_only => 1, recurse => 1 } );
@@ -2720,42 +2800,20 @@ File::Util on Perl version 5.8 and above.
    # get an entire directory tree as a hierarchal datastructure reference
    my $tree = $f->list_dir( '/my/podcasts' => { as_tree => 1 } );
 
-   # see if you have permission to write to a file, then append to it
-   # using an auto-flock'd filehandle (for operating systems that support flock)
-   # ...you can also use the write_file() method in append mode as well...
-
-   if ( $f->can_write( 'captains.log' ) ) {
-
-      my $fh = $f->open_handle(
-         file => 'captains.log',
-         mode => 'append'
-      );
-
-      print $fh "Captain's log, stardate 41153.7.  Our destination is...";
-
-      close $fh or die $!;
-   }
-   else { # ...or warn the crew
-
-      warn "Trouble on the bridge, the Captain can't access his log!";
-   }
-
-   # get the number of lines in a file
-   my $log_line_count = $f->line_count( '/var/log/messages' );
-
-   # the next several examples show how to get different information about files
+   # .......... GETTING FILE DETAILS ......................................
 
    print "My file has a bitmask of " . $f->bitmask( 'my.file' );
 
    print "My file is a " . join(', ', $f->file_type( 'my.file' )) . " file.";
 
-   warn 'This file is binary!' if $f->isbin( 'my.file' );
+   warn 'This file is binary!' if $f->is_bin( 'my.file' );
 
    print 'My file was last modified on ' .
       scalar localtime $f->last_modified( 'my.file' );
 
-...and B<_lots_> more, See the L<File::Util::Manual> for more details and
-more features
+...There's B<_lots_> more.  See the L<File::Util::Manual> for more details and
+more features like advanced pattern matching in directories, directory walking,
+user-definable error handlers, and more.
 
 =head1 INSTALLATION
 
@@ -2781,7 +2839,8 @@ File::Util exposes the following public methods.
 B<Each of which are covered in the L<File::Util::Manual>>, which has more room for
 the detailed explanation that is provided there.
 
-This is just an itemized table of contents.
+This is just an itemized table of contents for HTML POD readers.  For those viewing
+this document in a text terminal, open perldoc to the C<File::Util::Manual>.
 
 =over
 
@@ -2790,10 +2849,6 @@ This is just an itemized table of contents.
 =item bitmask              I<(see L<bitmask|File::Util::Manual/bitmask>)>
 
 =item can_flock            I<(see L<can_flock|File::Util::Manual/can_flock>)>
-
-=item can_read             I<(see L<can_read|File::Util::Manual/can_read>)>
-
-=item can_write            I<(see L<can_write|File::Util::Manual/can_write>)>
 
 =item created              I<(see L<created|File::Util::Manual/created>)>
 
@@ -2809,7 +2864,11 @@ This is just an itemized table of contents.
 
 =item flock_rules          I<(see L<flock_rules|File::Util::Manual/flock_rules>)>
 
-=item isbin                I<(see L<isbin|File::Util::Manual/isbin>)>
+=item is_bin               I<(see L<is_bin|File::Util::Manual/is_bin>)>
+
+=item is_readable          I<(see L<is_readable|File::Util::Manual/is_readable>)>
+
+=item is_writable          I<(see L<is_writable|File::Util::Manual/is_writable>)>
 
 =item last_access          I<(see L<last_access|File::Util::Manual/last_access>)>
 
@@ -2835,7 +2894,7 @@ This is just an itemized table of contents.
 
 =item open_handle          I<(see L<open_handle|File::Util::Manual/open_handle>)>
 
-=item readlimit            I<(see L<readlimit|File::Util::Manual/readlimit>)>
+=item read_limit           I<(see L<read_limit|File::Util::Manual/read_limit>)>
 
 =item return_path          I<(see L<return_path|File::Util::Manual/return_path>)>
 
@@ -2875,55 +2934,103 @@ to use them as an object method, use this kind of syntax:
 
 C<use File::Util qw( strip_path NL );>
 
+=over
+
+=item *
+
 atomize_path
+
+=item *
 
 can_flock
 
-can_read
-
-can_write
+=item *
 
 created
 
+=item *
+
 diagnostic
+
+=item *
 
 ebcdic
 
+=item *
+
 escape_filename
+
+=item *
 
 existent
 
+=item *
+
 file_type
 
-isbin
+=item *
+
+is_bin
+
+=item *
+
+is_readable
+
+=item *
+
+is_writable
+
+=item *
 
 last_access
 
+=item *
+
 last_changed
+
+=item *
 
 last_modified
 
+=item *
+
 NL
+
+=item *
 
 needs_binmode
 
+=item *
+
 return_path
+
+=item *
 
 size
 
+=item *
+
 SL
+
+=item *
 
 split_path
 
+=item *
+
 strip_path
 
+=item *
+
 valid_filename
+
+=back
 
 =head2 EXPORT_TAGS
 
    :all (imports all of @File::Util::EXPORT_OK to your namespace)
 
-   use File::Util qw( :all ); # seldom if ever necessary, but it's an option
+   :diag (imports nothing to your namespace, it just enables diagnostics)
 
 =head1 PREREQUISITES
 
@@ -2935,12 +3042,13 @@ For graceful and helpful error handling
 
 =item L<Scalar::Util>
 
-For tools that support the better call interface in C<File::Util> versions
+For tools that support the improved call interface in C<File::Util> versions
 4.x and higher
 
 =item L<Perl|perl> 5.006 or better ...
 
-This requirement will increase soon with the advent of unicode support
+This requirement will increase soon with the advent of increasingly better
+unicode support
 
 =back
 
@@ -2974,9 +3082,7 @@ L<https://github.com/tommybutler/file-util>
 
 Clone it at L<git://github.com/tommybutler/file-util.git>
 
-This project was a private endeavor for too long so don't hesitate to pitch
-in. I want to say I very much appreciate the emails, bug reports, patches,
-and all those who contribute their time and talents as CPAN testers.
+This project was a private endeavor for too long so don't hesitate to pitch in.
 
 =head1 AUTHORS
 

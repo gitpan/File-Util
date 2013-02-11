@@ -11,7 +11,7 @@ File::Util::Manual::Examples - File::Util Examples
 
 =head1 VERSION
 
-version 4.130420
+version 4.130425
 
 =head1 INTRODUCTION
 
@@ -153,7 +153,7 @@ mode of the file.  (You should usually omit this.)
 
 =head2 Why not first check if the file is writeable/can be created
 
-   if ( $f->can_write( '/root/some/file.txt' ) ) {
+   if ( $f->is_writable( '/root/some/file.txt' ) ) {
 
       # ... now create/write to the file
    }
@@ -473,11 +473,11 @@ examples using *nix-style paths:
 
 =head2 Find out if a file can be opened for read (based on file permissions)
 
-   my $is_readable = $f->can_read( 'foo.txt' );
+   my $is_readable = $f->is_readable( 'foo.txt' );
 
 =head2 Find out if a file can be opened for write (based on file permissions)
 
-   my $is_writable = $f->can_write( 'foo.txt' );
+   my $is_writable = $f->is_writable( 'foo.txt' );
 
 =head2 Escape illegal characters in a potential file name (and its path)
 

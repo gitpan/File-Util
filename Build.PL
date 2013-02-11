@@ -31,7 +31,7 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "4.130420",
+  "dist_version" => "4.130425",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},
@@ -45,6 +45,7 @@ my %module_build_args = (
     "constant" => 0,
     "perl" => "5.006",
     "strict" => 0,
+    "subs" => 0,
     "vars" => 0,
     "warnings" => 0
   },

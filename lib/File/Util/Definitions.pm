@@ -3,14 +3,16 @@ use warnings;
 
 package File::Util::Definitions;
 {
-  $File::Util::Definitions::VERSION = '4.130420'; # TRIAL
+  $File::Util::Definitions::VERSION = '4.130425'; # TRIAL
 }
+
+# ABSTRACT: Global symbols and constants used in most File::Util classes
 
 use Fcntl qw( :flock );
 
 use vars qw(
    @ISA        @EXPORT_OK  %EXPORT_TAGS
-   $OS         $MODES      $READLIMIT    $MAXDIVES
+   $OS         $MODES      $READ_LIMIT   $MAX_DIVES
    $USE_FLOCK  @ONLOCKFAIL $ILLEGAL_CHR  $CAN_FLOCK
    $EBCDIC     $DIRSPLIT   $_LOCKS       $NEEDS_BINMODE
    $WINROOT    $ATOMIZER   $SL   $NL     $EMPTY_WRITES_OK
@@ -22,7 +24,7 @@ use Exporter;
 $AUTHORITY  = 'cpan:TOMMY';
 @ISA        = qw( Exporter );
 @EXPORT_OK  = qw(
-   $OS  OS     $MODES      $READLIMIT    $MAXDIVES
+   $OS  OS     $MODES      $READ_LIMIT   $MAX_DIVES
    $USE_FLOCK  @ONLOCKFAIL $ILLEGAL_CHR  $CAN_FLOCK
    $EBCDIC     $DIRSPLIT   $_LOCKS       $NEEDS_BINMODE
    $WINROOT    $ATOMIZER   $SL   $NL     $EMPTY_WRITES_OK
@@ -78,8 +80,8 @@ $ATOMIZER    = qr/
    (.*) /x;
 $ILLEGAL_CHR = qr/[\/\|\\$NL\r\n\t\013\*\"\?\<\:\>]/;
 $FSDOTS      = qr/^\.{1,2}$/;
-$READLIMIT   = 52428800; # set readlimit to a default of 50 megabytes
-$MAXDIVES    = 1000;     # maximum depth for recursive list_dir calls
+$READ_LIMIT  = 52428800; # set read_limit to a default of 50 megabytes
+$MAX_DIVES   = 1000;     # maximum depth for recursive list_dir calls
 
 {
    local $@;
@@ -167,11 +169,11 @@ __END__
 
 =head1 NAME
 
-File::Util::Definitions
+File::Util::Definitions - Global symbols and constants used in most File::Util classes
 
 =head1 VERSION
 
-version 4.130420
+version 4.130425
 
 =head1 DESCRIPTION
 

@@ -44,6 +44,7 @@
             "constant" : "0",
             "perl" : "5.006",
             "strict" : "0",
+            "subs" : "0",
             "vars" : "0",
             "warnings" : "0"
          }
@@ -70,43 +71,43 @@
    "provides" : {
       "File::Util" : {
          "file" : "lib/File/Util.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Cookbook" : {
          "file" : "lib/File/Util/Cookbook.pod",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Definitions" : {
          "file" : "lib/File/Util/Definitions.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Exception" : {
          "file" : "lib/File/Util/Exception.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Exception::Diagnostic" : {
          "file" : "lib/File/Util/Exception/Diagnostic.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Exception::Standard" : {
          "file" : "lib/File/Util/Exception/Standard.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Interface::Classic" : {
          "file" : "lib/File/Util/Interface/Classic.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Interface::Modern" : {
          "file" : "lib/File/Util/Interface/Modern.pm",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Manual" : {
          "file" : "lib/File/Util/Manual.pod",
-         "version" : "4.130420"
+         "version" : "4.130425"
       },
       "File::Util::Manual::Examples" : {
          "file" : "lib/File/Util/Manual/Examples.pod",
-         "version" : "4.130420"
+         "version" : "4.130425"
       }
    },
    "release_status" : "testing",
@@ -122,7 +123,7 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "4.130420",
+   "version" : "4.130425",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.010001"
@@ -312,11 +313,6 @@
             "class" : "Dist::Zilla::Plugin::Test::MinimumVersion",
             "name" : "@TestingMania/Test::MinimumVersion",
             "version" : "2.000002"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Test::Pod::LinkCheck",
-            "name" : "@TestingMania/Test::Pod::LinkCheck",
-            "version" : "1.001"
          },
          {
             "class" : "Dist::Zilla::Plugin::PodSyntaxTests",

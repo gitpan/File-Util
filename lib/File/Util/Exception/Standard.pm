@@ -5,8 +5,10 @@ use lib 'lib';
 
 package File::Util::Exception::Standard;
 {
-  $File::Util::Exception::Standard::VERSION = '4.130420'; # TRIAL
+  $File::Util::Exception::Standard::VERSION = '4.130425'; # TRIAL
 }
+
+# ABSTRACT: Standard (non-verbose) error messages
 
 use File::Util::Definitions qw( :all );
 use File::Util::Exception qw( :all );
@@ -158,31 +160,31 @@ Can't make directory; already exists as a file.  $EBL$opts->{filename}$EBR
 __bad_open__
 
 
-# BAD CALL TO File::Util::readlimit
-'bad readlimit' => <<'__readlimit__',
-Bad input provided to readlimit().
-__readlimit__
+# BAD CALL TO File::Util::read_limit
+'bad read_limit' => <<'__read_limit__',
+Bad input provided to read_limit().
+__read_limit__
 
 
-# EXCEEDED READLIMIT
-'readlimit exceeded' => <<'__readlimit__',
-Stopped reading: $EBL$opts->{filename}$EBR  Readlimit exceeded: $opts->{readlimit} bytes
-__readlimit__
+# EXCEEDED READ_LIMIT
+'read_limit exceeded' => <<'__read_limit__',
+Stopped reading: $EBL$opts->{filename}$EBR  Read limit exceeded: $opts->{read_limit} bytes
+__read_limit__
 
 
 # BAD CALL TO File::Util::max_dives
-'bad maxdives' => <<'__maxdives__',
+'bad max_dives' => <<'__max_dives__',
 Bad input provided to max_dives()
-__maxdives__
+__max_dives__
 
 
-# EXCEEDED MAXDIVES
-'maxdives exceeded' => <<'__maxdives__',
+# EXCEEDED MAX_DIVES
+'max_dives exceeded' => <<'__max_dives__',
 Recursion limit exceeded at $EBL${\ scalar(
-   (exists $opts->{maxdives} && defined $opts->{maxdives}) ?
-   $opts->{maxdives} : $MAXDIVES)
+   (exists $opts->{max_dives} && defined $opts->{max_dives}) ?
+   $opts->{max_dives} : $MAX_DIVES)
 }$EBR dives.
-__maxdives__
+__max_dives__
 
 
 # BAD OPENDIR
@@ -254,11 +256,11 @@ __END__
 
 =head1 NAME
 
-File::Util::Exception::Standard
+File::Util::Exception::Standard - Standard (non-verbose) error messages
 
 =head1 VERSION
 
-version 4.130420
+version 4.130425
 
 =head1 DESCRIPTION
 
