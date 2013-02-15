@@ -11,7 +11,7 @@ File::Util::Manual - File::Util Reference
 
 =head1 VERSION
 
-version 4.130425
+version 4.130460
 
 =head1 INTRODUCTION
 

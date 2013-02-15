@@ -50,6 +50,7 @@ sub pmver {
 
 eval { $v .= pmver('AutoLoader','any version') };
 eval { $v .= pmver('Config','any version') };
+eval { $v .= pmver('Data::Dumper','any version') };
 eval { $v .= pmver('Exception::Handler','1.00_0') };
 eval { $v .= pmver('Exporter','any version') };
 eval { $v .= pmver('ExtUtils::MakeMaker','6.30') };
@@ -66,6 +67,7 @@ eval { $v .= pmver('Test::More','0.88') };
 eval { $v .= pmver('Test::NoWarnings','any version') };
 eval { $v .= pmver('Test::Pod','1.41') };
 eval { $v .= pmver('Test::Pod::Coverage','1.08') };
+eval { $v .= pmver('Time::HiRes','any version') };
 eval { $v .= pmver('constant','any version') };
 eval { $v .= pmver('strict','any version') };
 eval { $v .= pmver('subs','any version') };

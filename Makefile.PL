@@ -37,17 +37,19 @@ my %WriteMakefileArgs = (
   "NAME" => "File::Util",
   "PREREQ_PM" => {
     "Config" => 0,
+    "Data::Dumper" => 0,
     "Exception::Handler" => 0,
     "Exporter" => 0,
     "Fcntl" => 0,
     "Scalar::Util" => 0,
+    "Time::HiRes" => 0,
     "constant" => 0,
     "strict" => 0,
     "subs" => 0,
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "4.130425",
+  "VERSION" => "4.130460",
   "test" => {
     "TESTS" => "t/*.t t/extended/*.t"
   }

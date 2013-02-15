@@ -1,5 +1,5 @@
 This file contains message digests of all files listed in MANIFEST,
-signed via the Module::Signature module, version 0.70.
+signed via the Module::Signature module, version 0.63.
 
 To verify the content in this distribution, first make sure you have
 Module::Signature installed, then type:
@@ -15,20 +15,20 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 76a08172c2a635f36337c548aa80600ef0346159 AUTHORS
-SHA1 a13c8c083c05fd61474ebd0d2251970c101a90d2 Build.PL
+SHA1 6418717ebbd17a139df893a4300e8d6149540872 Build.PL
 SHA1 d7d92a5864a09b3979307e6946f9be39138cadd0 COPYING
-SHA1 e094a34976e519a9067bfecce3ff18aa291e25a8 Changes
+SHA1 cff1940c9fc04450ebae4808dc8d50da20f53501 Changes
 SHA1 027631fb6bcf8560acb0ecd72b9af91145b9f73d INSTALL
 SHA1 85a11a7a72022d56faca7a23d82834faab55edf2 LICENSE
-SHA1 3ece439245138d0f3ed8676a3e197e394f31e269 MANIFEST
+SHA1 cd7849256ab84cb5f43c07e5b582ccaff82419b8 MANIFEST
 SHA1 c81fffdddcc2cab48397dc3c48403ecf5f93f03d MANIFEST.SKIP
-SHA1 0ec9147cf2a77e4a076f93798a50286bfa9ad24d META.json
-SHA1 707635c55760e5a918baaf77e27ecf8b74bbd94d META.yml
-SHA1 5df772d63d1be13d7f06ba1c6cdaf67ba983df84 Makefile.PL
+SHA1 ab559525a9cf338a5c67180ef9bf2905eb096ece META.json
+SHA1 148543fc74a3772683228a4f1ebfb7f7e1dfe791 META.yml
+SHA1 c819b9ec91ffa2be0d20f67df945abb52879a5b9 Makefile.PL
 SHA1 393e0581a95b18319c2c3497997f0efc17fa2f3d NEWS
-SHA1 f353fefdc86c05fb89c977e31b0a476efb61e4f1 README
-SHA1 8f5602868cb237d15ce93a556fb7a0ba5a3c2609 TODO
-SHA1 49388ae769df524b975d39ad151304b9f58814c5 dist.ini
+SHA1 3fe79c868a6f4bb9933a1ab0c5fbe2180893c950 README
+SHA1 fe37216f133f74332145a4f6d8a02f582ba23332 TODO
+SHA1 dd85232ce2a4e65899949d7382a05c44591411ec dist.ini
 SHA1 874ad198d5fd2f480c9449f7dc0359442f3ad7d5 examples/batch_file_rename.pl
 SHA1 e8f35b4a54bf70fa577923741316a39b7de1493b examples/batch_search_and_replace.pl
 SHA1 fa112d4da9a8bde9de6fef21be45196bc4fd789e examples/get_an_open_file_handle.pl
@@ -44,24 +44,25 @@ SHA1 80922e73571def192f04c1784caebeadedf535ba examples/pretty_print_a_directory_
 SHA1 ae9afb8f97c188031c0e74ec60b627584e9fa383 examples/recursively_remove_a_directory_and_its_contents.pl
 SHA1 70177b252e54feeb078e5fab9c6de0ad43cba784 examples/wrap_the_lines_in_a_file.pl
 SHA1 3ef56e2a76269416d29b0640406bac70a2be0a51 examples/write_or_append_to_a_file.pl
-SHA1 89f2c833e7ad37be43952def4ac52e6c6047a540 lib/File/Util.pm
-SHA1 6e61347517e08ff05ea4a0e61193593a42e02c87 lib/File/Util/Cookbook.pod
-SHA1 9dd2135a7b6aa88a0a40b4d5a7176658618d381b lib/File/Util/Definitions.pm
-SHA1 ea847bc347dc00666ef5a2fcc210b92ab24a05bd lib/File/Util/Exception.pm
-SHA1 f069d99f51546438591ff8ddbe272918313f7a31 lib/File/Util/Exception/Diagnostic.pm
-SHA1 df13d3ad71d27bb7ab673c9a02d7d7abe317be96 lib/File/Util/Exception/Standard.pm
-SHA1 72161518da6ff67b20db96b771c0373055d54229 lib/File/Util/Interface/Classic.pm
-SHA1 2ffa8d90ef6f1c882cf5238c3678d9daf013a1d0 lib/File/Util/Interface/Modern.pm
-SHA1 4491dbf57e92ef05cc94e8acb5170089e3671590 lib/File/Util/Manual.pod
-SHA1 b61b6ceb092c811e340deca9462400d0217b6f6c lib/File/Util/Manual/Examples.pod
+SHA1 70640a810708db9f5945f8ee9ba1195e0d91897a lib/File/Util.pm
+SHA1 ea9a58417997e33e00e1d67c2c35d32c87c0fabf lib/File/Util/Cookbook.pod
+SHA1 dd2df39324c7edf947e16f93645796ae4940fb6f lib/File/Util/Definitions.pm
+SHA1 41f36cbaadae904531c68411fe4f3a53edcfce8a lib/File/Util/Exception.pm
+SHA1 f24e95277d293a6d6f96d1df675257f71488f152 lib/File/Util/Exception/Diagnostic.pm
+SHA1 79d2a7dbaf5811433bcfffdce9ace4a926392044 lib/File/Util/Exception/Standard.pm
+SHA1 f3f7c980f52b130ec54a2d4ebe56358abc70c6f5 lib/File/Util/Interface/Classic.pm
+SHA1 36a58c0dfeeb3622462027492bb8aa65314bdc40 lib/File/Util/Interface/Modern.pm
+SHA1 674e07c3ee97c389b7dfbf67a86a0653d0e04441 lib/File/Util/Manual.pod
+SHA1 073a355dde3fd6a11d00967d2d492d3464f52610 lib/File/Util/Manual/Examples.pod
+SHA1 ab6d8eac639ff4ce68463b42c24c3e6baead09d3 lib/File/Util/ProxyLog.pm
 SHA1 3cbe905b92fbc69d59a06031d5ce6c837b352aa2 t/00-compile.t
-SHA1 887f5cceca4ac3cfa47196dbc530338a0ab39f9c t/000-report-versions-tiny.t
+SHA1 2296df9e96d64503c5320bb4170fe9e3657ffd6a t/000-report-versions-tiny.t
 SHA1 1b34fc2c2e6b8f80b219a9cba838dc413016695e t/001_canuseit.t
 SHA1 71a868482e05797d7e5299f3cb520d69379eea88 t/002_isa.t
 SHA1 783667d2e322a2b842542e230218354d11b6986a t/003_can.t
 SHA1 4c3a885956f50a41708d60c11deee721e4f1ddc4 t/004_portable.t
 SHA1 885a069279b1961884deff7fe8be0d02851e4c93 t/005_ftests.t
-SHA1 59b01078ee390e549f9aca25de7d7b0b2784e2b9 t/006_io.t
+SHA1 d90ec8c67cfe809157a842f98b8a987ecdfca7d9 t/006_io.t
 SHA1 338a3eb917478160ac51ff1fb456725f95156a53 t/007_flock.t
 SHA1 1a0009da145fb28501ce6feaad5aa2935eaeea2b t/008_export_ok.t
 SHA1 9200be436c04e75fc832aa260e659a905daf2321 t/009_empty_subclass.t
@@ -70,15 +71,15 @@ SHA1 072aef8454daa3b3525d7f7d3d8edc181f64e786 t/012_atomize_path.t
 SHA1 01e2227802bebf1d0c5b7193b352cfe196b0102e t/013_interface_classic.t
 SHA1 fa45d6e6ab1cd421349dea4ef527bfd5cdc8a09e t/author-critic.t
 SHA1 cac36f84f0db21cf6fa980a9b31ca3453a84f8e4 t/bin
-SHA1 3564e6dd2aa89cf3fdb7096f274ba5543fa3e12a t/extended/001_new.t
-SHA1 ccc7d5cee7be153361409215081b71224f8b22a7 t/extended/002_make_dir_list_dir.t
+SHA1 37b5ac93db7da52106ddf9da7bcaedb47fa15cb9 t/extended/001_new.t
+SHA1 395c5a624ab1b773449570f3ff4f51199ba6d1ef t/extended/002_make_dir_list_dir.t
 SHA1 6be9177ea6cca93f1c28b956f25d90c3cc3d66c3 t/extended/003_list_dir_advancedmatch.t
 SHA1 43309f57e58b9662c464b0e6ac3fd36ccd637032 t/extended/004_load_dir.t
 SHA1 e9cc72017286700ecd33fd102ea0f572661d11b5 t/extended/005_write_file.t
 SHA1 81fc349ea17f177875902f0b52cb2b5ab0a58734 t/extended/006_onfail.t
 SHA1 74bc7524c337d121b0781dd8c5bb623c6c659a1b t/extended/007_open_handle.t
-SHA1 44b5cfaa6e187eb0c1b6ad377ab1676cf47bb377 t/extended/release-diesnice-fatalities.t
-SHA1 c62ae64ff09db60064865bdf70ca14a0db39b964 t/extended/release-diesnice-messages.t
+SHA1 af87997c3bfd3360dd94dcb098a7fa99a84f5e85 t/extended/release-diesnice-fatalities.t
+SHA1 3ca2be5aee8f02fbb722364c3d964adfd63faf1e t/extended/release-diesnice-messages.t
 SHA1 c591e1c2af60bc91cc86013f7dea9b6703eace1c t/extended/release-dist-portable.t
 SHA1 2346c6403f21d316327ee1d2b7857a60c76ef278 t/release-cpan-changes.t
 SHA1 87768d177f8c2e2df9c591cde869e7c8a245555e t/release-dist-manifest.t
@@ -103,17 +104,17 @@ SHA1 65821dbdac86467eb04a9ad83dfad0600dfabdd9 t/txt
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iQIcBAEBAgAGBQJRGWqxAAoJEGe9xj410/4dVeQP/A0KnZr1Ls0AmqDMLUyUkDNi
-lkaho2+3BCazULwQOw20OVT7zOcP7TzgPvug1b4WC9nHepOQPrVfBj1v1XsI8WoJ
-VYqvy9W24dg3aSV1fB7ypSYUzWu9FMblCuFx92JF5E6vQfvHDE9aArabFy/lVbpn
-EVlCKHpJghSVkDqii1jihzKyzilaMfdQj5wZXo3sur8R47znvuiQf7Rd5jgeEu4B
-OZ0Z4NmDc1cnPCxSpxVtTXCf/nGlkD7ftZ+rB93ISM8mlHpbsZC0lTFkb5mb0S5J
-u0aW47ECkM0BgmQqtncGVpps2pxlutTyYDS3X+ZJGp6LPxzFmQlldzLYtsC8RgkS
-52Nj+3o3RSsjDp7p0AiY/0l5HQQzg4kKX98PRssCrBRCjzMxqWLmyoUb+NAXustw
-hlEw0NFiXKyMZq57wT3HeVme3KAoHk4MIXC8MKxnrIsLuhgJSv+2uZVbTRXcxINL
-KT2vta4Wak1D6MMLphEKi7EAvhEG/8OG5gr7VGq/wZD4yH/TxZzzCfRoz4fQxkok
-QH4AZ/LLWC3q8kFPfQNtRtj74GMUfBVYD5JC+SNZm3wx3BipGqE8uJxoZm3qPF52
-zRhJyHIwBg6niAMk5HbwQvVPH3azfvPW4tFgo661d3ca5gcvxtnJb24M6o1Blsjd
-9rpDrwIYu1WILWFCgcPE
-=5fBD
+iQIcBAEBAgAGBQJRHbn1AAoJEGe9xj410/4dobwP/j+9+SpSmgGAabuNXG8QRkR2
+k2dIeyxP/aZplLL6h6k1ng7bgW1ziCs5VL6Xu7XFglGFdGSrXa6TC6bTAbWeV2UK
+Zy9winyVpuBfWxQWFgnPsyFOmFb73Wf43lXED3gZH8daZXgmY6RZ/dKeCeTG6bJh
+SDJxh2YcR54w6IfGoyH2hiIyT9S3EnHO+M29e3309zkyT2lMJ1MGL/z1gRF4CRMH
+pGcsHj3eSKhjCsofkVZRLe3Dc7dX7yu1AtsOtJhXX1HxLDo/qEX2A8b1hpi+R06B
+me/dCKOi+fiSEkh7Y9VD8XuLaFFi3iIRYp4ccKzYeNx1dbGzVhClbQ1lhSX+J6th
+fAhzG3XozHiBtOzHtEQYTvD53TzTDEqnfcIOtc5Qmy2GFCcx7zRbvFMgvmPbn6Ga
+nW9vMVTR8d1+mnRn82I9nMKS9oy8lHpFXcEHEQPWZV6LSYbtlYi2q9x89GaWjVmn
+Ep+yHovQ7nm7RoYglkKwsEnMNJ9cvq0T2cR+vtHcxm1AsT/kxkaK6lI288dcrRKG
+fdpOck8zR77xtC4qEPY+FWPFuXJsLSH6kaYa/9w+Y/VBQP7w4PJHDpB/x8DYeVPY
+5xu2JaMR1cLt2v4raHfqqXd1xXxVues1iForqICDks2FlNV4TuHoCLnnaOhnNA+A
+sk0zeMxSFWbNJJ4vIV2h
+=38Fs
 -----END PGP SIGNATURE-----

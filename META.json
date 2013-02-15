@@ -37,10 +37,12 @@
       "runtime" : {
          "requires" : {
             "Config" : "0",
+            "Data::Dumper" : "0",
             "Exception::Handler" : "0",
             "Exporter" : "0",
             "Fcntl" : "0",
             "Scalar::Util" : "0",
+            "Time::HiRes" : "0",
             "constant" : "0",
             "perl" : "5.006",
             "strict" : "0",
@@ -71,43 +73,47 @@
    "provides" : {
       "File::Util" : {
          "file" : "lib/File/Util.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Cookbook" : {
          "file" : "lib/File/Util/Cookbook.pod",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Definitions" : {
          "file" : "lib/File/Util/Definitions.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Exception" : {
          "file" : "lib/File/Util/Exception.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Exception::Diagnostic" : {
          "file" : "lib/File/Util/Exception/Diagnostic.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Exception::Standard" : {
          "file" : "lib/File/Util/Exception/Standard.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Interface::Classic" : {
          "file" : "lib/File/Util/Interface/Classic.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Interface::Modern" : {
          "file" : "lib/File/Util/Interface/Modern.pm",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Manual" : {
          "file" : "lib/File/Util/Manual.pod",
-         "version" : "4.130425"
+         "version" : "4.130460"
       },
       "File::Util::Manual::Examples" : {
          "file" : "lib/File/Util/Manual/Examples.pod",
-         "version" : "4.130425"
+         "version" : "4.130460"
+      },
+      "File::Util::ProxyLog" : {
+         "file" : "lib/File/Util/ProxyLog.pm",
+         "version" : "4.130460"
       }
    },
    "release_status" : "testing",
@@ -123,7 +129,7 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "4.130425",
+   "version" : "4.130460",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.010001"
@@ -340,34 +346,9 @@
             "version" : "4.300029"
          },
          {
-            "class" : "Dist::Zilla::Plugin::InstallRelease",
-            "name" : "InstallRelease",
-            "version" : "0.008"
-         },
-         {
             "class" : "Dist::Zilla::Plugin::Signature",
             "name" : "Signature",
             "version" : "1.100930"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Git::Check",
-            "name" : "@Git/Check",
-            "version" : "2.006"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Git::Commit",
-            "name" : "@Git/Commit",
-            "version" : "2.006"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Git::Tag",
-            "name" : "@Git/Tag",
-            "version" : "2.006"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Git::Push",
-            "name" : "@Git/Push",
-            "version" : "2.006"
          },
          {
             "class" : "Dist::Zilla::Plugin::AutoPrereqs",

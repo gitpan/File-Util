@@ -39,6 +39,7 @@ lib/File/Util/Interface/Classic.pm
 lib/File/Util/Interface/Modern.pm
 lib/File/Util/Manual.pod
 lib/File/Util/Manual/Examples.pod
+lib/File/Util/ProxyLog.pm
 t/00-compile.t
 t/000-report-versions-tiny.t
 t/001_canuseit.t
