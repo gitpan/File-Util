@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Modern;
 {
-  $File::Util::Interface::Modern::VERSION = '4.130460'; # TRIAL
+  $File::Util::Interface::Modern::VERSION = '4.130483'; # TRIAL
 }
 
 # ABSTRACT: Modern call interface to File::Util
@@ -121,8 +121,8 @@ sub _remove_opts {
 sub _parse_in {
 
    my @in   = _myargs( @_ );
-   my $opts = _remove_opts( \@in ) || {};
-   my $in   = _names_values( @in ) || {};
+   my $opts = _remove_opts( \@in ); # always returns a hashref, given a listref
+   my $in   = _names_values( @in ); # always returns a hashref, given anything
 
    # merge two hashrefs
    @$in{ keys %$opts } = values %$opts;
@@ -149,7 +149,7 @@ File::Util::Interface::Modern - Modern call interface to File::Util
 
 =head1 VERSION
 
-version 4.130460
+version 4.130483
 
 =head1 DESCRIPTION
 

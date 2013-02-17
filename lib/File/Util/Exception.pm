@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception;
 {
-  $File::Util::Exception::VERSION = '4.130460'; # TRIAL
+  $File::Util::Exception::VERSION = '4.130483'; # TRIAL
 }
 
 # ABSTRACT: Base exception class for File::Util
@@ -29,6 +29,7 @@ $AUTHORITY   = 'cpan:TOMMY';
 # File::Util::Exception::_throw
 # --------------------------------------------------------
 sub _throw {
+
    my @in = @_;
    my ( $this, $error_class, $error ) = splice @_, 0 , 3;
    my $opts = $this->_remove_opts( \@_ );
@@ -40,15 +41,14 @@ sub _throw {
    # ...and we also handle support for the newer, more pretty error
    # handling policy syntax using "onfail" keywords/subrefs
 
-   $opts->{onfail} ||= $this->{opts}->{onfail};
-
    $opts->{onfail} ||=
-      $opts->{opts} &&
-      ref $opts->{opts} eq 'HASH'
+      $opts->{opts} && ref $opts->{opts} eq 'HASH'
          ? $opts->{opts}->{onfail}
          : '';
 
-   $opts->{onfail} ||= '';
+   $opts->{onfail} ||= $this->{opts}->{onfail};
+
+   $opts->{onfail} ||= 'die';
 
    # fatalality-handling rules passed to the failing caller trump the
    # rules set up in the attributes of the object; the mechanism below
@@ -144,6 +144,13 @@ sub _throw {
    goto $opts->{onfail};
 }
 
+
+# --------------------------------------------------------
+# File::Util::Exception::DESTROY()
+# --------------------------------------------------------
+sub DESTROY { }
+
+
 1;
 
 
@@ -157,7 +164,7 @@ File::Util::Exception - Base exception class for File::Util
 
 =head1 VERSION
 
-version 4.130460
+version 4.130483
 
 =head1 DESCRIPTION
 

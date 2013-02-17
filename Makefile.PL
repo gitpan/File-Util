@@ -14,6 +14,7 @@ my %WriteMakefileArgs = (
   "BUILD_REQUIRES" => {
     "AutoLoader" => 0,
     "Config" => 0,
+    "Cwd" => 0,
     "Exception::Handler" => "1.00_0",
     "Exporter" => 0,
     "ExtUtils::MakeMaker" => 0,
@@ -49,7 +50,7 @@ my %WriteMakefileArgs = (
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "4.130460",
+  "VERSION" => "4.130483",
   "test" => {
     "TESTS" => "t/*.t t/extended/*.t"
   }

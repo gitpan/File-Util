@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Diagnostic;
 {
-  $File::Util::Exception::Diagnostic::VERSION = '4.130460'; # TRIAL
+  $File::Util::Exception::Diagnostic::VERSION = '4.130483'; # TRIAL
 }
 
 # ABSTRACT: Diagnostic (verbose) error messages
@@ -594,6 +594,13 @@ __no_input__
    : $error_msg_table{'unknown error message'}
 }
 
+
+# --------------------------------------------------------
+# File::Util::Exception::Diagnostic::DESTROY()
+# --------------------------------------------------------
+sub DESTROY { }
+
+
 1;
 
 
@@ -607,7 +614,7 @@ File::Util::Exception::Diagnostic - Diagnostic (verbose) error messages
 
 =head1 VERSION
 
-version 4.130460
+version 4.130483
 
 =head1 DESCRIPTION
 

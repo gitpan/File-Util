@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Definitions;
 {
-  $File::Util::Definitions::VERSION = '4.130460'; # TRIAL
+  $File::Util::Definitions::VERSION = '4.130483'; # TRIAL
 }
 
 # ABSTRACT: Global symbols and constants used in most File::Util classes
@@ -134,23 +134,31 @@ $_LOCKS->{BLOCKSH}   = sub {
    return $_[2] if flock( $_[2], &Fcntl::LOCK_SH ); return
 };
 $_LOCKS->{WARN} = sub {
-   $_[0]->_throw(
-      'bad flock' =>
+
+   my $this = shift;
+
+   return $this->_throw(
+      'bad flock'  =>
       {
-         filename  => $_[1],
+         filename  => shift,
          exception => $!,
          onfail    => 'warn',
+         opts      => $this->_remove_opts( \@_ ),
       },
-   ); return
+   );
 };
 $_LOCKS->{FAIL} = sub {
-   $_[0]->_throw(
-      'bad flock',
+
+   my $this = shift;
+
+   return $this->_throw(
+      'bad flock'  =>
       {
-         filename  => $_[1],
+         filename  => shift,
          exception => $!,
+         opts      => $this->_remove_opts( \@_ ),
       },
-   ); return 0
+   );
 };
 
 # (for use in error messages)
@@ -173,7 +181,7 @@ File::Util::Definitions - Global symbols and constants used in most File::Util c
 
 =head1 VERSION
 
-version 4.130460
+version 4.130483
 
 =head1 DESCRIPTION
 

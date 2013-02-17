@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Standard;
 {
-  $File::Util::Exception::Standard::VERSION = '4.130460'; # TRIAL
+  $File::Util::Exception::Standard::VERSION = '4.130483'; # TRIAL
 }
 
 # ABSTRACT: Standard (non-verbose) error messages
@@ -247,6 +247,13 @@ __no_input__
    : $error_msg_table{'unknown error message'}
 }
 
+
+# --------------------------------------------------------
+# File::Util::Exception::Standard::DESTROY()
+# --------------------------------------------------------
+sub DESTROY { }
+
+
 1;
 
 
@@ -260,7 +267,7 @@ File::Util::Exception::Standard - Standard (non-verbose) error messages
 
 =head1 VERSION
 
-version 4.130460
+version 4.130483
 
 =head1 DESCRIPTION
 

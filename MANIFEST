@@ -54,6 +54,8 @@ t/009_empty_subclass.t
 t/011_abspaths.t
 t/012_atomize_path.t
 t/013_interface_classic.t
+t/014_interface_modern.t
+t/015_destroy.t
 t/author-critic.t
 t/bin
 t/extended/001_new.t
@@ -63,6 +65,7 @@ t/extended/004_load_dir.t
 t/extended/005_write_file.t
 t/extended/006_onfail.t
 t/extended/007_open_handle.t
+t/extended/008_proxylog.t
 t/extended/release-diesnice-fatalities.t
 t/extended/release-diesnice-messages.t
 t/extended/release-dist-portable.t
@@ -78,7 +81,6 @@ t/release-localbrew-perl-5.17.7.t
 t/release-localbrew-perl-5.17.8.t
 t/release-localbrew-perl-5.8.9.t
 t/release-meta-json.t
-t/release-minimum-version.t
 t/release-mojibake.t
 t/release-no-tabs.t
 t/release-pod-coverage.t

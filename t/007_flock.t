@@ -1,7 +1,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::NoWarnings;
 
 use Fcntl qw( );
@@ -9,8 +9,9 @@ use File::Temp qw( tmpnam );
 
 use lib './lib';
 use File::Util qw( SL NL OS );
+use File::Util::ProxyLog;
 
-my $f = File::Util->new( '--fatals-as-status' );
+my $f = File::Util->new( { onfail => 'zero' } );
 
 my ( $tfh, $tmpf ) = tmpnam();
 
@@ -35,16 +36,19 @@ SKIP: {
 
    if ( !$have_flock ) {
 
-      skip 'Your system cannot flock' => 8;
+      skip 'Your system cannot flock' => 9;
    }
    elsif ( !$have_perms ) {
 
-      skip 'Insufficient permissions' => 8;
+      skip 'Insufficient permissions' => 9;
    }
    elsif ( $^O =~ /solaris|sunos/i ) {
 
-      skip 'Solaris flock has issues' => 8;
+      skip 'Solaris flock has issues' => 9;
    }
+
+   ok $f->can_flock( ) == $have_flock,
+      'File::Util correctly detects flock() support';
 
    # flock-ing usage toggles
    ok $f->use_flock( ) == 1, 'test flock on' ;       # test 1
@@ -65,8 +69,23 @@ SKIP: {
    );
 
    # actual flock test
-   is fight_for_lock(), 0, 'contending flock OPs must fail' ; # test 8
+   is fight_for_lock(),
+      'failed correctly',
+      'contending flock OPs must fail' ; # test 8
 
+   last;
+
+   my $fh = $f->open_handle
+   (
+      $tmpf, 'write' => { onfail => warn => diag => 1 }
+   );
+
+   is $f->unlock_open_handle
+   (
+      $fh => { onfail => warn => diag => 1 }
+   ), 1, 'File::Util can un-flock OK';
+
+   close $fh;
 }
 
 unlink $tmpf;
@@ -76,9 +95,15 @@ exit;
 # put flock to the "test"
 sub fight_for_lock {
 
+   $f->flock_rules( qw( NOBLOCKEX FAIL ) );
+
    # auto-locks file, keep open handle on it
-   my $fh = $f->open_handle( file => $tmpf );
+   my $fh = $f->open_handle( $tmpf => 'write' );
 
    # this should fail, and return a "0" instead of a filehandle
-   return $f->open_handle( file => $tmpf );
+   return $f->open_handle
+   (
+      $tmpf => write => { onfail => sub { 'failed correctly' } }
+   );
 }
+
