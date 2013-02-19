@@ -32,7 +32,7 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "4.130483",
+  "dist_version" => "4.130500",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},

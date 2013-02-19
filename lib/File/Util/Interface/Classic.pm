@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Classic;
 {
-  $File::Util::Interface::Classic::VERSION = '4.130483'; # TRIAL
+  $File::Util::Interface::Classic::VERSION = '4.130500'; # TRIAL
 }
 
 # ABSTRACT: Legacy call interface to File::Util
@@ -48,9 +48,11 @@ sub _myargs {
 # --------------------------------------------------------
 sub _remove_opts {
 
-   my $args = _myargs( @_ );
+   shift; # we don't need "$this" here
 
-   return unless UNIVERSAL::isa( $args, 'ARRAY' );
+   my $args = shift @_;
+
+   return unless ref $args eq 'ARRAY';
 
    my @triage = @$args; @$args = ();
    my $opts   = { };
@@ -97,7 +99,9 @@ sub _remove_opts {
 # --------------------------------------------------------
 sub _names_values {
 
-   my @in_pairs  = _myargs( @_ );
+   shift; # we don't need "$this" here
+
+   my @in_pairs =  @_;
    my $out_pairs = { };
 
    # this code no longer tries to catch foolishness such as names that are
@@ -132,7 +136,7 @@ File::Util::Interface::Classic - Legacy call interface to File::Util
 
 =head1 VERSION
 
-version 4.130483
+version 4.130500
 
 =head1 DESCRIPTION
 

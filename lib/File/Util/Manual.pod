@@ -11,7 +11,7 @@ File::Util::Manual - File::Util Reference
 
 =head1 VERSION
 
-version 4.130483
+version 4.130500
 
 =head1 INTRODUCTION
 
@@ -796,9 +796,9 @@ When you create a callback function, the File::Util will pass it four
 arguments in this order: The name of the current directory, a reference to a
 list of subdirectories in the current directory, a reference to a list of files
 in the current directory, and the depth (positive integer) relative to the
-B<top-level> directory in the path you provided as your first argument to
-C<list_dir()>.  I<This means that if you pass in a path such as> C</var/tmp>
-I<that "/" is depth of 0, "/var" is 1 deep, "/var/tmp" is 2 deep, and so on>
+directory you provided as your first argument to C<list_dir()>.
+I<This means if you pass in a path such as> C</var/tmp>,
+I<that "/var/tmp" is at a depth of 0, "/var/tmp/foo" is 1 deep, and so on>
 I<down through the "/var/tmp" directory.>
 
 Remember that the code in your callback gets executed in real time,
@@ -826,15 +826,14 @@ I<as list_dir() is walking the directory tree>.  Consider this example:
    #
    # Depth breakdown
    #
-   #    level 0 => ./
-   #    level 1 => ./droids/
-   #    level 2 => ./droids/by-owner/
-   #    level 2 => ./droids/by-boss/
-   #    level 2 => ./droids/by-series/
-   #    level 3 => ./droids/by-owner/luke/
-   #    level 3 => ./droids/by-boss/dooku/
-   #    level 3 => ./droids/by-series/imperial/
-   #    level 4 => ./droids/by-series/imperial/sentries/
+   #    level 0 => ./droids/
+   #    level 1 => ./droids/by-owner/
+   #    level 1 => ./droids/by-boss/
+   #    level 1 => ./droids/by-series/
+   #    level 2 => ./droids/by-owner/luke/
+   #    level 2 => ./droids/by-boss/dooku/
+   #    level 2 => ./droids/by-series/imperial/
+   #    level 3 => ./droids/by-series/imperial/sentries/
 
 Another way to use callbacks is in combination with closures, to "close around"
 a variable or variables defined in the same scope as the callback.  A demonstration
@@ -885,17 +884,23 @@ return only directory contents which are also directories
 
 return only directory contents which are files
 
+=item C<< max_depth => positive integer >>
+
+Works just like the C<-max_depth> flag in the GNU find command.  This option
+tells C<list_dir()> to limit results to directories at no more than the maximum
+depth you specify.  This only works in tandem with the C<recurse> option.
+
 =item C<< no_fsdots => boolean >>
 
 do not include "." and ".." in the list of directory contents returned
 
-=item C<< max_dives => positive integer >>
+=item C<< abort_depth => positive integer >>
 
-Override the global limit on L<max_dives|/max_dives> recursions for directory
-listings, on a per-listing basis with this option.  Just like the main
-C<max_dives()> object method, this option takes a positive integer.  The default
-is 1000.  Sometimes it is useful to increase this number by quite a lot when
-walking directories with callbacks.
+Override the global limit on L<abort_depth|/abort_depth> recursions for
+directory listings, on a per-listing basis with this option.  Just like the
+main C<abort_depth()> object method, this option takes a positive integer.  The
+default is 1000.  Sometimes it is useful to increase this number by quite a lot
+when walking directories with callbacks.
 
 =item C<< with_paths => boolean >>
 
@@ -906,7 +911,7 @@ to the directory named in the call.
 
 Recurse into subdirectories.  In other words, open up subdirectories and
 continue to descend into the directory tree either as far as it goes, or until
-the C<max_dives> limit is reached. I<See L<max_dives()|/max_dives>>
+the C<abort_depth> limit is reached. I<See L<abort_depth()|/abort_depth>>
 
 =item C<< dirs_as_ref => boolean >>
 
@@ -1406,11 +1411,11 @@ result as it is impossible to create a directory that already exists.
 
 =back
 
-=head2 C<max_dives>
+=head2 C<abort_depth>
 
 =over
 
-=item I<Syntax:> C<max_dives( [positive integer] )>
+=item I<Syntax:> C<abort_depth( [positive integer] )>
 
 When called without any arguments, this method returns an integer reflecting
 the current number of times the File::Util object will dive into the
@@ -1474,7 +1479,7 @@ than the number of bytes you specify.  This argument can only be
 a numeric integer value, otherwise it will be I<silently ignored.>  The default
 read limit for File::Util objects is 52428800 bytes (50 megabytes).
 
-=item C<< max_dives => positive integer >>
+=item C<< abort_depth => positive integer >>
 
 Optionally specify this option to the File::Util::new method to instruct the
 new object to set the maximum number of times it will recurse into
@@ -1482,7 +1487,7 @@ subdirectories while performing directory listing operations before failing
 with an error message.  This argument can only be a numeric integer value,
 otherwise it will be I<silently ignored.>
 
-I<(see also: L<max_dives()|/max_dives>)>
+I<(see also: L<abort_depth()|/abort_depth>)>
 
 =item B<C<< onfail => designated handler >>>
 

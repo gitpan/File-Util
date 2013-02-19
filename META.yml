@@ -31,37 +31,37 @@ name: File-Util
 provides:
   File::Util:
     file: lib/File/Util.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Cookbook:
     file: lib/File/Util/Cookbook.pod
-    version: 4.130483
+    version: 4.130500
   File::Util::Definitions:
     file: lib/File/Util/Definitions.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Exception:
     file: lib/File/Util/Exception.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Exception::Diagnostic:
     file: lib/File/Util/Exception/Diagnostic.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Exception::Standard:
     file: lib/File/Util/Exception/Standard.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Interface::Classic:
     file: lib/File/Util/Interface/Classic.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Interface::Modern:
     file: lib/File/Util/Interface/Modern.pm
-    version: 4.130483
+    version: 4.130500
   File::Util::Manual:
     file: lib/File/Util/Manual.pod
-    version: 4.130483
+    version: 4.130500
   File::Util::Manual::Examples:
     file: lib/File/Util/Manual/Examples.pod
-    version: 4.130483
+    version: 4.130500
   File::Util::ProxyLog:
     file: lib/File/Util/ProxyLog.pm
-    version: 4.130483
+    version: 4.130500
 requires:
   Config: 0
   Data::Dumper: 0
@@ -80,7 +80,7 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 4.130483
+version: 4.130500
 x_Dist_Zilla:
   perl:
     version: 5.010001
@@ -189,6 +189,10 @@ x_Dist_Zilla:
       class: Dist::Zilla::Plugin::Test::UnusedVars
       name: '@TestingMania/Test::UnusedVars'
       version: 2.000003
+    -
+      class: Dist::Zilla::Plugin::Test::Synopsis
+      name: '@TestingMania/Test::Synopsis'
+      version: 2.000002
     -
       class: Dist::Zilla::Plugin::Test::Version
       name: '@TestingMania/Test::Version'

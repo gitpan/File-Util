@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130483'; # TRIAL
+  $File::Util::VERSION = '4.130500'; # TRIAL
 }
 
 use File::Util::Definitions qw( :all );
@@ -24,7 +24,7 @@ our @EXPORT_OK  = qw(
    SL      strip_path  is_readable   is_writable   valid_filename
    OS      bitmask     return_path   file_type     escape_filename
    is_bin  created     last_access   last_changed  last_modified
-   isbin   split_path  atomize_path  diagnostic
+   isbin   split_path  atomize_path  diagnostic    abort_depth
    size    can_read    can_write     read_limit
 );
 
@@ -83,12 +83,12 @@ sub new {
 
       $this->{opts}->{read_limit} = $READ_LIMIT;
 
-   $MAX_DIVES  = $in->{max_dives}
-      if exists  $in->{max_dives}
-      && defined $in->{max_dives}
-      && $in->{max_dives} !~ /\D/;
+   $ABORT_DEPTH = $in->{abort_depth}
+      if exists  $in->{abort_depth}
+      && defined $in->{abort_depth}
+      && $in->{abort_depth} !~ /\D/;
 
-      $this->{opts}->{max_dives} = $MAX_DIVES;
+      $this->{opts}->{abort_depth} = $ABORT_DEPTH;
 
    return $this;
 }
@@ -116,12 +116,13 @@ sub list_dir {
    my $dir  = shift @_;
    my $path = $dir;
    my ( @dirs, @files, @items );
-   my $maxd =
-      defined $opts->{max_dives}
-         ? $opts->{max_dives}
-         : defined $this->{opts}->{max_dives}
-            ? $this->{opts}->{max_dives}
-            : $MAX_DIVES;
+
+   my $abort_depth =
+      defined $opts->{abort_depth}
+         ? $opts->{abort_depth}
+         : defined $this->{opts}->{abort_depth}
+            ? $this->{opts}->{abort_depth}
+            : $ABORT_DEPTH;
 
    return $this->_throw(
       'no input' => {
@@ -130,6 +131,9 @@ sub list_dir {
          opts    => $opts,
       }
    ) unless defined $dir && length $dir;
+
+   # in case somebody wants to list_dir( "/tmp////" ) which is legal!
+   $path =~ s/[\/\\:]+$//o;
 
    # "." and ".." make no sense (and cause infinite loops) when recursing...
    $opts->{no_fsdots} = 1 if $opts->{recurse}; # ...so skip them
@@ -150,7 +154,7 @@ sub list_dir {
    unless ( length $dir == 1 || $dir =~ /^$WINROOT$/o ) {
 
       # removes one or more dirsep at the end of $dir
-      $dir =~ s/(?:$DIRSPLIT){1,}$//o;
+      $dir =~ s/[\/\\:]+$//o;
    }
 
    return $this->_throw (
@@ -160,33 +164,65 @@ sub list_dir {
       }
    ) unless -d $dir;
 
-# RUNAWAY RECURSION PREVENTION
-
-   # this directory recursion method keeps track of dives based on the parent
-   # directory of $dir, rather than on $dir itself so that multiple
-   # subdirectories within the same parent directory don't improperly increment
-   # the number of dives made
-   if ( $opts->{recursing} ) {
-
-      my $pdir = $dir; $pdir =~ s/(^.*)$DIRSPLIT.*/$1/;
-
-      $this->{traversed}{ $pdir } = $pdir;
-   }
-   else { $this->{traversed} = { } }
-
-   # enforce maximum subdirectory dives, unless $MAX_DIVES is equal to zero
-   if ( $MAX_DIVES != 0 && ( scalar keys %{ $this->{traversed} } >= $maxd ) ) {
-
-      return $this->_throw(
-         'max_dives exceeded' => {
-            meth      => 'list_dir',
-            max_dives => $maxd,
-            opts      => $opts,
-         }
-      )
-   }
-
    $recursing = 1 if $opts->{follow} || $opts->{recurse};
+
+# RUNAWAY RECURSION PREVENTION...
+
+   # We have to keep an eye on recursion; we do it with a shared-reference.
+   # scalar references didn't work for me, so I'm using a hashref with a
+   # single key-value and it works beautifully
+   $opts->{_recursion} = {
+      _depth  => 0,
+      _base   => $dir,
+      _inodes => {},
+   } unless defined $opts->{_recursion};
+
+# ...AND FILESYSTEM LOOPING PREVENTION ARE TIED TOGETHER...
+   {
+      my ( $dev, $inode ) = ( lstat $dir )[0,1];
+
+      next unless $inode; # windows SUCKS!
+
+      my $dir_ident = $dev . '_' . $inode;
+
+      # keep track of dir inodes or we're going to get stuck in filesystem
+      # loops the following bit of code incrementally populates (with each
+      # recursion) a hash table with keys named for the dev ID and inode of
+      # the directory, for every directory found
+
+      warn sprintf
+         qq(*WARNING! Filesystem loop detected at %s, dev %s, inode %s\n),
+            $dir, $dev, $inode
+            and return( () )
+               if exists $opts->{_recursion}{_inodes}{ $dir_ident };
+
+      $opts->{_recursion}{_inodes}{ $dir_ident } = undef;
+   }
+
+   my ( $trailing_dirs ) = $dir =~ 
+      /^ \Q$opts->{_recursion}{_base}\E [\/\\:] (.+)/x;
+
+   if ( defined $trailing_dirs && length $trailing_dirs ) {
+
+      my $depth = @{[ split /[\/\\:]+/, $trailing_dirs ]};
+
+      $opts->{_recursion}{_depth} = $depth || 0;
+   }
+
+   return( () ) if
+      $opts->{max_depth} &&
+      $opts->{_recursion}{_depth} >= $opts->{max_depth};
+
+   # fail if the shared reference indicates we're to deep
+   return $this->_throw(
+      'abort_depth exceeded' => {
+         meth        => 'list_dir',
+         abort_depth => $abort_depth,
+         opts        => $opts,
+      }
+   ) if $opts->{_recursion}{_depth} >= $abort_depth && $abort_depth != 0;
+
+# ACTUAL READING OF THE DIRECTORY
 
    opendir my $dir_fh, $dir
       or return $this->_throw
@@ -235,7 +271,8 @@ sub list_dir {
 
 # ADVANCED MATCHING
 
-   @files = _list_dir_matching( $opts, $path, \@files );
+   @files = _list_dir_matching( $opts, $path, \@files )
+      if grep { /match/ } keys %$opts;
 
 # SEPARATION OF DIRS FROM FILES
 
@@ -244,11 +281,14 @@ sub list_dir {
    # and files off into @dirs and @itmes, respectively
    for my $file ( @files ) {
 
+      warn qq(ERROR: Got a zero-length filename while reading "$dir"\n)
+         and next unless length $file; # ridiculous filesystem errors
+
       my $listing = ( $opts->{with_paths} || $recursing )
          ? $path . SL . $file
          : $file;
 
-      if ( -d $path . SL . $file ) {
+      if ( -d $path . SL . $file && !-l $path . SL . $file ) {
 
          push @dirs, $listing
       }
@@ -264,7 +304,7 @@ sub list_dir {
       $this->throw( qq(callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@dirs, \@items, scalar split_path( $dir ) - 1 );
+      $cb->( $dir, \@dirs, \@items, $opts->{_recursion}{_depth} );
    }
 
    if ( my $cb = $opts->{d_callback} ) {
@@ -272,7 +312,7 @@ sub list_dir {
       $this->throw( qq(d_callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@dirs, scalar split_path( $dir ) - 1 );
+      $cb->( $dir, \@dirs, $opts->{_recursion}{_depth} );
    }
 
    if ( my $cb = $opts->{f_callback} ) {
@@ -280,7 +320,7 @@ sub list_dir {
       $this->throw( qq(f_callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@items, scalar split_path( $dir ) - 1 );
+      $cb->( $dir, \@items, $opts->{_recursion}{_depth} );
    }
 
 # RECURSION
@@ -302,7 +342,10 @@ sub list_dir {
             with_paths           => 1,
             recursing            => 1,
             no_fsdots            => 1,
-            max_dives            => $maxd,
+            abort_depth          => $abort_depth,
+            max_depth            => $opts->{max_depth},
+            onfail               => $opts->{onfail},
+            diag                 => $opts->{diag},
             rpattern             => $opts->{rpattern},
             files_match          => $opts->{files_match},
             dirs_match           => $opts->{dirs_match},
@@ -311,7 +354,7 @@ sub list_dir {
             callback             => $opts->{callback},
             d_callback           => $opts->{d_callback},
             f_callback           => $opts->{f_callback},
-            onfail               => $opts->{onfail},
+            _recursion           => $opts->{_recursion},
             _files_match_and     => $opts->{_files_match_and},
             _files_match_or      => $opts->{_files_match_or},
             _dirs_match_and      => $opts->{_dirs_match_and},
@@ -320,14 +363,16 @@ sub list_dir {
             _parent_matches_or   => $opts->{_parent_matches_or},
             _path_matches_and    => $opts->{_path_matches_and},
             _path_matches_or     => $opts->{_path_matches_or},
-
          };
 
          my ( $dirs_ref, $files_ref ) =
             $this->list_dir( $subdir, $recurse_opts );
 
-         push @dirs,  @$dirs_ref;
-         push @items, @$files_ref;
+         push @dirs,  @$dirs_ref
+            if ref $dirs_ref && ref $dirs_ref eq 'ARRAY';
+
+         push @items, @$files_ref
+            if ref $files_ref && ref $files_ref eq 'ARRAY';
       }
    }
 
@@ -397,14 +442,14 @@ sub _list_dir_matching {
    my @qualified_files = map { $path . SL . $_ } splice @$files, 0;
    # can't keep multiple huge lists of files --- ^^^^^^
 
-   my @qualified_dirs  = grep { -d $_ } @qualified_files;
+   my @qualified_dirs  = grep { !-l $_ } grep { -d $_ } @qualified_files;
 
    my %dirs_only; @dirs_only{ @qualified_dirs } = @qualified_dirs;
 
    @qualified_files = grep { !exists $dirs_only{ $_ } } @qualified_files;
 
-   my @files_match = map { strip_path( $_ ) } @qualified_files;
-   my @dirs_match  = map { strip_path( $_ ) } @qualified_dirs;
+   my @files_match = map { ( $_ ) =~ /^.*[\/\\:](.+)/o } @qualified_files;
+   my @dirs_match  = map { ( $_ ) =~ /^.*[\/\\:](.+)/o } @qualified_dirs;
 
    # memory management
    undef %dirs_only;
@@ -416,80 +461,64 @@ sub _list_dir_matching {
    {  # memo-ize these patterns
 
    # FILES AND
-      $opts->{_files_match_and} =
-         defined $opts->{_files_match_and}
-            ? $opts->{_files_match_and}
-            : [];
+      $opts->{_files_match_and} = []
+         unless defined $opts->{_files_match_and};
 
       $opts->{_files_match_and} =
          [ _gather_and_patterns( $opts->{files_match} ) ]
             unless @{ $opts->{_files_match_and} };
 
    # FILES OR
-      $opts->{_files_match_or} =
-         defined $opts->{_files_match_or}
-            ? $opts->{_files_match_or}
-            : [];
+      $opts->{_files_match_or} = []
+         unless defined $opts->{_files_match_or};
 
       $opts->{_files_match_or} =
          [ _gather_or_patterns( $opts->{files_match} ) ]
             unless @{ $opts->{_files_match_and} };
 
    # DIRS AND
-      $opts->{_dirs_match_and} =
-         defined $opts->{_dirs_match_and}
-            ? $opts->{_dirs_match_and}
-            : [];
+      $opts->{_dirs_match_and} = []
+         unless defined $opts->{_dirs_match_and};
 
       $opts->{_dirs_match_and} =
          [ _gather_and_patterns( $opts->{dirs_match} ) ]
             unless @{ $opts->{_dirs_match_and} };
 
    # DIRS OR
-      $opts->{_dirs_match_or} =
-         defined $opts->{_dirs_match_or}
-            ? $opts->{_dirs_match_or}
-            : [];
+      $opts->{_dirs_match_or} = []
+         unless defined $opts->{_dirs_match_or};
 
       $opts->{_dirs_match_or} =
          [ _gather_or_patterns( $opts->{dirs_match} ) ]
             unless @{ $opts->{_dirs_match_and} };
 
    # PARENT AND
-      $opts->{_parent_matches_and} =
-         defined $opts->{_parent_matches_and}
-            ? $opts->{_parent_matches_and}
-            : [];
+      $opts->{_parent_matches_and} = []
+         unless defined $opts->{_parent_matches_and};
 
       $opts->{_parent_matches_and} =
          [ _gather_and_patterns( $opts->{parent_matches} ) ]
             unless @{ $opts->{_parent_matches_and} };
 
    # PARENT OR
-      $opts->{_parent_matches_or} =
-         defined $opts->{_parent_matches_or}
-            ? $opts->{_parent_matches_or}
-            : [];
+      $opts->{_parent_matches_or} = []
+         unless defined $opts->{_parent_matches_or};
 
       $opts->{_parent_matches_or} =
          [ _gather_or_patterns( $opts->{parent_matches} ) ]
             unless @{ $opts->{_parent_matches_and} };
 
    # PATH AND
-      $opts->{_path_matches_and} =
-         defined $opts->{_path_matches_and}
-            ? $opts->{_path_matches_and}
-            : [];
+      $opts->{_path_matches_and} = []
+         unless defined $opts->{_path_matches_and};
 
       $opts->{_path_matches_and} =
          [ _gather_and_patterns( $opts->{path_matches} ) ]
             unless @{ $opts->{_path_matches_and} };
 
    # PATH OR
-      $opts->{_path_matches_or} =
-         defined $opts->{_path_matches_or}
-            ? $opts->{_path_matches_or}
-            : [];
+      $opts->{_path_matches_or} = []
+         unless defined $opts->{_path_matches_or};
 
       $opts->{_path_matches_or} =
          [ _gather_or_patterns( $opts->{path_matches} ) ]
@@ -1152,7 +1181,7 @@ sub load_file {
 # --------------------------------------------------------
 sub write_file {
    my $this     = shift @_;
-   my $in       = _parse_in( @_ );
+   my $in       = $this->_parse_in( @_ );
    my $content  = '';
    my $raw_name = '';
    my $file     = '';
@@ -1187,6 +1216,13 @@ sub write_file {
          ? $maybe_content
          : $in->{content};
 
+   my ( $winroot ) = $file =~ /^($WINROOT)/;
+
+   $file =~ s/^($WINROOT)//;
+   $file =~ s/$DIRSPLIT{2,}/$SL/o;
+   $file =~ s/$DIRSPLIT+$//o unless $file eq SL;
+   $file =  $winroot . $file if $winroot;
+
    $raw_name = $file; # preserve original filename input before line below:
 
    ( $root, $path, $file ) = atomize_path( $file );
@@ -1203,22 +1239,6 @@ sub write_file {
          opts    => $in,
       }
    ) unless length $file;
-
-   # if prospective filename contains 2+ dir separators in sequence then
-   # this is a syntax error we need to whine about
-   {
-      my $try_filename = $raw_name;
-
-      $try_filename =~ s/$WINROOT//; # windows abs paths would throw this off
-
-      return $this->_throw(
-         'bad chars' => {
-            string   => $raw_name,
-            purpose  => 'the name of a file or directory',
-            opts     => $in,
-         }
-      ) if $try_filename =~ /(?:$DIRSPLIT){2,}/;
-   }
 
    # if the call to this method didn't include any data which the caller
    # wants us to write or append to the file, then complain about it
@@ -1543,7 +1563,15 @@ sub valid_filename {
 # --------------------------------------------------------
 # File::Util::strip_path()
 # --------------------------------------------------------
-sub strip_path { pop @{[ '', split /$DIRSPLIT/, _myargs( @_ ) ]} || '' }
+sub strip_path {
+   my $arg = _myargs( @_ );
+
+   my ( $stripped ) = $arg =~ /^.*$DIRSPLIT(.+)/o;
+
+   return $stripped if defined $stripped;
+
+   return $arg;
+}
 
 
 # --------------------------------------------------------
@@ -1552,13 +1580,13 @@ sub strip_path { pop @{[ '', split /$DIRSPLIT/, _myargs( @_ ) ]} || '' }
 sub atomize_path {
    my $fqfn = _myargs( @_ );
 
-   $fqfn =~ m/$ATOMIZER/;
+   $fqfn =~ m/$ATOMIZER/o;
 
-   my $root = $1 || '';
-   my $path = $2 || '';
-   my $file = $3 || '';
+   # root = $1
+   # path = $2
+   # file = $3
 
-   return( $root, $path, $file );
+   return( $1||'', $2||'', $3||'' );
 }
 
 
@@ -1656,14 +1684,11 @@ sub ebcdic { $EBCDIC }
 # File::Util::escape_filename()
 # --------------------------------------------------------
 sub escape_filename {
-   my $opts = _remove_opts( \@_ );
    my( $file, $escape, $also ) = _myargs( @_ );
 
    return '' unless defined $file;
 
-   $escape = '_' if !defined($escape);
-
-   $file = strip_path($file) if $opts->{strip_path};
+   $escape = '_' if !defined $escape;
 
    if ( $also ) { $file =~ s/\Q$also\E/$escape/g }
 
@@ -1955,24 +1980,12 @@ sub make_dir {
       }
    }
 
-   # if prospective directory name contains 2+ dir separators in sequence then
-   # this is a syntax error we need to whine about
-   {
-      my $try_dir = $dir;
+   my ( $winroot ) = $dir =~ /^($WINROOT)/;
 
-      $try_dir =~ s/$WINROOT//; # windows abs paths would throw this off
-
-      return $this->_throw(
-         'bad chars',
-         {
-            string  => $dir,
-            purpose => 'the name of a directory',
-            opts    => $opts,
-         }
-      ) if $try_dir =~ /(?:$DIRSPLIT){2,}/;
-   }
-
-   $dir =~ s/$DIRSPLIT$// unless $dir eq $DIRSPLIT;
+   $dir =~ s/^($WINROOT)//;
+   $dir =~ s/$DIRSPLIT{2,}/$SL/o;
+   $dir =~ s/$DIRSPLIT+$//o unless $dir eq SL;
+   $dir =  $winroot . $dir if $winroot;
 
    my ( $root, $path ) = atomize_path( $dir . SL );
 
@@ -2064,24 +2077,24 @@ sub make_dir {
 
 
 # --------------------------------------------------------
-# File::Util::max_dives()
+# File::Util::abort_depth()
 # --------------------------------------------------------
-sub max_dives {
+sub abort_depth {
    my $arg  = _myargs( @_ );
    my $this = shift @_;
 
    if ( defined $arg ) {
 
-      return File::Util->new->_throw( 'bad max_dives' => { bad => $arg } )
+      return File::Util->new->_throw( 'bad abort_depth' => { bad => $arg } )
          if $arg =~ /\D/;
 
-      $MAX_DIVES = $arg;
+      $ABORT_DEPTH = $arg;
 
-      $this->{opts}->{max_dives} = $arg
+      $this->{opts}->{abort_depth} = $arg
          if blessed $this && $this->{opts};
    }
 
-   return $MAX_DIVES;
+   return $ABORT_DEPTH;
 }
 
 # --------------------------------------------------------
@@ -2185,6 +2198,14 @@ sub open_handle {
          : $in->{mode};
 
    $mode ||= 'read';
+
+
+   my ( $winroot ) = $file =~ /^($WINROOT)/;
+
+   $file =~ s/^($WINROOT)//;
+   $file =~ s/$DIRSPLIT{2,}/$SL/o;
+   $file =~ s/$DIRSPLIT+$//o unless $file eq SL;
+   $file =  $winroot . $file if $winroot;
 
    $raw_name = $file; # preserve original filename input before line below:
 
@@ -2653,6 +2674,7 @@ sub AUTOLOAD {
       can_read  => \&is_readable,
       isbin     => \&is_bin,
       readlimit => \&read_limit,
+      max_dives => \&abort_depth,
    };
 
    if ( $name eq '_throw' )
@@ -2708,11 +2730,7 @@ sub AUTOLOAD {
    elsif ( exists $legacy_methods->{ $name } ) {
 
       ## no critic
-
-      no strict 'refs';
-
-      *{ $name } = $legacy_methods->{ $name };
-
+      { no strict 'refs'; *{ $name } = $legacy_methods->{ $name } }
       ## use critic
 
       goto \&$name;
@@ -2740,7 +2758,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130483
+version 4.130500
 
 =head1 DESCRIPTION
 
@@ -2772,7 +2790,10 @@ I<(See L<DOCUMENTATION|/DOCUMENTATION> section below.)>
    my $content = $f->load_file( 'some_file.txt' );
 
    # write content to a file
-   $f->write_file( 'some_file.txt' => $content );
+   $f->write_file( 'another_file.txt' => $content );
+
+   # get the contents of a directory, 3 levels deep
+   my @songs = $f->list_dir( '~/Music' => { recurse => 1, max_depth => 3 } );
 
 =head1 DOCUMENTATION
 
@@ -2996,7 +3017,7 @@ this document in a text terminal, open perldoc to the C<File::Util::Manual>.
 
 =item make_dir             I<(see L<make_dir|File::Util::Manual/make_dir>)>
 
-=item max_dives            I<(see L<max_dives|File::Util::Manual/max_dives>)>
+=item abort_depth          I<(see L<abort_depth|File::Util::Manual/abort_depth>)>
 
 =item needs_binmode        I<(see L<needs_binmode|File::Util::Manual/needs_binmode>)>
 
@@ -3150,12 +3171,7 @@ valid_filename
 
 =item L<Exception::Handler>
 
-For graceful and helpful error handling
-
-=item L<Scalar::Util>
-
-For tools that support the improved call interface in C<File::Util> versions
-4.x and higher
+For helpful error handling
 
 =item L<Perl|perl> 5.006 or better ...
 
