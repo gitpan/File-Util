@@ -15,7 +15,6 @@ my %WriteMakefileArgs = (
     "AutoLoader" => 0,
     "Config" => 0,
     "Cwd" => 0,
-    "Exception::Handler" => "1.00_0",
     "Exporter" => 0,
     "ExtUtils::MakeMaker" => 0,
     "Fcntl" => 0,
@@ -26,7 +25,8 @@ my %WriteMakefileArgs = (
     "Test" => 0,
     "Test::Fatal" => 0,
     "Test::More" => "0.88",
-    "Test::NoWarnings" => 0
+    "Test::NoWarnings" => 0,
+    "Time::HiRes" => 0
   },
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30",
@@ -39,7 +39,6 @@ my %WriteMakefileArgs = (
   "PREREQ_PM" => {
     "Config" => 0,
     "Data::Dumper" => 0,
-    "Exception::Handler" => 0,
     "Exporter" => 0,
     "Fcntl" => 0,
     "Scalar::Util" => 0,
@@ -50,7 +49,7 @@ my %WriteMakefileArgs = (
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "4.130500",
+  "VERSION" => "4.130510",
   "test" => {
     "TESTS" => "t/*.t t/extended/*.t"
   }

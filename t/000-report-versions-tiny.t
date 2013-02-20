@@ -52,7 +52,6 @@ eval { $v .= pmver('AutoLoader','any version') };
 eval { $v .= pmver('Config','any version') };
 eval { $v .= pmver('Cwd','any version') };
 eval { $v .= pmver('Data::Dumper','any version') };
-eval { $v .= pmver('Exception::Handler','1.00_0') };
 eval { $v .= pmver('Exporter','any version') };
 eval { $v .= pmver('ExtUtils::MakeMaker','6.30') };
 eval { $v .= pmver('Fcntl','any version') };

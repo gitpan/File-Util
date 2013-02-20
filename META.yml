@@ -6,7 +6,6 @@ build_requires:
   AutoLoader: 0
   Config: 0
   Cwd: 0
-  Exception::Handler: 1.00_0
   Exporter: 0
   ExtUtils::MakeMaker: 0
   Fcntl: 0
@@ -18,6 +17,7 @@ build_requires:
   Test::Fatal: 0
   Test::More: 0.88
   Test::NoWarnings: 0
+  Time::HiRes: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
   Module::Build: 0.3601
@@ -31,41 +31,40 @@ name: File-Util
 provides:
   File::Util:
     file: lib/File/Util.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Cookbook:
     file: lib/File/Util/Cookbook.pod
-    version: 4.130500
+    version: 4.130510
   File::Util::Definitions:
     file: lib/File/Util/Definitions.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Exception:
     file: lib/File/Util/Exception.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Exception::Diagnostic:
     file: lib/File/Util/Exception/Diagnostic.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Exception::Standard:
     file: lib/File/Util/Exception/Standard.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Interface::Classic:
     file: lib/File/Util/Interface/Classic.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Interface::Modern:
     file: lib/File/Util/Interface/Modern.pm
-    version: 4.130500
+    version: 4.130510
   File::Util::Manual:
     file: lib/File/Util/Manual.pod
-    version: 4.130500
+    version: 4.130510
   File::Util::Manual::Examples:
     file: lib/File/Util/Manual/Examples.pod
-    version: 4.130500
+    version: 4.130510
   File::Util::ProxyLog:
     file: lib/File/Util/ProxyLog.pm
-    version: 4.130500
+    version: 4.130510
 requires:
   Config: 0
   Data::Dumper: 0
-  Exception::Handler: 0
   Exporter: 0
   Fcntl: 0
   Scalar::Util: 0
@@ -80,7 +79,7 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 4.130500
+version: 4.130510
 x_Dist_Zilla:
   perl:
     version: 5.010001

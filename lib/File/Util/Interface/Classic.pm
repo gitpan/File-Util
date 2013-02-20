@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Classic;
 {
-  $File::Util::Interface::Classic::VERSION = '4.130500'; # TRIAL
+  $File::Util::Interface::Classic::VERSION = '4.130510'; # TRIAL
 }
 
 # ABSTRACT: Legacy call interface to File::Util
@@ -136,7 +136,7 @@ File::Util::Interface::Classic - Legacy call interface to File::Util
 
 =head1 VERSION
 
-version 4.130500
+version 4.130510
 
 =head1 DESCRIPTION
 

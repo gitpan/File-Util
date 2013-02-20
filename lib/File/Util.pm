@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130500'; # TRIAL
+  $File::Util::VERSION = '4.130510'; # TRIAL
 }
 
 use File::Util::Definitions qw( :all );
@@ -199,7 +199,7 @@ sub list_dir {
       $opts->{_recursion}{_inodes}{ $dir_ident } = undef;
    }
 
-   my ( $trailing_dirs ) = $dir =~ 
+   my ( $trailing_dirs ) = $dir =~
       /^ \Q$opts->{_recursion}{_base}\E [\/\\:] (.+)/x;
 
    if ( defined $trailing_dirs && length $trailing_dirs ) {
@@ -1249,7 +1249,8 @@ sub write_file {
          opts    => $in,
       }
    ) if (
-      length $content == 0
+     ( !defined $content ||
+         length $content == 0 )
          &&
       $mode ne 'trunc'
          &&
@@ -2669,7 +2670,7 @@ sub AUTOLOAD {
    # down in the code in lieu of potentially-growing if/else block, which
    # would ugly to maintain
 
-   my $legacy_methods = {
+   my $redirect_methods = {
       can_write => \&is_writable,
       can_read  => \&is_readable,
       isbin     => \&is_bin,
@@ -2727,10 +2728,10 @@ sub AUTOLOAD {
 
       goto \&_throw;
    }
-   elsif ( exists $legacy_methods->{ $name } ) {
+   elsif ( exists $redirect_methods->{ $name } ) {
 
       ## no critic
-      { no strict 'refs'; *{ $name } = $legacy_methods->{ $name } }
+      { no strict 'refs'; *{ $name } = $redirect_methods->{ $name } }
       ## use critic
 
       goto \&$name;
@@ -2758,7 +2759,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130500
+version 4.130510
 
 =head1 DESCRIPTION
 
@@ -3169,14 +3170,15 @@ valid_filename
 
 =over
 
-=item L<Exception::Handler>
+=item No External Prerequisites
 
-For helpful error handling
+File::Util only depends on modules that are part of the Core Perl distribution
 
-=item L<Perl|perl> 5.006 or better ...
+=item L<Perl|perl> 5.8 or better ...
 
-This requirement will increase soon with the advent of increasingly better
-unicode support
+You can technically run File::Util on older versions of Perl 5, but it isn't
+recommended.  The minimum version requirement will likely increase soon with
+the advent of increasingly better unicode support.
 
 =back
 
