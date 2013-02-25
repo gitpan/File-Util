@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Definitions;
 {
-  $File::Util::Definitions::VERSION = '4.130510'; # TRIAL
+  $File::Util::Definitions::VERSION = '4.130560'; # TRIAL
 }
 
 # ABSTRACT: Global symbols and constants used in most File::Util classes
@@ -181,7 +181,7 @@ File::Util::Definitions - Global symbols and constants used in most File::Util c
 
 =head1 VERSION
 
-version 4.130510
+version 4.130560
 
 =head1 DESCRIPTION
 

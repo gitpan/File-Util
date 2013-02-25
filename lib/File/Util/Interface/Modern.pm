@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Modern;
 {
-  $File::Util::Interface::Modern::VERSION = '4.130510'; # TRIAL
+  $File::Util::Interface::Modern::VERSION = '4.130560'; # TRIAL
 }
 
 # ABSTRACT: Modern call interface to File::Util
@@ -151,7 +151,7 @@ File::Util::Interface::Modern - Modern call interface to File::Util
 
 =head1 VERSION
 
-version 4.130510
+version 4.130560
 
 =head1 DESCRIPTION
 

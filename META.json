@@ -73,47 +73,47 @@
    "provides" : {
       "File::Util" : {
          "file" : "lib/File/Util.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Cookbook" : {
          "file" : "lib/File/Util/Cookbook.pod",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Definitions" : {
          "file" : "lib/File/Util/Definitions.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Exception" : {
          "file" : "lib/File/Util/Exception.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Exception::Diagnostic" : {
          "file" : "lib/File/Util/Exception/Diagnostic.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Exception::Standard" : {
          "file" : "lib/File/Util/Exception/Standard.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Interface::Classic" : {
          "file" : "lib/File/Util/Interface/Classic.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Interface::Modern" : {
          "file" : "lib/File/Util/Interface/Modern.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Manual" : {
          "file" : "lib/File/Util/Manual.pod",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::Manual::Examples" : {
          "file" : "lib/File/Util/Manual/Examples.pod",
-         "version" : "4.130510"
+         "version" : "4.130560"
       },
       "File::Util::ProxyLog" : {
          "file" : "lib/File/Util/ProxyLog.pm",
-         "version" : "4.130510"
+         "version" : "4.130560"
       }
    },
    "release_status" : "testing",
@@ -129,7 +129,7 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "4.130510",
+   "version" : "4.130560",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.010001"

@@ -11,7 +11,7 @@ File::Util::Manual - File::Util Reference
 
 =head1 VERSION
 
-version 4.130510
+version 4.130560
 
 =head1 INTRODUCTION
 
@@ -109,17 +109,25 @@ done.  No compiling required.
 
 =head2 What File::Util Is NOT
 
-File::Util is B<NOT> a performance-optimized file-finding/searching utility.
-While it does provide robust tools to allow you to filter the results of
-recursive directory listings against regular expressions,
-I<it is not a file-finder/searcher.>
+File::Util offers significant performance increases over other modules for
+most directory-walking and searching, whether doing so in a single
+directory or in many directories recursively. I<(See also the benchmarking>
+I<and profiling scripts included in the performance subdirectory as part of>
+I<this distribution)*>
 
-If you are looking for a tool that allows you to search rapidly through
-directory trees, B<I<NOT just filtering results>>, take a look at L<File::Find>.
-There are many up-and-comers in the Perl file searching utilities niche that you
-can also try, however they are still hard pressed to meet with the raw
-performance and speed of File::Find in very large file trees.
+However File::Util is B<NOT> a single-purpose file-finding/searching utility
+like File::Find::Rule which offers a handful of extra built-in search features
+that File::Util does not give you out of the box, such as searching for files by
+owner/group or size.  It is possible to accomplish the same things by
+taking advantage of File::Util's callbacks if you want to, but this isn't
+the "one thing" File::Util was built to do.
 
+File::Util also doesn't offer unicode support yet.  If you want to write files
+in UTF-8 encoding, File::Util won't do that for you.  This will not always be
+the case, but for the time being it is a limitation.
+
+I<*Sometimes it doesn't matter how fast you can search through a directory 1000>
+I<times.  Performance alone isn't the best criteria for choosing a module.>
 
 =head1 SYNTAX
 
@@ -886,9 +894,13 @@ return only directory contents which are files
 
 =item C<< max_depth => positive integer >>
 
-Works just like the C<-max_depth> flag in the GNU find command.  This option
+Works just like the C<-maxdepth> flag in the GNU find command.  This option
 tells C<list_dir()> to limit results to directories at no more than the maximum
-depth you specify.  This only works in tandem with the C<recurse> option.
+depth you specify.  This only works in tandem with the C<recurse> option
+(or the C<recurse_fast> option which is similar).
+
+For compatibility reasons, you can use "C<maxdepth>" without the underscore
+instead, and get the same functionality.
 
 =item C<< no_fsdots => boolean >>
 
@@ -912,6 +924,18 @@ to the directory named in the call.
 Recurse into subdirectories.  In other words, open up subdirectories and
 continue to descend into the directory tree either as far as it goes, or until
 the C<abort_depth> limit is reached. I<See L<abort_depth()|/abort_depth>>
+
+=item C<< recurse_fast => boolean >>
+
+Recurse into subdirectories, without checking for filesystem loops.  This
+works exactly like the C<recurse> option, except it turns off internal
+checking for duplicate inodes while descending through a file tree.
+
+You get a performance boost at the sacrifice of a little "safety checking".
+
+The bigger your file tree, the more performance gains you see.
+
+This option has no effect on Windows. I<(see perldoc -f stat)>
 
 =item C<< dirs_as_ref => boolean >>
 
@@ -960,6 +984,12 @@ specified by other options (i.e.- "dirs_only", "recurse", etc.)
 Returns a hierarchal datastructure (hashref) of the file tree in the directory
 you specify as the first argument to C<list_dir()>.  Use in combination with
 other options to get the exact results you want in the datastructure.
+
+*Note: When using this option, the C<"files_only"> and C<"dirs_only"> options
+are ignored, but you can still specify things like a C<"max_depth"> argument,
+however.  Note also that you need to specifically call this with the
+C<"recurse"> or C<"recurse_fast"> option or you will only get a single-level
+tree structure.
 
 One quick example:
 

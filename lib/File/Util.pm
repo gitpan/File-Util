@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130510'; # TRIAL
+  $File::Util::VERSION = '4.130560'; # TRIAL
 }
 
 use File::Util::Definitions qw( :all );
@@ -112,59 +112,60 @@ sub import {
 # --------------------------------------------------------
 sub list_dir {
    my $this = shift @_;
-   my $opts = $this->_remove_opts( \@_ );
    my $dir  = shift @_;
-   my $path = $dir;
-   my ( @dirs, @files, @items );
+   my $opts = ref $_[0] eq 'REF' ? ${ shift @_ } : $this->_remove_opts( \@_ );
 
-   my $abort_depth =
-      defined $opts->{abort_depth}
-         ? $opts->{abort_depth}
-         : defined $this->{opts}->{abort_depth}
-            ? $this->{opts}->{abort_depth}
-            : $ABORT_DEPTH;
+   my ( @dir_contents, $subdirs, $files );
 
-   return $this->_throw(
-      'no input' => {
-         meth    => 'list_dir',
-         missing => 'a directory name',
-         opts    => $opts,
-      }
-   ) unless defined $dir && length $dir;
+   my $abort_depth = $opts->{abort_depth};
 
-   # in case somebody wants to list_dir( "/tmp////" ) which is legal!
-   $path =~ s/[\/\\:]+$//o;
+   # We can bypass all this extra checking/validation when we are recursing
+   # because we know we called ourself correctly--
 
-   # "." and ".." make no sense (and cause infinite loops) when recursing...
-   $opts->{no_fsdots} = 1 if $opts->{recurse}; # ...so skip them
+# INPUT VALIDATION AND DEFAULT VALUES
 
-   # break off immediately to helper function if asked to make a ref-tree
-   return $this->_as_tree( $dir => $opts ) if $opts->{ as_tree };
+   if ( !$opts->{_recursing} ) { # bypass all this if recursing
 
-   my $recursing = 0; # flag to dynamicall indicate whether or not this
-                      # method is being used recursively for this call
+      return $this->_throw(
+         'no input' => {
+            meth    => 'list_dir',
+            missing => 'a directory name',
+            opts    => $opts,
+         }
+      ) unless defined $dir && length $dir;
 
-# INPUT VALIDATION
+      $abort_depth =
+         defined $opts->{abort_depth}
+            ? $opts->{abort_depth}
+            : defined $this->{opts}->{abort_depth}
+               ? $this->{opts}->{abort_depth}
+               : $ABORT_DEPTH;
 
-   return $this->_throw( 'no such file' => { opts => $opts, filename => $dir } )
-      unless -e $dir;
+      # in case somebody wants to list_dir( "/tmp////" ) which is legal!
+      $dir =~ s/(?<=.)[\/\\:]+$// unless $dir =~ /^$WINROOT$/o;
 
-   # whack off any trailing directory separator, except for root directories
-   # -account for both posix filesystem AND micro$oft path notation
-   unless ( length $dir == 1 || $dir =~ /^$WINROOT$/o ) {
+      # recurse_fast implies recurse, and so does the legacy opt "follow"
+      $opts->{recurse} = 1 if $opts->{recurse_fast} || $opts->{follow};
 
-      # removes one or more dirsep at the end of $dir
-      $dir =~ s/[\/\\:]+$//o;
+      # "." and ".." make no sense (and cause infinite loops) when recursing...
+      $opts->{no_fsdots} = 1 if $opts->{recurse}; # ...so skip them
+
+      # be compatible with GNU find
+      $opts->{max_depth} = delete $opts->{maxdepth} if $opts->{maxdepth};
+
+      # break off immediately to helper function if asked to make a ref-tree
+      return $this->_as_tree( $dir => $opts ) if $opts->{as_tree};
+
+      return $this->_throw( 'no such file' => { opts => $opts, filename => $dir } )
+         unless -e $dir;
+
+      return $this->_throw (
+         'called opendir on a file' => {
+            filename => $dir,
+            opts     => $opts,
+         }
+      ) unless -d $dir;
    }
-
-   return $this->_throw (
-      'called opendir on a file' => {
-         filename => $dir,
-         opts     => $opts,
-      }
-   ) unless -d $dir;
-
-   $recursing = 1 if $opts->{follow} || $opts->{recurse};
 
 # RUNAWAY RECURSION PREVENTION...
 
@@ -172,41 +173,64 @@ sub list_dir {
    # scalar references didn't work for me, so I'm using a hashref with a
    # single key-value and it works beautifully
    $opts->{_recursion} = {
-      _depth  => 0,
+      _fast   => $opts->{recurse_fast},
       _base   => $dir,
+      _isroot => ( $dir eq '/' || $dir =~ /^$WINROOT/ ) ? 1 : 0,
+      _depth  => 0,
       _inodes => {},
    } unless defined $opts->{_recursion};
 
 # ...AND FILESYSTEM LOOPING PREVENTION ARE TIED TOGETHER...
+
+   if ( !$opts->{_recursion}->{_fast} )
    {
-      my ( $dev, $inode ) = ( lstat $dir )[0,1];
+      my ( $dev, $inode ) = lstat $dir;
 
-      next unless $inode; # windows SUCKS!
+      if ( $inode ) { # noop on windows which always returns zero (0) for inode
 
-      my $dir_ident = $dev . '_' . $inode;
+         # keep track of dir inodes or we're going to get stuck in filesystem
+         # loops the following bit of code incrementally populates (with each
+         # recursion) a hash table with keys named for the dev ID and inode of
+         # the directory, for every directory found
 
-      # keep track of dir inodes or we're going to get stuck in filesystem
-      # loops the following bit of code incrementally populates (with each
-      # recursion) a hash table with keys named for the dev ID and inode of
-      # the directory, for every directory found
+         warn sprintf
+            qq(*WARNING! Filesystem loop detected at %s, dev %s, inode %s\n),
+               $dir, $dev, $inode
+               and return( () )
+                  if exists $opts->{_recursion}{_inodes}{ $dev, $inode };
 
-      warn sprintf
-         qq(*WARNING! Filesystem loop detected at %s, dev %s, inode %s\n),
-            $dir, $dev, $inode
-            and return( () )
-               if exists $opts->{_recursion}{_inodes}{ $dir_ident };
-
-      $opts->{_recursion}{_inodes}{ $dir_ident } = undef;
+         $opts->{_recursion}{_inodes}{ $dev, $inode } = undef;
+      }
    }
 
-   my ( $trailing_dirs ) = $dir =~
-      /^ \Q$opts->{_recursion}{_base}\E [\/\\:] (.+)/x;
+# DETERMINE DEPTH AND BAIL IF TOO DEEP
 
-   if ( defined $trailing_dirs && length $trailing_dirs ) {
+   # this is highly dependent on OS platform, and also whether or not we are
+   # listing a root directory, which makes optimizations harder ( / or C:\ )
+   # *note - $SL comes from File::Util::Definitions
 
-      my $depth = @{[ split /[\/\\:]+/, $trailing_dirs ]};
+   my $trailing_dirs;
 
-      $opts->{_recursion}{_depth} = $depth || 0;
+   if ( $opts->{_recursion}{_isroot} )
+   {
+      ( $trailing_dirs ) =
+         $dir =~ /^ \Q$opts->{_recursion}{_base}\E (.+) /x;
+   }
+   else
+   {
+      ( $trailing_dirs ) =
+         $dir =~ /^ \Q$opts->{_recursion}{_base}$SL\E (.+) /x;
+   }
+
+   if ( $SL eq '/' )
+   {
+      $opts->{_recursion}{_depth} = $trailing_dirs =~ tr/\/// + 1
+         if defined $trailing_dirs;
+   }
+   else
+   {
+      $opts->{_recursion}{_depth} = $trailing_dirs =~ tr/[\\:]// + 1
+         if defined $trailing_dirs;
    }
 
    return( () ) if
@@ -219,8 +243,9 @@ sub list_dir {
          meth        => 'list_dir',
          abort_depth => $abort_depth,
          opts        => $opts,
+         dir         => $dir,
       }
-   ) if $opts->{_recursion}{_depth} >= $abort_depth && $abort_depth != 0;
+   ) if $opts->{_recursion}{_depth} == $abort_depth && $abort_depth != 0;
 
 # ACTUAL READING OF THE DIRECTORY
 
@@ -234,10 +259,6 @@ sub list_dir {
             }
          );
 
-   # read from beginning of the directory (doesn't seem necessary on any
-   # platforms I've run code on, but just in case...)
-   rewinddir $dir_fh;
-
 # LEGACY_MATCHING
 
    # this form of matching is deprecated and is not robust.  backward compat
@@ -245,7 +266,7 @@ sub list_dir {
    # documentation, becoming useful only to the legacy code that relies on it
 
    # primitive pattern matching at top level only, applied to both files & dirs
-   @files = defined $opts->{pattern}
+   @dir_contents = defined $opts->{pattern}
       ? grep /$opts->{pattern}/, readdir $dir_fh
       : readdir $dir_fh;
 
@@ -253,9 +274,9 @@ sub list_dir {
    # applied to both files AND dirs, recursion would often break unexpectedly
    # for users unaware that they couldn't recurse into dirs that didn't match
    # the pattern they probably intended only for files
-   @files = defined $opts->{rpattern}
-      ? grep { -d $path . SL . $_ || /$opts->{rpattern}/ } @files
-      : @files;
+   @dir_contents = defined $opts->{rpattern}
+      ? grep { -d $dir . SL . $_ || /$opts->{rpattern}/ } @dir_contents
+      : @dir_contents;
 
    closedir $dir_fh
       or return $this->_throw(
@@ -266,33 +287,63 @@ sub list_dir {
          }
       );
 
-   # get rid of "." and ".." if they are unwanted
-   @files = grep { !/$FSDOTS/o } @files if $opts->{no_fsdots};
-
-# ADVANCED MATCHING
-
-   @files = _list_dir_matching( $opts, $path, \@files )
-      if grep { /match/ } keys %$opts;
+   # get rid of "." and ".." if they are unwanted, and try to do it as fast
+   # as possible for large directories; Devel::NYTprof says this is faster
+   if ( $opts->{no_fsdots} )
+   {
+      if ( $dir_contents[0] eq '.' && $dir_contents[1] eq '..' )
+      {
+         @dir_contents = splice @dir_contents, 2;
+      }
+      else
+      {
+         @dir_contents = grep { !/$FSDOTS/ } @dir_contents;
+      }
+   }
 
 # SEPARATION OF DIRS FROM FILES
+
+   my $dir_base = # << we use this further down
+      ( $dir ne '/' && $dir !~ /^$WINROOT$/ )
+         ? $dir . SL
+         : $dir;
+
+   while ( @dir_contents ) # !! don't do: while my $foo = shift !!
+   {
+      my $dir_entry = shift @dir_contents;
+
+      if ( -d $dir_base . $dir_entry && !-l $dir_base . $dir_entry )
+      {
+         push @$subdirs, $dir_entry
+      }
+      else { push @$files, $dir_entry }
+   }
+
+# ADVANCED MATCHING
+   if ( !defined $opts->{_matching} )
+   {
+      $opts->{_matching} =
+         $opts->{files_match}    ||
+         $opts->{dirs_match}     ||
+         $opts->{parent_matches} ||
+         $opts->{path_matches}   || 0;
+
+      $opts->{_matching} = !!$opts->{_matching};
+   }
+
+   if ( $opts->{_matching} )
+   {
+      ( $subdirs, $files ) =
+         _list_dir_matching( $opts, $dir, $subdirs, $files );
+   }
 
    # prepend full path information to each file name if paths were
    # requested, or if we are recursing.  Then separate the directories
    # and files off into @dirs and @itmes, respectively
-   for my $file ( @files ) {
-
-      warn qq(ERROR: Got a zero-length filename while reading "$dir"\n)
-         and next unless length $file; # ridiculous filesystem errors
-
-      my $listing = ( $opts->{with_paths} || $recursing )
-         ? $path . SL . $file
-         : $file;
-
-      if ( -d $path . SL . $file && !-l $path . SL . $file ) {
-
-         push @dirs, $listing
-      }
-      else { push @items, $listing }
+   if ( $opts->{recurse} || $opts->{with_paths} )
+   {
+      @$subdirs = map { $dir_base . $_ } @$subdirs;
+      @$files   = map { $dir_base . $_ } @$files;
    }
 
 # CALLBACKS (HIGHER ORDER FUNCTIONS)
@@ -304,7 +355,7 @@ sub list_dir {
       $this->throw( qq(callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@dirs, \@items, $opts->{_recursion}{_depth} );
+      $cb->( $dir, \@$subdirs, \@$files, $opts->{_recursion}{_depth} );
    }
 
    if ( my $cb = $opts->{d_callback} ) {
@@ -312,7 +363,7 @@ sub list_dir {
       $this->throw( qq(d_callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@dirs, $opts->{_recursion}{_depth} );
+      $cb->( $dir, \@$subdirs, $opts->{_recursion}{_depth} );
    }
 
    if ( my $cb = $opts->{f_callback} ) {
@@ -320,17 +371,20 @@ sub list_dir {
       $this->throw( qq(f_callback "$cb" not a coderef), $opts )
          unless ref $cb eq 'CODE';
 
-      $cb->( $dir, \@items, $opts->{_recursion}{_depth} );
+      $cb->( $dir, \@$files, $opts->{_recursion}{_depth} );
    }
 
 # RECURSION
-
-   if ( $recursing ) {
-
-      @dirs = grep { strip_path( $_ ) !~ /$FSDOTS/ } @dirs;
-
+   if
+   (
+      $opts->{recurse} && !
+      (
+         $opts->{max_depth} && # don't recurse if we will then be at max depth
+         $opts->{_recursion}{_depth} == $opts->{max_depth} - 1
+      )
+   ) {
       # recurse into all subdirs
-      for my $subdir ( @dirs ) {
+      for my $subdir ( @$subdirs ) {
 
          # certain opts need to be defined, overridden, added, or removed
          # completely before recursing.  That's why we redefine everything
@@ -340,7 +394,6 @@ sub list_dir {
          my $recurse_opts = {
             as_ref               => 1,
             with_paths           => 1,
-            recursing            => 1,
             no_fsdots            => 1,
             abort_depth          => $abort_depth,
             max_depth            => $opts->{max_depth},
@@ -354,24 +407,19 @@ sub list_dir {
             callback             => $opts->{callback},
             d_callback           => $opts->{d_callback},
             f_callback           => $opts->{f_callback},
+            _matching            => $opts->{_matching},
+            _patterns            => $opts->{_patterns} || {},
             _recursion           => $opts->{_recursion},
-            _files_match_and     => $opts->{_files_match_and},
-            _files_match_or      => $opts->{_files_match_or},
-            _dirs_match_and      => $opts->{_dirs_match_and},
-            _dirs_match_or       => $opts->{_dirs_match_or},
-            _parent_matches_and  => $opts->{_parent_matches_and},
-            _parent_matches_or   => $opts->{_parent_matches_or},
-            _path_matches_and    => $opts->{_path_matches_and},
-            _path_matches_or     => $opts->{_path_matches_or},
+            _recursing           => 1,
          };
 
          my ( $dirs_ref, $files_ref ) =
-            $this->list_dir( $subdir, $recurse_opts );
+            $this->list_dir( $subdir => \$recurse_opts );
 
-         push @dirs,  @$dirs_ref
+         push @$subdirs,  @$dirs_ref
             if ref $dirs_ref && ref $dirs_ref eq 'ARRAY';
 
-         push @items, @$files_ref
+         push @$files, @$files_ref
             if ref $files_ref && ref $files_ref eq 'ARRAY';
       }
    }
@@ -379,57 +427,54 @@ sub list_dir {
 # FINAL PREPARATIONS before returning results
 
    if (
-        !$opts->{recursing} &&
+        !$opts->{_recursing} &&
       (
-         $opts->{path_matches} ||
-         $opts->{parent_matches}
+         $opts->{path_matches} || $opts->{parent_matches}
       )
    ) {
-      @dirs = _list_dir_lastround_dirmatch( $opts, \@dirs );
+      @$subdirs = _list_dir_lastround_dirmatch( $opts, $subdirs );
    }
 
    # cosmetic formatting for directories/
    if ( $opts->{sl_after_dirs} ) {
 
       # append directory separator to everything but the "dots"
-      $_ .= SL for grep { !/$FSDOTS/o } @dirs;
+      $_ .= SL for grep { !/$FSDOTS/ } @$subdirs;
    }
-
-   my $return_dirs = []; my $return_files = [];
 
    # sorting
    if ( $opts->{ignore_case} ) {
 
-      $return_dirs  = [ sort { uc $a cmp uc $b } @dirs  ];
-      $return_files = [ sort { uc $a cmp uc $b } @items ];
+      $subdirs = [ sort { uc $a cmp uc $b } @$subdirs  ];
+      $files   = [ sort { uc $a cmp uc $b } @$files ];
    }
    else {
 
-      $return_dirs  = [ sort { $a cmp $b } @dirs  ];
-      $return_files = [ sort { $a cmp $b } @items ];
+      $subdirs = [ sort { $a cmp $b } @$subdirs  ];
+      $files   = [ sort { $a cmp $b } @$files ];
    }
 
 # RETURN based on selected opts
 
-   return scalar @$return_dirs
+   return scalar @$subdirs
       if $opts->{dirs_only} && $opts->{count_only};
 
-   return scalar @$return_files
+   return scalar @$files
       if $opts->{files_only} && $opts->{count_only};
 
-   return scalar @$return_dirs + scalar @$return_files
+   return scalar @$subdirs + scalar @$files
       if $opts->{count_only};
 
-   return $return_dirs, $return_files
+   return $subdirs, $files
       if $opts->{as_ref};
 
-   $return_dirs  = [ $return_dirs  ] if $opts->{dirs_as_ref};
-   $return_files = [ $return_files ] if $opts->{files_as_ref};
+   $subdirs = [ $subdirs ] if $opts->{dirs_as_ref};
+   $files   = [ $files   ] if $opts->{files_as_ref};
 
-   return @$return_dirs  if $opts->{dirs_only};
-   return @$return_files if $opts->{files_only};
+   return @$subdirs if $opts->{dirs_only};
+   return @$files   if $opts->{files_only};
 
-   return @$return_dirs, @$return_files;
+   return @$subdirs, @$files;
 }
 
 
@@ -437,139 +482,106 @@ sub list_dir {
 # File::Util::_list_dir_matching()
 # --------------------------------------------------------
 sub _list_dir_matching {
-   my ( $opts, $path, $files ) = @_;
-
-   my @qualified_files = map { $path . SL . $_ } splice @$files, 0;
-   # can't keep multiple huge lists of files --- ^^^^^^
-
-   my @qualified_dirs  = grep { !-l $_ } grep { -d $_ } @qualified_files;
-
-   my %dirs_only; @dirs_only{ @qualified_dirs } = @qualified_dirs;
-
-   @qualified_files = grep { !exists $dirs_only{ $_ } } @qualified_files;
-
-   my @files_match = map { ( $_ ) =~ /^.*[\/\\:](.+)/o } @qualified_files;
-   my @dirs_match  = map { ( $_ ) =~ /^.*[\/\\:](.+)/o } @qualified_dirs;
-
-   # memory management
-   undef %dirs_only;
-   undef @qualified_files;
-   undef @qualified_dirs;
+   my ( $opts, $path, $dirs, $files ) = @_;
 
 # COLLECT PATTERN(S) TO BE APPLIED
 
    {  # memo-ize these patterns
 
    # FILES AND
-      $opts->{_files_match_and} = []
-         unless defined $opts->{_files_match_and};
-
-      $opts->{_files_match_and} =
+      $opts->{_patterns}->{_files_match_and} =
          [ _gather_and_patterns( $opts->{files_match} ) ]
-            unless @{ $opts->{_files_match_and} };
+            unless defined $opts->{_patterns}->{_files_match_and};
 
    # FILES OR
-      $opts->{_files_match_or} = []
-         unless defined $opts->{_files_match_or};
-
-      $opts->{_files_match_or} =
+      $opts->{_patterns}->{_files_match_or} =
          [ _gather_or_patterns( $opts->{files_match} ) ]
-            unless @{ $opts->{_files_match_and} };
+            unless defined $opts->{_patterns}->{_files_match_or};
 
    # DIRS AND
-      $opts->{_dirs_match_and} = []
-         unless defined $opts->{_dirs_match_and};
-
-      $opts->{_dirs_match_and} =
+      $opts->{_patterns}->{_dirs_match_and} =
          [ _gather_and_patterns( $opts->{dirs_match} ) ]
-            unless @{ $opts->{_dirs_match_and} };
+            unless defined $opts->{_patterns}->{_dirs_match_and};
 
    # DIRS OR
-      $opts->{_dirs_match_or} = []
-         unless defined $opts->{_dirs_match_or};
-
-      $opts->{_dirs_match_or} =
+      $opts->{_patterns}->{_dirs_match_or} =
          [ _gather_or_patterns( $opts->{dirs_match} ) ]
-            unless @{ $opts->{_dirs_match_and} };
+            unless defined $opts->{_patterns}->{_dirs_match_or};
 
    # PARENT AND
-      $opts->{_parent_matches_and} = []
-         unless defined $opts->{_parent_matches_and};
-
-      $opts->{_parent_matches_and} =
+      $opts->{_patterns}->{_parent_matches_and} =
          [ _gather_and_patterns( $opts->{parent_matches} ) ]
-            unless @{ $opts->{_parent_matches_and} };
+            unless defined $opts->{_patterns}->{_parent_matches_and};
 
    # PARENT OR
-      $opts->{_parent_matches_or} = []
-         unless defined $opts->{_parent_matches_or};
-
-      $opts->{_parent_matches_or} =
+      $opts->{_patterns}->{_parent_matches_or} =
          [ _gather_or_patterns( $opts->{parent_matches} ) ]
-            unless @{ $opts->{_parent_matches_and} };
+            unless defined $opts->{_patterns}->{_parent_matches_or};
 
    # PATH AND
-      $opts->{_path_matches_and} = []
-         unless defined $opts->{_path_matches_and};
-
-      $opts->{_path_matches_and} =
+      $opts->{_patterns}->{_path_matches_and} =
          [ _gather_and_patterns( $opts->{path_matches} ) ]
-            unless @{ $opts->{_path_matches_and} };
+            unless defined $opts->{_patterns}->{_path_matches_and};
 
    # PATH OR
-      $opts->{_path_matches_or} = []
-         unless defined $opts->{_path_matches_or};
-
-      $opts->{_path_matches_or} =
+      $opts->{_patterns}->{_path_matches_or} =
          [ _gather_or_patterns( $opts->{path_matches} ) ]
-            unless @{ $opts->{_path_matches_and} };
+            unless defined $opts->{_patterns}->{_path_matches_or};
    }
 
 # FILE MATCHING
 
-   for my $pattern ( @{ $opts->{_files_match_and} } ) {
+   for my $pattern ( @{ $opts->{_patterns}->{_files_match_and} } ) {
 
-      @files_match = grep { /$pattern/ } @files_match;
+      @$files = grep { /$pattern/ } @$files;
    }
 
-   @files_match = _match_and( $opts->{_files_match_and}, \@files_match )
-      if @{ $opts->{_files_match_and} };
+   @$files = _match_and( $opts->{_patterns}->{_files_match_and}, $files )
+      if @{ $opts->{_patterns}->{_files_match_and} };
 
-   @files_match = _match_or( $opts->{_files_match_or}, \@files_match )
-      if @{ $opts->{_files_match_or} };
+   @$files = _match_or( $opts->{_patterns}->{_files_match_or}, $files )
+      if @{ $opts->{_patterns}->{_files_match_or} };
 
 # DIRECTORY MATCHING
 
-   @dirs_match = _match_and( $opts->{_dirs_match_and}, \@dirs_match )
-      if @{ $opts->{_dirs_match_and} };
+   @$dirs = _match_and( $opts->{_patterns}->{_dirs_match_and}, $dirs )
+      if @{ $opts->{_patterns}->{_dirs_match_and} };
 
-   @dirs_match = _match_or( $opts->{_dirs_match_or}, \@dirs_match )
-      if @{ $opts->{_dirs_match_or} };
+   @$dirs = _match_or( $opts->{_patterns}->{_dirs_match_or}, $dirs )
+      if @{ $opts->{_patterns}->{_dirs_match_or} };
 
 # FILE &'ed DIRECTORY MATCHING
 
    if ( $opts->{files_match} && $opts->{dirs_match} ) {
 
-      @files_match = ( )
-         unless _match_and( $opts->{_dirs_match_and}, [ strip_path( $path ) ] );
+      $files = [ ]
+         unless _match_and
+         (
+            $opts->{_patterns}->{_dirs_match_and},
+            [ strip_path( $path ) ]
+         );
    }
 
 # MATCHING FILES BY PARENT DIR
 
    if ( $opts->{parent_matches} ) {
 
-      if ( @{ $opts->{_parent_matches_and} } ) {
+      if ( @{ $opts->{_patterns}->{_parent_matches_and} } ) {
 
-         @files_match = ( )
-            unless _match_and(
-               $opts->{_parent_matches_and}, [ strip_path( $path ) ]
+         $files = [ ]
+            unless _match_and
+            (
+               $opts->{_patterns}->{_parent_matches_and},
+               [ strip_path( $path ) ]
             );
       }
-      elsif ( @{ $opts->{_parent_matches_or} } ) {
+      elsif ( @{ $opts->{_patterns}->{_parent_matches_or} } ) {
 
-         @files_match = ( )
-            unless _match_or(
-               $opts->{_parent_matches_or}, [ strip_path( $path ) ]
+         $files = [ ]
+            unless _match_or
+            (
+               $opts->{_patterns}->{_parent_matches_or},
+               [ strip_path( $path ) ]
             );
       }
    }
@@ -578,19 +590,25 @@ sub _list_dir_matching {
 
    if ( $opts->{path_matches} ) {
 
-      if ( @{ $opts->{_path_matches_and} } ) {
+      if ( @{ $opts->{_patterns}->{_path_matches_and} } ) {
 
-         @files_match = ( )
-            unless _match_and( $opts->{_path_matches_and}, [ $path ] );
+         $files = [ ]
+            unless _match_and
+            (
+               $opts->{_patterns}->{_path_matches_and}, [ $path ]
+            );
       }
-      elsif ( @{ $opts->{_path_matches_or} } ) {
+      elsif ( @{ $opts->{_patterns}->{_path_matches_or} } ) {
 
-         @files_match = ( )
-            unless _match_or( $opts->{_path_matches_or}, [ $path ] );
+         $files = [ ]
+            unless _match_or
+            (
+               $opts->{_patterns}->{_path_matches_or}, [ $path ]
+            );
       }
    }
 
-   return ( @dirs_match, @files_match );
+   return ( $dirs, $files );
 }
 
 
@@ -608,7 +626,7 @@ sub _list_dir_lastround_dirmatch {
 
       my %return_dirs;
 
-      if ( @{ $opts->{_parent_matches_and} } ) {
+      if ( @{ $opts->{_patterns}->{_parent_matches_and} } ) {
 
          for my $qfd_dir ( @$dirs ) {
 
@@ -617,10 +635,14 @@ sub _list_dir_lastround_dirmatch {
             $in_path = $root . $in_path if $root;
 
             $return_dirs{ $in_path } = $in_path
-            if _match_and( $opts->{_parent_matches_and}, [ strip_path( $in_path ) ] );
+               if _match_and
+                  (
+                     $opts->{_patterns}->{_parent_matches_and},
+                     [ strip_path( $in_path ) ]
+                  );
          }
       }
-      elsif ( @{ $opts->{_parent_matches_or} } ) {
+      elsif ( @{ $opts->{_patterns}->{_parent_matches_or} } ) {
 
          for my $qfd_dir ( @$dirs ) {
 
@@ -629,7 +651,11 @@ sub _list_dir_lastround_dirmatch {
             $in_path = $root . $in_path if $root;
 
             $return_dirs{ $in_path } = $in_path
-            if _match_or( $opts->{_parent_matches_or}, [ strip_path( $in_path ) ] );
+               if _match_or
+                  (
+                     $opts->{_patterns}->{_parent_matches_or},
+                     [ strip_path( $in_path ) ]
+                  );
          }
       }
 
@@ -642,7 +668,7 @@ sub _list_dir_lastround_dirmatch {
 
       my %return_dirs;
 
-      if ( @{ $opts->{_path_matches_and} } ) {
+      if ( @{ $opts->{_patterns}->{_path_matches_and} } ) {
 
          for my $qfd_dir ( @$dirs ) {
 
@@ -651,13 +677,19 @@ sub _list_dir_lastround_dirmatch {
             $in_path = $root . $in_path if $root;
 
             $return_dirs{ $in_path } = $in_path
-               if _match_and( $opts->{_path_matches_and}, [ $in_path ] );
+               if _match_and
+               (
+                  $opts->{_patterns}->{_path_matches_and}, [ $in_path ]
+               );
 
             $return_dirs{ $qfd_dir } = $qfd_dir
-               if _match_and( $opts->{_path_matches_and}, [ $qfd_dir ] );
+               if _match_and
+               (
+                  $opts->{_patterns}->{_path_matches_and}, [ $qfd_dir ]
+               );
          }
       }
-      elsif ( @{ $opts->{_path_matches_or} } ) {
+      elsif ( @{ $opts->{_patterns}->{_path_matches_or} } ) {
 
          for my $qfd_dir ( @$dirs ) {
 
@@ -666,10 +698,16 @@ sub _list_dir_lastround_dirmatch {
             $in_path = $root . $in_path if $root;
 
             $return_dirs{ $in_path } = $in_path
-               if _match_or( $opts->{_path_matches_or}, [ $in_path ] );
+               if _match_or
+               (
+                  $opts->{_patterns}->{_path_matches_or}, [ $in_path ]
+               );
 
             $return_dirs{ $qfd_dir } = $qfd_dir
-               if _match_or( $opts->{_path_matches_or}, [ $qfd_dir ] );
+               if _match_or
+               (
+                  $opts->{_patterns}->{_path_matches_or}, [ $qfd_dir ]
+               );
          }
       }
 
@@ -837,18 +875,11 @@ sub _as_tree {
       }
    };
 
-   $this->list_dir(
-      $dir => {
-         callback       => $treeify,
-         recurse        => $opts->{recurse},
-         files_match    => $opts->{files_match},
-         dirs_match     => $opts->{dirs_match},
-         parent_matches => $opts->{parent_matches},
-         path_matches   => $opts->{path_matches},
-         pattern        => $opts->{pattern},
-         rpattern       => $opts->{rpattern},
-      }
-   );
+   $opts->{callback} = $treeify;
+
+   delete $opts->{as_tree};
+
+   $this->list_dir( $dir => $opts );
 
    return $tree;
 }
@@ -2759,7 +2790,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130510
+version 4.130560
 
 =head1 DESCRIPTION
 
@@ -2798,21 +2829,24 @@ I<(See L<DOCUMENTATION|/DOCUMENTATION> section below.)>
 
 =head1 DOCUMENTATION
 
-You can do much more with File::Util than just the basic examples this
-document.  For an explanation of all the features available to you,
-take a look at these other reference materials:
+You can do much more with File::Util than the examples above.  For an
+explanation of all the features available to you, take a look at these other
+reference materials:
 
 =over
-
-=item B<The Manual>
-
-The L<File::Util::Manual> is the complete reference document explaing every
-available feature and object method.
 
 =item B<The "Nutshell">
 
 The L<File::Util::Manual::Examples> document has a long list of small, reusable
-code snippets and techniques to use in your own programs.
+code snippets and techniques to use in your own programs.  This is the "cheat
+sheet", and is a great place to get started quickly.  Almost everything you
+need is here.
+
+=item B<The Manual>
+
+The L<File::Util::Manual> is the complete reference document explaing every
+available feature and object method.  Use this to look up the full information
+on any given feature when the examples aren't enough.
 
 =item B<The Cookbook>
 
@@ -2964,6 +2998,20 @@ that use File::Util to easily accomplish tasks which require file handling.
 pattern matching in directories, directory walking, user-definable error
 handlers, and more.
 
+=head1 PERFORMANCE
+
+File::Util has been optimized to run fast.*  In many scenarios it can
+out-perform other modules like File::Find::Rule from anywhere from 100%-400% --
+I<(See the benchmarking and profiling scripts that are included as part of this>
+I<distribution.)>
+
+File::Util consists of several modules, but only loads the ones it needs when
+it needs them and also offers a comparatively fast load-up time, so using
+File::Util doesn't bloat your code footprint.
+
+I<*Sometimes it doesn't matter how fast you can search through a directory 1000>
+I<times.  Performance alone isn't the best criteria for choosing a module.>
+
 =head1 METHODS
 
 File::Util exposes the following public methods.
@@ -3057,7 +3105,7 @@ this document in a text terminal, open perldoc to the C<File::Util::Manual>.
 Exports nothing by default.  File::Util fully respects your namespace.
 You can, however, ask it for certain things (below).
 
-=head2 @EXPORT_OK
+=head2 EXPORT_OK
 
 The following symbols comprise C<@File::Util::EXPORT_OK>), and as such are
 available for import to your namespace only upon request.  They can be
@@ -3068,97 +3116,14 @@ to use them as an object method, use this kind of syntax:
 
 C<use File::Util qw( strip_path NL );>
 
-=over
-
-=item *
-
-atomize_path
-
-=item *
-
-can_flock
-
-=item *
-
-created
-
-=item *
-
-diagnostic
-
-=item *
-
-ebcdic
-
-=item *
-
-escape_filename
-
-=item *
-
-existent
-
-=item *
-
-file_type
-
-=item *
-
-is_bin
-
-=item *
-
-is_readable
-
-=item *
-
-is_writable
-
-=item *
-
-last_access
-
-=item *
-
-last_changed
-
-=item *
-
-last_modified
-
-=item *
-
-NL
-
-=item *
-
-needs_binmode
-
-=item *
-
-return_path
-
-=item *
-
-size
-
-=item *
-
-SL
-
-=item *
-
-split_path
-
-=item *
-
-strip_path
-
-=item *
-
-valid_filename
-
-=back
+   * atomize_path      * can_flock         * created
+   * diagnostic        * ebcdic            * escape_filename
+   * existent          * file_type         * is_bin
+   * is_readable       * is_writable       * last_access
+   * last_changed      * last_modified     * NL
+   * needs_binmode     * return_path       * size
+   * SL                * split_path        * strip_path
+   * valid_filename
 
 =head2 EXPORT_TAGS
 
@@ -3195,6 +3160,9 @@ On Windows systems, the "sudo" part of the command may be omitted, but you
 will need to run the rest of the install command with Administrative privileges
 
 =head1 BUGS
+
+File::Util can't write files in UTF-8 encoding yet.  This limitation will go
+away soon.
 
 Send bug reports and patches to the CPAN Bug Tracker for File::Util at
 L<rt.cpan.org|https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil>
@@ -3248,6 +3216,6 @@ The rest of the documentation:
 L<File::Util::Manual>, L<File::Util::Manual::Examples>, L<File::Util::Cookbook>,
 
 Other Useful Modules that do similar things:
-L<File::Slurp>, L<File::Spec>, L<Path::Class>
+L<File::Slurp>, L<File::Spec>, L<File::Find::Rule>, L<Path::Class>
 
 =cut

@@ -41,6 +41,10 @@ lib/File/Util/Interface/Modern.pm
 lib/File/Util/Manual.pod
 lib/File/Util/Manual/Examples.pod
 lib/File/Util/ProxyLog.pm
+performance/bench_listdir.pl
+performance/bench_load_time.pl
+performance/profile_listdir.pl
+performance/profile_listdir_vs_file-find-rule.pl
 t/00-compile.t
 t/000-report-versions-tiny.t
 t/001_canuseit.t
