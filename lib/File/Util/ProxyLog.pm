@@ -6,7 +6,7 @@ use Scalar::Util qw( blessed );
 
 package File::Util::ProxyLog;
 {
-  $File::Util::ProxyLog::VERSION = '4.130560'; # TRIAL
+  $File::Util::ProxyLog::VERSION = '4.130590'; # TRIAL
 }
 
 use Time::HiRes;
@@ -83,7 +83,7 @@ File::Util::ProxyLog - a call logging proxy class for File::Util
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 DESCRIPTION
 

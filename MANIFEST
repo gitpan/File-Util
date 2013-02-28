@@ -71,6 +71,7 @@ t/extended/005_write_file.t
 t/extended/006_onfail.t
 t/extended/007_open_handle.t
 t/extended/008_proxylog.t
+t/extended/009_unicode.t
 t/extended/release-diesnice-fatalities.t
 t/extended/release-diesnice-messages.t
 t/extended/release-dist-portable.t
@@ -78,13 +79,6 @@ t/release-cpan-changes.t
 t/release-dist-manifest.t
 t/release-distmeta.t
 t/release-kwalitee.t
-t/release-localbrew-perl-5.10.1.t
-t/release-localbrew-perl-5.12.5.t
-t/release-localbrew-perl-5.14.3.t
-t/release-localbrew-perl-5.16.2.t
-t/release-localbrew-perl-5.17.7.t
-t/release-localbrew-perl-5.17.8.t
-t/release-localbrew-perl-5.8.9.t
 t/release-meta-json.t
 t/release-mojibake.t
 t/release-no-tabs.t

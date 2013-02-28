@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Standard;
 {
-  $File::Util::Exception::Standard::VERSION = '4.130560'; # TRIAL
+  $File::Util::Exception::Standard::VERSION = '4.130590'; # TRIAL
 }
 
 # ABSTRACT: Standard (non-verbose) error messages
@@ -36,6 +36,12 @@ sub _errors {
 
    # begin long table of helpful diag error messages
    my %error_msg_table = (
+# NO UNICODE SUPPORT
+'no unicode' => <<'__no_unicode__',
+Your version of Perl is not new enough to support unicode: $EBL$^V$EBR
+__no_unicode__
+
+
 # NO SUCH FILE
 'no such file' => <<'__bad_open__',
 File inaccessible or does not exist: $EBL$opts->{filename}$EBR
@@ -267,7 +273,7 @@ File::Util::Exception::Standard - Standard (non-verbose) error messages
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 DESCRIPTION
 

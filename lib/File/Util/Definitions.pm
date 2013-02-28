@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Definitions;
 {
-  $File::Util::Definitions::VERSION = '4.130560'; # TRIAL
+  $File::Util::Definitions::VERSION = '4.130590'; # TRIAL
 }
 
 # ABSTRACT: Global symbols and constants used in most File::Util classes
@@ -16,7 +16,7 @@ use vars qw(
    $USE_FLOCK  @ONLOCKFAIL $ILLEGAL_CHR  $CAN_FLOCK
    $EBCDIC     $DIRSPLIT   $_LOCKS       $NEEDS_BINMODE
    $WINROOT    $ATOMIZER   $SL   $NL     $EMPTY_WRITES_OK
-   $FSDOTS     $AUTHORITY  $EBL  $EBR
+   $FSDOTS     $AUTHORITY  $EBL  $EBR    $HAVE_UU
 );
 
 use Exporter;
@@ -29,6 +29,7 @@ $AUTHORITY  = 'cpan:TOMMY';
    $EBCDIC     $DIRSPLIT   $_LOCKS       $NEEDS_BINMODE
    $WINROOT    $ATOMIZER   $SL   $NL     $EMPTY_WRITES_OK
    $FSDOTS     $AUTHORITY   SL    NL     $EBL   $EBR
+   $HAVE_UU
 );
 
 %EXPORT_TAGS = ( all => [ @EXPORT_OK ] );
@@ -36,10 +37,14 @@ $AUTHORITY  = 'cpan:TOMMY';
 BEGIN {
 
    # Some OS logic.
-   unless ( $OS = $^O ) {
+   unless ( $OS = $^O )
+   {
       require Config;
-      eval { no warnings 'once'; $OS = $Config::Config{osname} }
+
+      { no warnings 'once'; $OS = $Config::Config{osname} }
    };
+
+   { local $@; $HAVE_UU = eval { require 5.008001 } }
 
       if ( $OS =~ /^darwin/i ) { $OS = 'UNIX'      }
    elsif ( $OS =~ /^cygwin/i ) { $OS = 'CYGWIN'    }
@@ -181,7 +186,7 @@ File::Util::Definitions - Global symbols and constants used in most File::Util c
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 DESCRIPTION
 

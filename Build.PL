@@ -21,7 +21,8 @@ my %module_build_args = (
     "Test::Fatal" => 0,
     "Test::More" => "0.88",
     "Test::NoWarnings" => 0,
-    "Time::HiRes" => 0
+    "Time::HiRes" => 0,
+    "utf8" => 0
   },
   "configure_requires" => {
     "ExtUtils::MakeMaker" => "6.30",
@@ -32,7 +33,7 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "4.130560",
+  "dist_version" => "4.130590",
   "license" => "perl",
   "module_name" => "File::Util",
   "recommends" => {},
@@ -45,7 +46,7 @@ my %module_build_args = (
     "Scalar::Util" => 0,
     "Time::HiRes" => 0,
     "constant" => 0,
-    "perl" => "5.006",
+    "perl" => "5.008001",
     "strict" => 0,
     "subs" => 0,
     "vars" => 0,

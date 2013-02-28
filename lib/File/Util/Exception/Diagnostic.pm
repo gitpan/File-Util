@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Diagnostic;
 {
-  $File::Util::Exception::Diagnostic::VERSION = '4.130560'; # TRIAL
+  $File::Util::Exception::Diagnostic::VERSION = '4.130590'; # TRIAL
 }
 
 # ABSTRACT: Diagnostic (verbose) error messages
@@ -36,6 +36,17 @@ sub _errors {
 
    # begin long table of helpful diag error messages
    my %error_msg_table = (
+# NO UNICODE SUPPORT
+'no unicode' => <<'__no_unicode__',
+$opts->{_pak} can't read/write with (binmode => 'utf8') because your version of
+Perl is not new enough to support unicode:
+   Your currently running Perl is $EBL$^V$EBR
+
+Origin:     This is a human error.
+Solution:   Upgrade to Perl version 5.008001 (5.8) or newer for unicode support
+            or do not use binmode => 'utf8' in your programs.
+__no_unicode__
+
 # NO SUCH FILE
 'no such file' => <<'__bad_open__',
 $opts->{_pak} can't open
@@ -209,7 +220,7 @@ Supported open modes for $opts->{_pak}::open_handle() are the same as above, but
 also include the following:
    read        - open the file in read-only mode
 
-   (and if the --use-sysopen flag is used):
+   (and if the "use_sysopen => 1" flag is used):
    rwcreate    - open the file for update (read+write), creating it if necessary
    rwupdate    - open the file for update (read+write). Causes fatal error if
                  the file doesn't yet exist
@@ -241,7 +252,7 @@ Supported open modes for $opts->{_pak}::open_handle() are the same as above, but
 also include the following:
    read        - open the file in read-only mode
 
-   (and if the --use-sysopen flag is used, as the application JUST did):
+   (and if the "use_sysopen => 1" flag is used, as the application JUST did):
    rwcreate    - open the file for update (read+write), creating it if necessary
    rwupdate    - open the file for update (read+write). Causes fatal error if
                  the file doesn't yet exist
@@ -308,7 +319,7 @@ set to $EBL@{[ sprintf('%04o',(stat($opts->{dirname}))[2] & 0777) ]}$EBR
 
 Origin:     This is *most likely* due to human error.  The program has tried
             to make a directory where a directory already exists.
-Solution:   Weaken the requirement somewhat by using the "--if-not-exists"
+Solution:   Weaken the requirement somewhat by using the "if_not_exists => 1"
             flag when calling the make_dir object method.  This option
             will cause $opts->{_pak} to ignore attempts to create directories
             that already exist, while still creating the ones that don't.
@@ -467,12 +478,12 @@ __abort_depth__
 Recursion limit reached at $EBL${\ scalar(
    (exists $opts->{abort_depth} && defined $opts->{abort_depth}) ?
    $opts->{abort_depth} : $ABORT_DEPTH)
-}$EBR dives.  Maximum number of subdirectory dives is set to the value returned
-by $opts->{_pak}::abort_depth().  Try manually setting the value to a higher
-number before calling list_dir() with option --follow or --recurse (synonymous).
-Do so by calling $opts->{_pak}::abort_depth() with the numeric argument
-corresponding to the maximum number of subdirectory dives you want to allow when
-traversing directories recursively.
+}$EBR dives.  The maximum level of subdirectory depth is set to the value
+returned by $opts->{_pak}::abort_depth().  Try manually setting the value to a
+higher number by calling list_dir() with the "abort_depth => N" option where N
+is a positive integer value.  To set the default abort_depth for all recursive
+list_dir() calls, invoke $opts->{_pak}::abort_depth() with the numeric argument
+corresponding to the maximum number of subdirectory dives you want to allow.
 
 This operation aborted.
 
@@ -614,7 +625,7 @@ File::Util::Exception::Diagnostic - Diagnostic (verbose) error messages
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 DESCRIPTION
 

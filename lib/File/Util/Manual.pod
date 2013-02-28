@@ -11,7 +11,7 @@ File::Util::Manual - File::Util Reference
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 INTRODUCTION
 
@@ -73,9 +73,8 @@ We make sure that File::Util is going to work on your computer or virtual
 machine.  If you run Windows, Mac, Linux, BSD, some flavor of Unix, etc...
 File::Util should work right out of the box.  There are currently no platforms
 where Perl runs that we do not support.  If Perl can run on it, File::Util
-can run on it.  File::Util's ability to support multiple platforms will
-probably be affected as it begins to include more and more support for
-Unicode, however.
+can run on it.  If you want unicode support, however, you need to at least
+be running Perl 5.8 or better.
 
 =item B<Be compatible>
 
@@ -121,10 +120,6 @@ that File::Util does not give you out of the box, such as searching for files by
 owner/group or size.  It is possible to accomplish the same things by
 taking advantage of File::Util's callbacks if you want to, but this isn't
 the "one thing" File::Util was built to do.
-
-File::Util also doesn't offer unicode support yet.  If you want to write files
-in UTF-8 encoding, File::Util won't do that for you.  This will not always be
-the case, but for the time being it is a limitation.
 
 I<*Sometimes it doesn't matter how fast you can search through a directory 1000>
 I<times.  Performance alone isn't the best criteria for choosing a module.>
@@ -1362,6 +1357,19 @@ check performed for you.  In such a case, you'll have to call binmode() on
 the filehandle yourself.  Once you pass a filehandle to this method it has no
 way of telling if the file opened to that filehandle is binary or not.
 
+=item C<< binmode => [ boolean or 'utf8' ] >>
+
+Tell File::Util to read the file in binmode (if set to a true boolean: B<C<1>>),
+or to read the file as UTF-8 encoded data, specify a value of B<C<utf8>> to this
+option.  I<(see L<perlfunc/binmode>)>.
+
+You need Perl 5.8 or better to use C<'utf8'> or your program will fail with
+an error message.
+
+Example Usage:
+
+   my $encoded_data = $ftl->load_file( 'encoded.txt' => { binmode => 'utf8' } );
+
 =item C<< read_limit => positive integer >>
 
 Override the global read limit setting for the File::Util object you are working
@@ -1425,7 +1433,7 @@ is returned to the caller.
 
 Example:
 
-   $f->make_dir( '/home/jspice' => 755 => { if_not_exists => 1 } );
+   $f->make_dir( '/home/jspice' => oct 755 => { if_not_exists => 1 } );
 
 If this option is enabled then make_dir will not attempt to create the directory
 if it already exists.  Rather it will return the name of the directory as it
@@ -1534,6 +1542,37 @@ section (above), along with proper syntax and example usage.
 =back
 
 =back
+
+=back
+
+=head2 C<onfail>
+
+=over
+
+=item I<Syntax:> C<onfail( [keyword or code reference] )>
+
+Dynamically set/change the default error handling policy for an object.
+
+This works exactly the same as it does when you specify an "onfail"
+handler to the constructor method (I<see also C<L<new|/new>>>).
+
+The syntax and keywords available to use for this method are already disussed
+above in the L<ERROR HANDLING|/ERROR HANDLING> section, so refer to that for
+in-depth details.
+
+Here are some examples:
+
+   $ftl->onfail( 'die' );
+
+   $ftl->onfail( 'zero' );
+
+   $ftl->onfail( 'undefined' );
+
+   $ftl->onfail( 'message' );
+
+   $ftl->onfail( \&subroutine_reference );
+
+   $ftl->onfail( sub { my ( $error, $stack_trace ) = @_; ... } );
 
 =back
 
@@ -1704,11 +1743,18 @@ C<sysopen()>'d filehandles!
 
 =over
 
-=item C<< binmode => boolean >>
+=item C<< binmode => [ boolean or 'utf8' ] >>
 
-Makes sure that CORE::binmode() is called on the filehandle when your content
-is written.  This is useful for times when the content you are writing to file
-is a binary stream. I<(see L<perlfunc/binmode>)>.
+Tell File::Util to open the file in binmode (if set to a true boolean: B<C<1>>),
+or to open the file with UTF-8 encoding, specify a value of B<C<utf8>> to this
+option.  I<(see L<perlfunc/binmode>)>.
+
+You need Perl 5.8 or better to use C<"utf8"> or your program will fail with
+an error message.
+
+Example Usage:
+
+   $ftl->open_handle( 'encoded.txt' => { binmode => 'utf8' } );
 
 =item C<< no_lock => boolean >>
 
@@ -1923,6 +1969,11 @@ Syntax Examples:
 
       -OR-
 
+   # write a file with UTF-8 encoding (unicode character support)
+   $ftl->write_file( 'encoded.txt' => $encoded_data => { binmode => 'utf8' } );
+
+      -OR-
+
    $ftl->write_file(
       {
          file    => '/gotham/city/ballots/Bruce_Wayne.txt',
@@ -1940,7 +1991,12 @@ value or not.  This is a function of Perl, not File::Util.
 
 [string] should be a string or a scalar variable containing a string.  The
 string can be any type of data, such as a binary stream, or ascii text with
-line breaks, etc.  Be sure to enable the C<binmode> option for binary streams.
+line breaks, etc.  Be sure to enable the C<< binmode => 1 >> option for binary
+streams, and be sure to specify a value of C<< binmode => 'utf8' >> for UTF-8
+encoded data.
+
+NOTE: that you will need Perl version 5.8 or better to use the C<'utf8'>
+feature, or your program will fail with an error.
 
 If specified, the bitmask must be supplied in the form of an octal number,
 as required by the native perl umask function.  I<see L<perlfunc/"umask">>
@@ -1984,11 +2040,18 @@ to the end of the file.
 
 =over
 
-=item C<< binmode => boolean >>
+=item C<< binmode => [ boolean or 'utf8' ] >>
 
-Makes sure that CORE::binmode() is called on the filehandle when your content
-is written.  This is useful for times when the content you are writing to file
-is a binary stream.
+Tell File::Util to write the file in binmode (if set to a true boolean: B<C<1>>),
+or to write the file with UTF-8 encodeding, specify a value of B<C<utf8>> to this
+option.  I<(see L<perlfunc/binmode>)>.
+
+You need Perl 5.8 or better to use C<"utf8"> or your program will fail with
+an error message.
+
+Example Usage:
+
+   $ftl->write_file( 'encoded.txt' => $encoded_data => { binmode => 'utf8' } );
 
 =item C<< empty_writes_OK => boolean >>
 

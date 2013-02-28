@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130560'; # TRIAL
+  $File::Util::VERSION = '4.130590'; # TRIAL
 }
 
 use File::Util::Definitions qw( :all );
@@ -25,7 +25,7 @@ our @EXPORT_OK  = qw(
    OS      bitmask     return_path   file_type     escape_filename
    is_bin  created     last_access   last_changed  last_modified
    isbin   split_path  atomize_path  diagnostic    abort_depth
-   size    can_read    can_write     read_limit
+   size    can_read    can_write     read_limit    can_utf8
 );
 
 our %EXPORT_TAGS = ( all => [ @EXPORT_OK ], diag => [ ] );
@@ -1159,7 +1159,29 @@ sub load_file {
    # call binmode on binary files for portability accross platforms such
    # as MS flavor OS family
 
-   CORE::binmode( $fh ) if -B $clean_name;
+   binmode $fh if -B $clean_name;
+
+   # call binmode on the filehandle if it was requested or UTF-8
+   if ( $in->{binmode} )
+   {
+      if ( lc $in->{binmode} eq 'utf8' )
+      {
+         if ( $HAVE_UU )
+         {
+            binmode $fh, ':unix:encoding(UTF-8)';
+         }
+         else
+         {
+            close $fh;
+
+            return $this->_throw( 'no unicode' => $in );
+         }
+      }
+      else
+      {
+         binmode $fh;
+      }
+   }
 
    # assign the content of the file to this lexically scoped scalar variable
    # (memory for *that* variable will be freed when execution leaves this
@@ -1510,7 +1532,26 @@ sub write_file {
       }
    }
 
-   CORE::binmode( $write_fh ) if $in->{binmode};
+   if ( $in->{binmode} )
+   {
+      if ( lc $in->{binmode} eq 'utf8' )
+      {
+         if ( $HAVE_UU )
+         {
+            binmode $write_fh, ':unix:encoding(UTF-8)';
+         }
+         else
+         {
+            close $write_fh;
+
+            return $this->_throw( 'no unicode' => $in );
+         }
+      }
+      else
+      {
+         binmode $write_fh;
+      }
+   }
 
    syswrite( $write_fh, $content );
 
@@ -1689,6 +1730,12 @@ sub bitmask {
 sub can_flock { $CAN_FLOCK }
 
 
+# --------------------------------------------------------
+# File::Util::can_utf8()
+# --------------------------------------------------------
+sub can_utf8 { $HAVE_UU }
+
+
 # File::Util::--------------------------------------------
 # is_readable(), is_writable() -- was: can_read(), can_write()
 # --------------------------------------------------------
@@ -1784,10 +1831,9 @@ sub touch {
    $this->make_dir( $path ) unless -e $path;
 
    # create the file if it doesn't exist (like the *nix touch command does)
+   # except we'll create it in binmode or with UTF-8 encoding if requested
    $this->write_file(
-      filename => $file,
-      content  => '',
-      { empty_writes_OK => 1 }
+      $file => '' => { empty_writes_OK => 1, binmode => $opts->{binmode} }
    ) unless -e $file;
 
    my $now = time();
@@ -2623,8 +2669,27 @@ sub open_handle {
       }
    }
 
-   # call binmode on the filehandle if it was requested
-   CORE::binmode( $fh ) if $in->{binmode};
+   # call binmode on the filehandle if it was requested or UTF-8
+   if ( $in->{binmode} )
+   {
+      if ( lc $in->{binmode} eq 'utf8' )
+      {
+         if ( $HAVE_UU )
+         {
+            binmode $fh, ':unix:encoding(UTF-8)';
+         }
+         else
+         {
+            close $fh;
+
+            return $this->_throw( 'no unicode' => $in );
+         }
+      }
+      else
+      {
+         binmode $fh;
+      }
+   }
 
    # return file handle reference to the caller
    return $fh;
@@ -2790,7 +2855,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130560
+version 4.130590
 
 =head1 DESCRIPTION
 
@@ -2902,6 +2967,10 @@ that use File::Util to easily accomplish tasks which require file handling.
       { binmode => 1, bitmask => oct 644 }
    );
 
+   # ...or write a file with UTF-8 encoding (unicode support), using the
+   # short notation: write_file( [file name] => [content] => { options } )
+   $f->write_file( 'encoded.txt' => qq(\x{c0}) => { binmode => 'utf8' } );
+
    # load a file into an array, line by line
    my @lines = $f->load_file( 'file.txt' => { as_lines => 1 } );
 
@@ -2985,25 +3054,42 @@ that use File::Util to easily accomplish tasks which require file handling.
 
 =head2 Getting Information About Files
 
-   print "My file has a bitmask of " . $f->bitmask( 'my.file' );
+   print 'My file has a bitmask of ' . $f->bitmask( 'my.file' );
 
-   print "My file is a " . join(', ', $f->file_type( 'my.file' )) . " file.";
+   print 'My file is a ' . join(', ', $f->file_type( 'my.file' )) . " file.";
 
    warn 'This file is binary!' if $f->is_bin( 'my.file' );
 
    print 'My file was last modified on ' .
       scalar localtime $f->last_modified( 'my.file' );
 
+=head1 Getting Information About Your System's IO Capabilities
+
+   # Does your running Perl support unicode?
+   print 'I support unicode' if $f->can_utf8;
+
+   # Can your system use file locking?
+   print 'I can use flock' if $f->can_flock;
+
+   # The correct directory separator for your system
+   print 'The correct directory separator for this system is ' . $f->SL;
+
+   # Does your platform require binmode for all IO?
+   print 'I always need binmode' if $f->needs_binmode;
+
+   # Is your system an EBCDIC platform?  (see perldoc perlebcdic)
+   print 'This is an EBCDIC platform, so be careful!' if $f->EBCDIC;
+
 ...See the L<File::Util::Manual> for more details and features like advanced
-pattern matching in directories, directory walking, user-definable error
-handlers, and more.
+pattern matching in directories, callbacks, directory walking, user-definable
+error handlers, and more.
 
 =head1 PERFORMANCE
 
 File::Util has been optimized to run fast.*  In many scenarios it can
-out-perform other modules like File::Find::Rule from anywhere from 100%-400% --
-I<(See the benchmarking and profiling scripts that are included as part of this>
-I<distribution.)>
+out-perform other modules (like some of those listed in the SEE ALSO section)
+from anywhere from 100%-400% -- I<(See the benchmarking and profiling scripts>
+I<that are included as part of this distribution.)>
 
 File::Util consists of several modules, but only loads the ones it needs when
 it needs them and also offers a comparatively fast load-up time, so using
@@ -3029,6 +3115,8 @@ this document in a text terminal, open perldoc to the C<File::Util::Manual>.
 =item bitmask              I<(see L<bitmask|File::Util::Manual/bitmask>)>
 
 =item can_flock            I<(see L<can_flock|File::Util::Manual/can_flock>)>
+
+=item can_utf8             I<(see L<can_utf8|File::Util::Manual/can_utf8>)>
 
 =item created              I<(see L<created|File::Util::Manual/created>)>
 
@@ -3116,20 +3204,23 @@ to use them as an object method, use this kind of syntax:
 
 C<use File::Util qw( strip_path NL );>
 
-   * atomize_path      * can_flock         * created
-   * diagnostic        * ebcdic            * escape_filename
-   * existent          * file_type         * is_bin
-   * is_readable       * is_writable       * last_access
-   * last_changed      * last_modified     * NL
+   * atomize_path      * can_flock         * can_utf8
+   * created           * diagnostic        * ebcdic
+   * escape_filename   * existent          * file_type
+   * is_bin            * is_readable       * is_writable
+   * last_access       * last_changed      * last_modified
    * needs_binmode     * return_path       * size
-   * SL                * split_path        * strip_path
-   * valid_filename
+   * split_path        * strip_path        * valid_filename
+   * NL and SL
 
 =head2 EXPORT_TAGS
 
    :all (imports all of @File::Util::EXPORT_OK to your namespace)
 
    :diag (imports nothing to your namespace, it just enables diagnostics)
+
+You can use these tags alone, or in combination with individual symbols as
+shown above.
 
 =head1 PREREQUISITES
 
@@ -3139,11 +3230,11 @@ C<use File::Util qw( strip_path NL );>
 
 File::Util only depends on modules that are part of the Core Perl distribution
 
-=item L<Perl|perl> 5.8 or better ...
+=item L<Perl|perl> 5.8.1 or better ...
 
 You can technically run File::Util on older versions of Perl 5, but it isn't
-recommended.  The minimum version requirement will likely increase soon with
-the advent of increasingly better unicode support.
+recommended, especially if you want unicode support and wish to take advantage
+of File::Util's ability to read and write files using UTF-8 encoding.
 
 =back
 
@@ -3160,9 +3251,6 @@ On Windows systems, the "sudo" part of the command may be omitted, but you
 will need to run the rest of the install command with Administrative privileges
 
 =head1 BUGS
-
-File::Util can't write files in UTF-8 encoding yet.  This limitation will go
-away soon.
 
 Send bug reports and patches to the CPAN Bug Tracker for File::Util at
 L<rt.cpan.org|https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil>

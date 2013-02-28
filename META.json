@@ -43,7 +43,7 @@
             "Scalar::Util" : "0",
             "Time::HiRes" : "0",
             "constant" : "0",
-            "perl" : "5.006",
+            "perl" : "5.008001",
             "strict" : "0",
             "subs" : "0",
             "vars" : "0",
@@ -66,54 +66,55 @@
             "Test::Fatal" : "0",
             "Test::More" : "0.88",
             "Test::NoWarnings" : "0",
-            "Time::HiRes" : "0"
+            "Time::HiRes" : "0",
+            "utf8" : "0"
          }
       }
    },
    "provides" : {
       "File::Util" : {
          "file" : "lib/File/Util.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Cookbook" : {
          "file" : "lib/File/Util/Cookbook.pod",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Definitions" : {
          "file" : "lib/File/Util/Definitions.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Exception" : {
          "file" : "lib/File/Util/Exception.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Exception::Diagnostic" : {
          "file" : "lib/File/Util/Exception/Diagnostic.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Exception::Standard" : {
          "file" : "lib/File/Util/Exception/Standard.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Interface::Classic" : {
          "file" : "lib/File/Util/Interface/Classic.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Interface::Modern" : {
          "file" : "lib/File/Util/Interface/Modern.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Manual" : {
          "file" : "lib/File/Util/Manual.pod",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::Manual::Examples" : {
          "file" : "lib/File/Util/Manual/Examples.pod",
-         "version" : "4.130560"
+         "version" : "4.130590"
       },
       "File::Util::ProxyLog" : {
          "file" : "lib/File/Util/ProxyLog.pm",
-         "version" : "4.130560"
+         "version" : "4.130590"
       }
    },
    "release_status" : "testing",
@@ -129,7 +130,7 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "4.130560",
+   "version" : "4.130590",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.010001"
@@ -254,11 +255,6 @@
             "class" : "Dist::Zilla::Plugin::ReportVersions::Tiny",
             "name" : "ReportVersions::Tiny",
             "version" : "1.08"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Test::LocalBrew",
-            "name" : "Test::LocalBrew",
-            "version" : "0.04"
          },
          {
             "class" : "Dist::Zilla::Plugin::Test::UnusedVars",

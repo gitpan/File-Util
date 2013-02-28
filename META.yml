@@ -18,6 +18,7 @@ build_requires:
   Test::More: 0.88
   Test::NoWarnings: 0
   Time::HiRes: 0
+  utf8: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.30
   Module::Build: 0.3601
@@ -31,37 +32,37 @@ name: File-Util
 provides:
   File::Util:
     file: lib/File/Util.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Cookbook:
     file: lib/File/Util/Cookbook.pod
-    version: 4.130560
+    version: 4.130590
   File::Util::Definitions:
     file: lib/File/Util/Definitions.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Exception:
     file: lib/File/Util/Exception.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Exception::Diagnostic:
     file: lib/File/Util/Exception/Diagnostic.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Exception::Standard:
     file: lib/File/Util/Exception/Standard.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Interface::Classic:
     file: lib/File/Util/Interface/Classic.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Interface::Modern:
     file: lib/File/Util/Interface/Modern.pm
-    version: 4.130560
+    version: 4.130590
   File::Util::Manual:
     file: lib/File/Util/Manual.pod
-    version: 4.130560
+    version: 4.130590
   File::Util::Manual::Examples:
     file: lib/File/Util/Manual/Examples.pod
-    version: 4.130560
+    version: 4.130590
   File::Util::ProxyLog:
     file: lib/File/Util/ProxyLog.pm
-    version: 4.130560
+    version: 4.130590
 requires:
   Config: 0
   Data::Dumper: 0
@@ -70,7 +71,7 @@ requires:
   Scalar::Util: 0
   Time::HiRes: 0
   constant: 0
-  perl: 5.006
+  perl: 5.008001
   strict: 0
   subs: 0
   vars: 0
@@ -79,7 +80,7 @@ resources:
   bugtracker: https://rt.cpan.org/Dist/Display.html?Name=File%3A%3AUtil
   homepage: https://github.com/tommybutler/file-util/wiki
   repository: git://github.com/tommybutler/file-util.git
-version: 4.130560
+version: 4.130590
 x_Dist_Zilla:
   perl:
     version: 5.010001
@@ -180,10 +181,6 @@ x_Dist_Zilla:
       class: Dist::Zilla::Plugin::ReportVersions::Tiny
       name: ReportVersions::Tiny
       version: 1.08
-    -
-      class: Dist::Zilla::Plugin::Test::LocalBrew
-      name: Test::LocalBrew
-      version: 0.04
     -
       class: Dist::Zilla::Plugin::Test::UnusedVars
       name: '@TestingMania/Test::UnusedVars'
