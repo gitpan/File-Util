@@ -11,7 +11,7 @@ File::Util::Manual::Examples - File::Util Examples
 
 =head1 VERSION
 
-version 4.130590
+version 4.130610
 
 =head1 INTRODUCTION
 
@@ -316,7 +316,7 @@ the L<File::Util::Cookbook>
       }
    }
 
-=head2 Get a directory tree in a hierarchal hashref
+=head2 Get a directory tree in a hierarchical hashref
 
    my $tree = $f->list_dir( '/tmp' => { as_tree => 1, recurse => 1 } );
 
@@ -610,7 +610,7 @@ examples using *nix-style paths:
 
    print scalar localtime $f->last_modified( '/bin/less' );
 
-=head2 Make a new directory, recursively if neccessary
+=head2 Make a new directory, recursively if necessary
 
    $f->make_dir( '/var/tmp/tempfiles/foo/bar/' );
 

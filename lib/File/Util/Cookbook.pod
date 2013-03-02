@@ -11,7 +11,7 @@ File::Util::Cookbook - File::Util in Action
 
 =head1 VERSION
 
-version 4.130590
+version 4.130610
 
 =head1 INTRODUCTION
 

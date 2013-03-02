@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Modern;
 {
-  $File::Util::Interface::Modern::VERSION = '4.130590'; # TRIAL
+  $File::Util::Interface::Modern::VERSION = '4.130610'; # TRIAL
 }
 
 # ABSTRACT: Modern call interface to File::Util
@@ -82,7 +82,7 @@ sub _remove_opts {
          # ...as oppsed to the classic syntax:
          #     e.g.- $ftl->method( arg => value, --opt1=value, --flag )
          #
-         # the bit of code below makes it possible to support both call syntaxen
+         # the bit of code below makes it possible to support both call syntaxes
 
          @$opts{ keys %$arg } = values %$arg; # crane lower that rover (ahhhhh)
                                               # err, Perl flatcopy that hashref
@@ -151,7 +151,7 @@ File::Util::Interface::Modern - Modern call interface to File::Util
 
 =head1 VERSION
 
-version 4.130590
+version 4.130610
 
 =head1 DESCRIPTION
 

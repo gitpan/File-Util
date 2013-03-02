@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception;
 {
-  $File::Util::Exception::VERSION = '4.130590'; # TRIAL
+  $File::Util::Exception::VERSION = '4.130610'; # TRIAL
 }
 
 # ABSTRACT: Base exception class for File::Util
@@ -94,12 +94,6 @@ sub _throw {
          $is_plain++;
       }
    }
-
-   ## no critic
-   map { $_ = defined $_ ? $_ : 'undefined value' }
-   keys %$opts
-   unless $is_plain;
-   ## use critic
 
    my $bad_news = CORE::eval # tokenizing via stringy eval (is NOT evil)
    (
@@ -211,7 +205,7 @@ File::Util::Exception - Base exception class for File::Util
 
 =head1 VERSION
 
-version 4.130590
+version 4.130610
 
 =head1 DESCRIPTION
 

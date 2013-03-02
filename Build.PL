@@ -18,10 +18,8 @@ my %module_build_args = (
     "Module::Build" => "0.3601",
     "Scalar::Util" => 0,
     "Test" => 0,
-    "Test::Fatal" => 0,
     "Test::More" => "0.88",
     "Test::NoWarnings" => 0,
-    "Time::HiRes" => 0,
     "utf8" => 0
   },
   "configure_requires" => {
@@ -33,18 +31,18 @@ my %module_build_args = (
     "Tommy Butler"
   ],
   "dist_name" => "File-Util",
-  "dist_version" => "4.130590",
+  "dist_version" => "4.130610",
   "license" => "perl",
   "module_name" => "File::Util",
-  "recommends" => {},
+  "recommends" => {
+    "Unicode::UTF8" => "0.58"
+  },
   "recursive_test_files" => 1,
   "requires" => {
     "Config" => 0,
-    "Data::Dumper" => 0,
     "Exporter" => 0,
     "Fcntl" => 0,
     "Scalar::Util" => 0,
-    "Time::HiRes" => 0,
     "constant" => 0,
     "perl" => "5.008001",
     "strict" => 0,

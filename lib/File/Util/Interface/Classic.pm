@@ -3,7 +3,7 @@ use warnings;
 
 package File::Util::Interface::Classic;
 {
-  $File::Util::Interface::Classic::VERSION = '4.130590'; # TRIAL
+  $File::Util::Interface::Classic::VERSION = '4.130610'; # TRIAL
 }
 
 # ABSTRACT: Legacy call interface to File::Util
@@ -136,7 +136,7 @@ File::Util::Interface::Classic - Legacy call interface to File::Util
 
 =head1 VERSION
 
-version 4.130590
+version 4.130610
 
 =head1 DESCRIPTION
 
@@ -145,7 +145,7 @@ and private methods of File::Util.  It is as a subclass for File::Util
 developers that want to use it, and provides some base methods that are
 inherited by L<File::Util::Interface::Modern>, but the _remove_opts method
 is overridden in that namespace, whose more progressive version of that
-method supports both ::Classic and ::Modern call syntaxen.
+method supports both ::Classic and ::Modern call syntaxes.
 
 Users, don't use this module by itself.  It is intended for internal use only.
 

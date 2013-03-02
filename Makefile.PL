@@ -23,10 +23,8 @@ my %WriteMakefileArgs = (
     "Module::Build" => "0.3601",
     "Scalar::Util" => 0,
     "Test" => 0,
-    "Test::Fatal" => 0,
     "Test::More" => "0.88",
     "Test::NoWarnings" => 0,
-    "Time::HiRes" => 0,
     "utf8" => 0
   },
   "CONFIGURE_REQUIRES" => {
@@ -39,20 +37,18 @@ my %WriteMakefileArgs = (
   "NAME" => "File::Util",
   "PREREQ_PM" => {
     "Config" => 0,
-    "Data::Dumper" => 0,
     "Exporter" => 0,
     "Fcntl" => 0,
     "Scalar::Util" => 0,
-    "Time::HiRes" => 0,
     "constant" => 0,
     "strict" => 0,
     "subs" => 0,
     "vars" => 0,
     "warnings" => 0
   },
-  "VERSION" => "4.130590",
+  "VERSION" => "4.130610",
   "test" => {
-    "TESTS" => "t/*.t t/extended/*.t"
+    "TESTS" => "t/*.t"
   }
 );
 
