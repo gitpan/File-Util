@@ -15,20 +15,20 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 76a08172c2a635f36337c548aa80600ef0346159 AUTHORS
-SHA1 f1f7f1ab367dd87e3022ca02bb5593b848bcaa91 Build.PL
+SHA1 a53c73cee3f01c2f6de532355f6959feb51a0c58 Build.PL
 SHA1 bb2492d6fbfa8b7d456f2b8986db4533908dc097 COPYING
-SHA1 15dfec9e77af28e8f0655b5c8371c559bd692730 Changes
+SHA1 3d706760dace8bbd8cd47c9054f8b08b11c50eee Changes
 SHA1 027631fb6bcf8560acb0ecd72b9af91145b9f73d INSTALL
-SHA1 85a11a7a72022d56faca7a23d82834faab55edf2 LICENSE
-SHA1 849829cffb323e37b0b0cd07e14fdc6ac25f0855 MANIFEST
+SHA1 08f08e03a26d925b5e5b438e47cc67b96fa6b338 LICENSE
+SHA1 846aedfb0e9e8a3ef38ec6b7a62bda711896149a MANIFEST
 SHA1 8dd8a3dfd3c3166f12bbb2cfff232bb6a0e55ff6 MANIFEST.SKIP
-SHA1 85cec7a59168bff5376964eb31a929d268318828 META.json
-SHA1 23b6a2e24a1976a2c7662c2b5e836a43f6b18199 META.yml
-SHA1 c1971eb7d867f9a0fcfa338c578f1867337a5b44 Makefile.PL
-SHA1 df1f6093d78806dc90426b9757caa6cfcc450e42 NEWS
-SHA1 55215f13cb2ca334c6a815e6198d7431ed3d3496 README
-SHA1 d31011f763231446c81135fd6796acc2dbb7d03b TODO
-SHA1 cfaa384bed5d2aa479472b8fa0ed78cee112e5b8 dist.ini
+SHA1 9d4d15d87345f600c1951bfbec5e9a4a0b977efc META.json
+SHA1 3744c291fb6b2f23049684e2c73bc84a8a8b15ea META.yml
+SHA1 68b55df3e6989cef05128366d403182de726e571 Makefile.PL
+SHA1 f532dfd71c080d85c0acd1d5e7aff4209b32a839 NEWS
+SHA1 5f04735e31e8ca2cb855e6cd0fcf632da61aa91a README
+SHA1 3061740499645ac61a900f7e9899513fa77faeb9 TODO
+SHA1 9e36de7cf42203ff7bb49e208b94d0ef8b7688e0 dist.ini
 SHA1 874ad198d5fd2f480c9449f7dc0359442f3ad7d5 examples/batch_file_rename.pl
 SHA1 e8f35b4a54bf70fa577923741316a39b7de1493b examples/batch_search_and_replace.pl
 SHA1 fa112d4da9a8bde9de6fef21be45196bc4fd789e examples/get_an_open_file_handle.pl
@@ -45,23 +45,23 @@ SHA1 ae9afb8f97c188031c0e74ec60b627584e9fa383 examples/recursively_remove_a_dire
 SHA1 17a1a90b90e22fd0b5780fbef6026a16c448ff51 examples/retry_open_handle.pl
 SHA1 70177b252e54feeb078e5fab9c6de0ad43cba784 examples/wrap_the_lines_in_a_file.pl
 SHA1 3ef56e2a76269416d29b0640406bac70a2be0a51 examples/write_or_append_to_a_file.pl
-SHA1 58bebc2ccf3695c3a79ecfe2303267b39250c668 lib/File/Util.pm
-SHA1 e033f5e4ffcfb33e2c8742318c235d2ee1d293a8 lib/File/Util/Cookbook.pod
-SHA1 5a2cffb152c9986251325d6f3728aa6b4e2ee6e3 lib/File/Util/Definitions.pm
-SHA1 eb86163fe7e468375296aa3c7b97ea092a917d14 lib/File/Util/Exception.pm
-SHA1 018585f00462d51759fc42d6c864f8d3df33906d lib/File/Util/Exception/Diagnostic.pm
-SHA1 df1144635f17ebcf1fb27fc7f8cbdcaa382cee50 lib/File/Util/Exception/Standard.pm
-SHA1 3c60251c14ff79073f09391997e8bfc479d2ecb5 lib/File/Util/Interface/Classic.pm
-SHA1 043492f07e0c469622e9c3cca08c76b62cc05a3c lib/File/Util/Interface/Modern.pm
-SHA1 4a88a717dcd2f510e3309f4113630d71b7f0b351 lib/File/Util/Manual.pod
-SHA1 a9518b3774634111e14e5ec585b8e0492124d95a lib/File/Util/Manual/Examples.pod
+SHA1 b56c668c8e5b16875c0880c5e4dd466a57cad18e lib/File/Util.pm
+SHA1 a6d316ca1697251ffb3c414535d6f0f1c5351f91 lib/File/Util/Cookbook.pod
+SHA1 c74a10d94b307b4419ff9ded8940812e9a6267c2 lib/File/Util/Definitions.pm
+SHA1 140600ee1849c13b353836de946c90b9ffe73ef0 lib/File/Util/Exception.pm
+SHA1 0ab5dcddc3719e4ac285c786a5dc5402812561cb lib/File/Util/Exception/Diagnostic.pm
+SHA1 7e162475e9b18583f04e654987d4b9629fb17a72 lib/File/Util/Exception/Standard.pm
+SHA1 f37019c8b371dca5c5a62e23f7fb22e4a3ff9fb4 lib/File/Util/Interface/Classic.pm
+SHA1 57867294d9e5bc5dd31f42d6aa2c383ddc85ae83 lib/File/Util/Interface/Modern.pm
+SHA1 5b66c2924c51f24cef727897b5e21b38a3d08c57 lib/File/Util/Manual.pod
+SHA1 58da5207d62f040d9b7ade47ed847993ff46a2c9 lib/File/Util/Manual/Examples.pod
 SHA1 9d689f1a8aee3f115cd06b340f5557bdeac5a83f performance/bench_listdir.pl
 SHA1 07a1463fd7053e77e5b9d5b16bfe8de0cd0909b7 performance/bench_load_time.pl
 SHA1 0c6b2574d244e23d247400ecc0d4aedf2e940090 performance/profile_listdir.pl
 SHA1 54398261543845175dd21aeac50e3061ff50b08c performance/profile_listdir_vs_file-find-rule.pl
 SHA1 a15164047e311ba8f4f59d2a93079305278e2327 perlcritic.rc
-SHA1 3cbe905b92fbc69d59a06031d5ce6c837b352aa2 t/00-compile.t
-SHA1 64e83241506c7ea2292fc4e476412f8d18124b04 t/000-report-versions-tiny.t
+SHA1 becd1816dfa1e94e6520f88b82b4b4e000c9518d t/00-compile.t
+SHA1 f2761c12248379558215afb1dbbae10d15196995 t/000-report-versions-tiny.t
 SHA1 1b34fc2c2e6b8f80b219a9cba838dc413016695e t/001_canuseit.t
 SHA1 71a868482e05797d7e5299f3cb520d69379eea88 t/002_isa.t
 SHA1 135930ad08a066755296cc8990825eaf4365b025 t/003_can.t
@@ -85,8 +85,8 @@ SHA1 e9cc72017286700ecd33fd102ea0f572661d11b5 t/020_write_file.t
 SHA1 cac36f84f0db21cf6fa980a9b31ca3453a84f8e4 t/bin
 SHA1 65821dbdac86467eb04a9ad83dfad0600dfabdd9 t/txt
 SHA1 5bd500053b03b9a17b570fb39ca2e5ee959540dc xt/author/critic.t
-SHA1 7a909096c2c9bfe2d2900186b72546b9cdfd8a39 xt/author/pod-spell.t
-SHA1 28ef20a73b7cf9b85585e2b7db6fc80424289134 xt/release/cpan-changes.t
+SHA1 952e70d67e4ec998589ff27b6e74f59a8a943488 xt/author/pod-spell.t
+SHA1 199b3d456352d36185a3f28aaf40efb0475dacab xt/release/cpan-changes.t
 SHA1 ac35210d46db63c99f0e390c1fe820c80c1cd705 xt/release/diesnice-fatalities.t
 SHA1 d9230f50f43aae985a08160b37877e42e9f12800 xt/release/diesnice-messages.t
 SHA1 cbc5b72710fb645c559b78c8ac8b879f62aff326 xt/release/dist-manifest.t
@@ -95,14 +95,13 @@ SHA1 a90bf5754e9e6248bd691a819173efd9b0fdd86a xt/release/distmeta.t
 SHA1 c6cd63148d20bda841ee21381cd6e9a62b7e6863 xt/release/kwalitee.t
 SHA1 da2e4b496cc94b7e46cccf44c066dd6c0cc2d469 xt/release/localbrew-perl-5.10.1.t
 SHA1 199cd08e84c3a3145ab2c99a090cdf3a98d18715 xt/release/localbrew-perl-5.12.5.t
-SHA1 3c636c1b0a2e0e3c418d2714880c4f555d1bdfca xt/release/localbrew-perl-5.14.3.t
-SHA1 3c384d128e1871a00cd900b46b09ef1c7486573f xt/release/localbrew-perl-5.16.2.t
-SHA1 4b949740168ee901242021ba0a6fd276db9ae15f xt/release/localbrew-perl-5.17.7.t
-SHA1 4e1c8a6f37a3480f3062ce7fdc2b1e48b3f31b43 xt/release/localbrew-perl-5.17.8.t
-SHA1 21fcaa5648987dd84a123f0f0f9fb97cdc141e74 xt/release/localbrew-perl-5.17.9.t
+SHA1 8f57e9aeb37c71865c4e67f9508d7372dde067f1 xt/release/localbrew-perl-5.14.4.t
+SHA1 8c68d637184a21e589f6a7f2960747e1db0c9de2 xt/release/localbrew-perl-5.16.3.t
+SHA1 b91d3bb2a9a5d6b154c98d404c25bdf57b54f814 xt/release/localbrew-perl-5.17.10.t
+SHA1 fe2b96f5248be4da26200542cfb5dadeb98c34b8 xt/release/localbrew-perl-5.18.0.t
 SHA1 9870aafd1d1573e37e72843b175ffdba5b17fed9 xt/release/localbrew-perl-5.8.9.t
 SHA1 7b52b909acf6cd52733f8f226f92147ed76a2717 xt/release/meta-json.t
-SHA1 63e17b62b8b3654a7582221867e8dc72fac39678 xt/release/mojibake.t
+SHA1 c6c3c9f7fe12058b4771449dff874b1c450c982c xt/release/mojibake.t
 SHA1 c769b078112da535475284c9fe0cf6b1c047dbdd xt/release/no-tabs.t
 SHA1 289bc9a5e6e6fd50b1be0837eb224c8abe38811a xt/release/onfail.t
 SHA1 74bc7524c337d121b0781dd8c5bb623c6c659a1b xt/release/open_handle.t
@@ -114,17 +113,17 @@ SHA1 ec3f84bfd7a9ce3246e7592f4134100c6b5ce02b xt/release/unused-vars.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iQIcBAEBAgAGBQJRMajEAAoJEGe9xj410/4dc4IP/jBXVPCIwKI18/RoupGHwjw2
-ZWuzgHNPKrA4VDr0fCafLPhWBnms697yego2S8Z39fNG8z070FL9xD+JCUM7OIEE
-tSS79+Ianh0hhLeoMtS07rJEWC1MFaDZOKcqeoDwX8Kkc75DD6z4SooLjPrWnj+t
-UiCywPIdzyo8IvenVU+la3Gw9N1VyUE9N5k5AhKkBeFuzH/IE+jwO0e0VwJS0Zb5
-U4xej1ZxSWQTWC7ujSrpCQVmlmsIEgAxPuyOCKYaMUNdAL4cHMRI7p4WFCCgC/2R
-LwmBVj+zPCJq2ODaXpfYHmaNRBHIHdwJFPA7V9A0CksMd1dbZeZVfmG+KJHKaqXI
-DVMZSQp0KCjF/p35lO0AFFgkwQyxE1GjVv5QiB3jQni8V1pFb4G6OiSBCl8c3oaC
-xHWWzZJ4F7SCs9vxzQdGCoMuOFns6U6QlCN4TetX2idCHpT4yyzlueuR/0mrD1TX
-kB1xWWtQUnKQNI8qBlQGN3nks/zXqtfPlsDRuZFZ7i5lX8I9Gqfo9PwKXgnCS3Pl
-gpuTtkwQCJhgYhwh2zrUXrQsNpDmJkWJ/LFJ69wHwEbcwT3uW8y8Llj9XSwKsJ6k
-1RHeK7URpkmoWEwyH+xlBLDYKAznFBOIwILuu37r7YxoRxi09xmdMDATI35KiC1p
-ordLn3fM7Z/qxDrJu7Zj
-=92HG
+iQIcBAEBAgAGBQJRsWeAAAoJEGe9xj410/4d7c0P/2X57EOu1iLZJF6ohahApoFt
+KYfQmBUOvSa1IDdjaSbMu3YyTFh1k9LCeHlnScZVGPZ5b+UNGTvBwIidbYutEfWJ
+07FGD9o7LApSa6Xqp+mpOxzzRaellpGGX9Bylbu/cQNgHopAZ/BGw7OhKWyF7Z//
+DIxT8EffRDgm//lnIS/YlrwaxVFQX5csOSgCJRr0dgIAI3eKUY/F8uGnhgZhlxyg
+xLJHruNdvdpeU0j6xfsEnBJbfqVxLRUzhVEXN6cgjU7mgGBVKLVV4ZLUCBSqlaZJ
+8EpofbNirHWF1HnIFo5IIVSN0EWHlii/g/hqvqh6CT2F2vIQzYrZBRsQBIhjfwa2
+J/Afqxhqcjx4TjLqUokliG1RjBQDOkj+evTxyrAy4ZpIBVXX3LBnkX1mb886pHka
+fWhhaiH76iazeQKLto/lEsXbZfWArN2EBvDI5fe4kD0PAmt9ieBbx4fB6WiV3Osc
+CUMqSNSZA8qfyRtgvUVLc8fRL9fbiWUP+/7eFrmpHPESd3TZwUPCPcCz1/ztk64A
+2ILj8yNImkuzE0O/p9yF9t34z5hEwQi8QjMh+4HZr/XzSRmDuf2ncRXwg0OJW/5t
+d8fQl8iuQxd4MJtBp0rLdAgpDSpBIhaMdzkpekHjvBVk0aZJjd4RWPNhBFFeM0IH
+emGCOvB9+M6P3EY5ghhf
+=uIUw
 -----END PGP SIGNATURE-----

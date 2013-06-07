@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.130610'; # TRIAL
+  $File::Util::VERSION = '4.131580';
 }
 
 use File::Util::Definitions qw( :all );
@@ -2853,7 +2853,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.130610
+version 4.131580
 
 =head1 DESCRIPTION
 
