@@ -15,20 +15,20 @@ not run its Makefile.PL or Build.PL.
 Hash: SHA1
 
 SHA1 76a08172c2a635f36337c548aa80600ef0346159 AUTHORS
-SHA1 a53c73cee3f01c2f6de532355f6959feb51a0c58 Build.PL
+SHA1 0a83b6101ece610b153a014d621c908d36f6c0a6 Build.PL
 SHA1 bb2492d6fbfa8b7d456f2b8986db4533908dc097 COPYING
-SHA1 3d706760dace8bbd8cd47c9054f8b08b11c50eee Changes
+SHA1 8e0b8f150017447d4e6237b7fca6b0d4c6d3deac Changes
 SHA1 027631fb6bcf8560acb0ecd72b9af91145b9f73d INSTALL
 SHA1 08f08e03a26d925b5e5b438e47cc67b96fa6b338 LICENSE
 SHA1 846aedfb0e9e8a3ef38ec6b7a62bda711896149a MANIFEST
 SHA1 8dd8a3dfd3c3166f12bbb2cfff232bb6a0e55ff6 MANIFEST.SKIP
-SHA1 9d4d15d87345f600c1951bfbec5e9a4a0b977efc META.json
-SHA1 3744c291fb6b2f23049684e2c73bc84a8a8b15ea META.yml
-SHA1 68b55df3e6989cef05128366d403182de726e571 Makefile.PL
+SHA1 c76999bc21dc2bcd54f5acf4c3d78be11f8b15da META.json
+SHA1 99c0cdfbd6f1ae4e4db05e6b814151d73311477e META.yml
+SHA1 6ceefbaf000f1ade35153440927c38ab7b79dda6 Makefile.PL
 SHA1 f532dfd71c080d85c0acd1d5e7aff4209b32a839 NEWS
-SHA1 5f04735e31e8ca2cb855e6cd0fcf632da61aa91a README
+SHA1 8af4aae54635e688c965a1922ba7fd63109059de README
 SHA1 3061740499645ac61a900f7e9899513fa77faeb9 TODO
-SHA1 9e36de7cf42203ff7bb49e208b94d0ef8b7688e0 dist.ini
+SHA1 542779f214c14078f882ed73249052ac11ed1341 dist.ini
 SHA1 874ad198d5fd2f480c9449f7dc0359442f3ad7d5 examples/batch_file_rename.pl
 SHA1 e8f35b4a54bf70fa577923741316a39b7de1493b examples/batch_search_and_replace.pl
 SHA1 fa112d4da9a8bde9de6fef21be45196bc4fd789e examples/get_an_open_file_handle.pl
@@ -45,16 +45,16 @@ SHA1 ae9afb8f97c188031c0e74ec60b627584e9fa383 examples/recursively_remove_a_dire
 SHA1 17a1a90b90e22fd0b5780fbef6026a16c448ff51 examples/retry_open_handle.pl
 SHA1 70177b252e54feeb078e5fab9c6de0ad43cba784 examples/wrap_the_lines_in_a_file.pl
 SHA1 3ef56e2a76269416d29b0640406bac70a2be0a51 examples/write_or_append_to_a_file.pl
-SHA1 b56c668c8e5b16875c0880c5e4dd466a57cad18e lib/File/Util.pm
-SHA1 a6d316ca1697251ffb3c414535d6f0f1c5351f91 lib/File/Util/Cookbook.pod
-SHA1 c74a10d94b307b4419ff9ded8940812e9a6267c2 lib/File/Util/Definitions.pm
-SHA1 140600ee1849c13b353836de946c90b9ffe73ef0 lib/File/Util/Exception.pm
-SHA1 0ab5dcddc3719e4ac285c786a5dc5402812561cb lib/File/Util/Exception/Diagnostic.pm
-SHA1 7e162475e9b18583f04e654987d4b9629fb17a72 lib/File/Util/Exception/Standard.pm
-SHA1 f37019c8b371dca5c5a62e23f7fb22e4a3ff9fb4 lib/File/Util/Interface/Classic.pm
-SHA1 57867294d9e5bc5dd31f42d6aa2c383ddc85ae83 lib/File/Util/Interface/Modern.pm
-SHA1 5b66c2924c51f24cef727897b5e21b38a3d08c57 lib/File/Util/Manual.pod
-SHA1 58da5207d62f040d9b7ade47ed847993ff46a2c9 lib/File/Util/Manual/Examples.pod
+SHA1 01440c7905f324b8aac3bcc176610ac982ba3e25 lib/File/Util.pm
+SHA1 8bee9673bf81f36aa4197286e0ae927324839dce lib/File/Util/Cookbook.pod
+SHA1 b3c2552311d7034cc11266a1f546cbe5a9ac5074 lib/File/Util/Definitions.pm
+SHA1 2784035b6ef59adc4f85c4e0298b438f21cc92cb lib/File/Util/Exception.pm
+SHA1 7cc47a9eadc9a1aa403cc3fb11bcd03e4c6ae60e lib/File/Util/Exception/Diagnostic.pm
+SHA1 8b4798c0243a057e75a239c7e3b76494156bec27 lib/File/Util/Exception/Standard.pm
+SHA1 b16f152a603ad9ebadddcd08dc57d733d0f6fcc4 lib/File/Util/Interface/Classic.pm
+SHA1 01eafcb4fdd6f5e595f5aefe545cedaf99ab84f2 lib/File/Util/Interface/Modern.pm
+SHA1 fcb4d174abfe36fd5fa02554b967e2bdde8008f4 lib/File/Util/Manual.pod
+SHA1 d690d0958f80a496cb6309a762dec28fcc40a6f6 lib/File/Util/Manual/Examples.pod
 SHA1 9d689f1a8aee3f115cd06b340f5557bdeac5a83f performance/bench_listdir.pl
 SHA1 07a1463fd7053e77e5b9d5b16bfe8de0cd0909b7 performance/bench_load_time.pl
 SHA1 0c6b2574d244e23d247400ecc0d4aedf2e940090 performance/profile_listdir.pl
@@ -85,7 +85,7 @@ SHA1 e9cc72017286700ecd33fd102ea0f572661d11b5 t/020_write_file.t
 SHA1 cac36f84f0db21cf6fa980a9b31ca3453a84f8e4 t/bin
 SHA1 65821dbdac86467eb04a9ad83dfad0600dfabdd9 t/txt
 SHA1 5bd500053b03b9a17b570fb39ca2e5ee959540dc xt/author/critic.t
-SHA1 952e70d67e4ec998589ff27b6e74f59a8a943488 xt/author/pod-spell.t
+SHA1 379e010d6ea87cc6afb4de34ed67cc9f537757dc xt/author/pod-spell.t
 SHA1 199b3d456352d36185a3f28aaf40efb0475dacab xt/release/cpan-changes.t
 SHA1 ac35210d46db63c99f0e390c1fe820c80c1cd705 xt/release/diesnice-fatalities.t
 SHA1 d9230f50f43aae985a08160b37877e42e9f12800 xt/release/diesnice-messages.t
@@ -113,17 +113,17 @@ SHA1 ec3f84bfd7a9ce3246e7592f4134100c6b5ce02b xt/release/unused-vars.t
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iQIcBAEBAgAGBQJRsWeAAAoJEGe9xj410/4d7c0P/2X57EOu1iLZJF6ohahApoFt
-KYfQmBUOvSa1IDdjaSbMu3YyTFh1k9LCeHlnScZVGPZ5b+UNGTvBwIidbYutEfWJ
-07FGD9o7LApSa6Xqp+mpOxzzRaellpGGX9Bylbu/cQNgHopAZ/BGw7OhKWyF7Z//
-DIxT8EffRDgm//lnIS/YlrwaxVFQX5csOSgCJRr0dgIAI3eKUY/F8uGnhgZhlxyg
-xLJHruNdvdpeU0j6xfsEnBJbfqVxLRUzhVEXN6cgjU7mgGBVKLVV4ZLUCBSqlaZJ
-8EpofbNirHWF1HnIFo5IIVSN0EWHlii/g/hqvqh6CT2F2vIQzYrZBRsQBIhjfwa2
-J/Afqxhqcjx4TjLqUokliG1RjBQDOkj+evTxyrAy4ZpIBVXX3LBnkX1mb886pHka
-fWhhaiH76iazeQKLto/lEsXbZfWArN2EBvDI5fe4kD0PAmt9ieBbx4fB6WiV3Osc
-CUMqSNSZA8qfyRtgvUVLc8fRL9fbiWUP+/7eFrmpHPESd3TZwUPCPcCz1/ztk64A
-2ILj8yNImkuzE0O/p9yF9t34z5hEwQi8QjMh+4HZr/XzSRmDuf2ncRXwg0OJW/5t
-d8fQl8iuQxd4MJtBp0rLdAgpDSpBIhaMdzkpekHjvBVk0aZJjd4RWPNhBFFeM0IH
-emGCOvB9+M6P3EY5ghhf
-=uIUw
+iQIcBAEBAgAGBQJRsqOWAAoJEGe9xj410/4dVTkP/2RecDCO3TRm9D1/hSeWqeIu
+S7cgpHr57Sr2CrLZXNPJakRJ6lGRTZmEGNBIM+BDYlvpLyUfaw5GJ5YeUH56S/5f
++iZCrNORqIwEAJWBXh3jUBZ8J86EKtsKIQlQ25/ExRWSQbJa0ux9AYLx0fml/ccn
+90Kau0j45Y+X5144nDJ7ljvcEVkiyfBiuYTRClPVIlOX0Lu/9tFddxev5zbz2ZL/
+WXkE4oQZY9/5uaCnPIQhLeFuDiw92B5Dvz3m75exde6w15M/9968yCRlx2VZH3Rh
+BG29zOpGGrN1QphacSAPBi7oDPADpepMnjK7A+vHCW2hECHBHvdmK61bOSyv11UE
+3D/0zU6janFpQ4d5HTdG00bCIdZA4omnD2U2WAIE2yseBaAg5giEgVN8Pydr3Die
++QrCCiF3MBaks1IC7r+ORrp2tVGPVHb9cNSONeDWZtBiTsUuLLIV1B3gjFM7W5Q9
+//S1uWmGlphedrdFS/2Q6orkAnYPDYH4p4TgrGvyk+iaSHPJUZpkdKSYWQp40lC9
+jMCv8QdU12XmvKaIUSEduUYzl2ztIKd17jQIkTyI7/g0EK/30ocXCCHl5msPQ9fn
+wFoKVg/sYgTEv7Sl15tFi/qNPYinSpH3Q716JqmvVrWfPD1vGvmX9g5F+AtBESEe
+WKq8Ll5kJAEfhqMz/co5
+=94G7
 -----END PGP SIGNATURE-----
