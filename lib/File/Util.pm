@@ -6,7 +6,7 @@ use lib 'lib';
 
 package File::Util;
 {
-  $File::Util::VERSION = '4.131591';
+  $File::Util::VERSION = '4.132140';
 }
 
 use File::Util::Definitions qw( :all );
@@ -336,6 +336,9 @@ sub list_dir {
       ( $subdirs, $files ) =
          _list_dir_matching( $opts, $dir, $subdirs, $files );
    }
+
+   $subdirs = ref $subdirs && @$subdirs ? $subdirs : [];
+   $files   = ref $files   && @$files   ? $files   : [];
 
    # prepend full path information to each file name if paths were
    # requested, or if we are recursing.  Then separate the directories
@@ -2853,7 +2856,7 @@ File::Util - Easy, versatile, portable file handling
 
 =head1 VERSION
 
-version 4.131591
+version 4.132140
 
 =head1 DESCRIPTION
 

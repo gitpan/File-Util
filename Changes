@@ -1,5 +1,14 @@
 Revision history for Perl extension File::Util.pm
 
+4.132140 Fri Aug  2 11:38:57 CDT 2013
+
+ - Fixes RT bug #86963 wherein a call to list_dir() would previously
+   fail under certain circumstances.
+
+   This is a high-priority fix with no security-related implications.
+
+   See also https://rt.cpan.org/Public/Bug/Display.html?id=86963
+
 4.131591 Fri Jun  7 22:19:05 CDT 2013
 
  - POD (documentation) corrections.

@@ -11,7 +11,7 @@ File::Util::Manual::Examples - File::Util Examples
 
 =head1 VERSION
 
-version 4.131591
+version 4.132140
 
 =head1 INTRODUCTION
 

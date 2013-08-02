@@ -52,12 +52,12 @@ lib
 File
 Util
 Interface
-Classic
+Modern
 Definitions
 Cookbook
 Exception
 Diagnostic
+Standard
+Classic
 Manual
 Examples
-Modern
-Standard

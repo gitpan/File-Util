@@ -79,43 +79,43 @@
    "provides" : {
       "File::Util" : {
          "file" : "lib/File/Util.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Cookbook" : {
          "file" : "lib/File/Util/Cookbook.pod",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Definitions" : {
          "file" : "lib/File/Util/Definitions.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Exception" : {
          "file" : "lib/File/Util/Exception.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Exception::Diagnostic" : {
          "file" : "lib/File/Util/Exception/Diagnostic.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Exception::Standard" : {
          "file" : "lib/File/Util/Exception/Standard.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Interface::Classic" : {
          "file" : "lib/File/Util/Interface/Classic.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Interface::Modern" : {
          "file" : "lib/File/Util/Interface/Modern.pm",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Manual" : {
          "file" : "lib/File/Util/Manual.pod",
-         "version" : "4.131591"
+         "version" : "4.132140"
       },
       "File::Util::Manual::Examples" : {
          "file" : "lib/File/Util/Manual/Examples.pod",
-         "version" : "4.131591"
+         "version" : "4.132140"
       }
    },
    "release_status" : "stable",
@@ -131,7 +131,7 @@
          "web" : "https://github.com/tommybutler/file-util"
       }
    },
-   "version" : "4.131591",
+   "version" : "4.132140",
    "x_Dist_Zilla" : {
       "perl" : {
          "version" : "5.017010"
@@ -268,9 +268,24 @@
             "version" : "0.05"
          },
          {
-            "class" : "Dist::Zilla::Plugin::Test::CPAN::Meta::JSON",
-            "name" : "@TestingMania/Test::CPAN::Meta::JSON",
-            "version" : "0.003"
+            "class" : "Dist::Zilla::Plugin::PodSyntaxTests",
+            "name" : "@TestingMania/PodSyntaxTests",
+            "version" : "4.300034"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::NoTabsTests",
+            "name" : "@TestingMania/NoTabsTests",
+            "version" : "0.01"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Test::CPAN::Changes",
+            "name" : "@TestingMania/Test::CPAN::Changes",
+            "version" : "0.008"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::MetaTests",
+            "name" : "@TestingMania/MetaTests",
+            "version" : "4.300034"
          },
          {
             "class" : "Dist::Zilla::Plugin::Test::Compile",
@@ -283,29 +298,9 @@
             "version" : "0.002004"
          },
          {
-            "class" : "Dist::Zilla::Plugin::PodCoverageTests",
-            "name" : "@TestingMania/PodCoverageTests",
-            "version" : "4.300034"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Test::CPAN::Changes",
-            "name" : "@TestingMania/Test::CPAN::Changes",
-            "version" : "0.008"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Test::DistManifest",
-            "name" : "@TestingMania/Test::DistManifest",
-            "version" : "2.000003"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::PodSyntaxTests",
-            "name" : "@TestingMania/PodSyntaxTests",
-            "version" : "4.300034"
-         },
-         {
-            "class" : "Dist::Zilla::Plugin::Test::Synopsis",
-            "name" : "@TestingMania/Test::Synopsis",
-            "version" : "2.000003"
+            "class" : "Dist::Zilla::Plugin::Test::Perl::Critic",
+            "name" : "@TestingMania/Test::Perl::Critic",
+            "version" : "2.112410"
          },
          {
             "class" : "Dist::Zilla::Plugin::Test::UnusedVars",
@@ -318,14 +313,19 @@
             "version" : "0.5"
          },
          {
-            "class" : "Dist::Zilla::Plugin::NoTabsTests",
-            "name" : "@TestingMania/NoTabsTests",
-            "version" : "0.01"
+            "class" : "Dist::Zilla::Plugin::Test::DistManifest",
+            "name" : "@TestingMania/Test::DistManifest",
+            "version" : "2.000003"
          },
          {
-            "class" : "Dist::Zilla::Plugin::MetaTests",
-            "name" : "@TestingMania/MetaTests",
-            "version" : "4.300034"
+            "class" : "Dist::Zilla::Plugin::Test::CPAN::Meta::JSON",
+            "name" : "@TestingMania/Test::CPAN::Meta::JSON",
+            "version" : "0.003"
+         },
+         {
+            "class" : "Dist::Zilla::Plugin::Test::Synopsis",
+            "name" : "@TestingMania/Test::Synopsis",
+            "version" : "2.000003"
          },
          {
             "class" : "Dist::Zilla::Plugin::Test::Kwalitee",
@@ -333,9 +333,9 @@
             "version" : "2.03"
          },
          {
-            "class" : "Dist::Zilla::Plugin::Test::Perl::Critic",
-            "name" : "@TestingMania/Test::Perl::Critic",
-            "version" : "2.112410"
+            "class" : "Dist::Zilla::Plugin::PodCoverageTests",
+            "name" : "@TestingMania/PodCoverageTests",
+            "version" : "4.300034"
          },
          {
             "class" : "Dist::Zilla::Plugin::Test::PodSpelling",

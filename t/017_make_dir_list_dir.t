@@ -7,7 +7,7 @@ use warnings;
 # very well test list_dir() unless you have a good directory tree first;
 # this led to the combining of the make_dir and list_dir testing routines
 
-use Test::More tests => 25;
+use Test::More tests => 26;
 use Test::NoWarnings;
 
 use Cwd;
@@ -123,6 +123,30 @@ is_deeply
    [ sort { uc $a cmp uc $b } @cbstack ],
    [ sort { uc $a cmp uc $b } @list_as_lines ],
    'compare recursive listing to recursive callback return';
+
+
+# setup test dir with no subdirs
+{
+   my $tempdir = tempdir( CLEANUP => 1 );
+   my $ftl     = File::Util->new( );
+
+   $ftl->touch( $tempdir . SL . 'batman.robin' );
+   $ftl->touch( $tempdir . SL . 'superman.lex' );
+
+   is_deeply
+      [
+         $ftl->list_dir(
+            $tempdir => {
+               files_only  => 1,
+               no_fsdots   => 1,
+               files_match => qr/\.robin|lex$/,
+            }
+         )
+      ],
+      [ 'batman.robin', 'superman.lex' ],
+      'regression test ensuring list_dir on dir with no subdirs is error free';
+}
+
 
 SKIP: {
 

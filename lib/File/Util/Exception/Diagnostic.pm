@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Diagnostic;
 {
-  $File::Util::Exception::Diagnostic::VERSION = '4.131591';
+  $File::Util::Exception::Diagnostic::VERSION = '4.132140';
 }
 
 # ABSTRACT: Diagnostic (verbose) error messages
@@ -625,7 +625,7 @@ File::Util::Exception::Diagnostic - Diagnostic (verbose) error messages
 
 =head1 VERSION
 
-version 4.131591
+version 4.132140
 
 =head1 DESCRIPTION
 

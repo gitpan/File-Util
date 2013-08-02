@@ -5,7 +5,7 @@ use lib 'lib';
 
 package File::Util::Exception::Standard;
 {
-  $File::Util::Exception::Standard::VERSION = '4.131591';
+  $File::Util::Exception::Standard::VERSION = '4.132140';
 }
 
 # ABSTRACT: Standard (non-verbose) error messages
@@ -273,7 +273,7 @@ File::Util::Exception::Standard - Standard (non-verbose) error messages
 
 =head1 VERSION
 
-version 4.131591
+version 4.132140
 
 =head1 DESCRIPTION
 
